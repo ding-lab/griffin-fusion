@@ -11,11 +11,12 @@ for gene in gene_list_file:
   gene_list.append(gene.strip())
 gene_list_file.close()
 
-output_file=open(sys.argv[3],'w')
-outlier_levels=int(sys.argv[4])
-input_file_header=sys.argv[5]
-gene_column=int(sys.argv[6])
-expr_column=int(sys.argv[7])
+sample_of_interest=sys.argv[3]
+output_file=open(sys.argv[4],'w')
+outlier_levels=int(sys.argv[5])
+input_file_header=sys.argv[6]
+gene_column=int(sys.argv[7])
+expr_column=int(sys.argv[8])
 
 gene_dict = {}
 for gene in gene_list:
@@ -53,6 +54,10 @@ for line in input_files:
   sample_file.close()
 input_files.close()
 
+#check that sample of interest appears in input files
+if not sample_of_interest in sample_list:
+  sys.exit("Sample of interest not found in list of input files")
+
 for gene in gene_list:
   if gene in gene_dict:
     expr_values = gene_dict[gene][0]
@@ -84,21 +89,21 @@ for gene in gene_list:
       gene_dict[gene][5] = underexpression_outlier_level_list
 
 output_file.write( '\t'.join(['gene','sample','expression_level','percentile','boxcox_z', 'boxcox_l','boxcox_cdf'])+'\t'+'\t'.join(['overexpression'+str(x) for x in range(1,outlier_levels+1)])+'\t'+'\t'.join(['underexpression'+str(x) for x in range(1,outlier_levels+1)])+'\n')
-for sample_number in range(len(sample_list)):
-  for gene in sorted(gene_dict.keys()):
-    gene_na = all([x == "NA" for x in gene_dict[gene][0]])
-    expr = gene_dict[gene][0][sample_number]
-    if gene_na:
-      pct = "NA"
-    else:
-      pct = float( [ x <= expr for x in gene_dict[gene][0] ].count(True) )/len(sample_list)
-    output_list = [gene, sample_list[sample_number], str(expr), str(pct), str(gene_dict[gene][1][sample_number]), str(gene_dict[gene][2]), str(gene_dict[gene][3][sample_number])]
-    if gene_na:
-      output_list.extend(["NA"]*outlier_levels*2)
-    else:
-      for i in range(outlier_levels):
-        output_list.append(str(int(expr > gene_dict[gene][4][i])))
-      for i in range(outlier_levels):
-        output_list.append(str(int(expr < gene_dict[gene][5][i])))
-    output_file.write('\t'.join(output_list)+'\n')
+sample_number=sample_list.index(sample_of_interest)
+for gene in sorted(gene_dict.keys()):
+  gene_na = all([x == "NA" for x in gene_dict[gene][0]])
+  expr = gene_dict[gene][0][sample_number]
+  if gene_na:
+    pct = "NA"
+  else:
+    pct = float( [ x <= expr for x in gene_dict[gene][0] ].count(True) )/len(sample_list)
+  output_list = [gene, sample_list[sample_number], str(expr), str(pct), str(gene_dict[gene][1][sample_number]), str(gene_dict[gene][2]), str(gene_dict[gene][3][sample_number])]
+  if gene_na:
+    output_list.extend(["NA"]*outlier_levels*2)
+  else:
+    for i in range(outlier_levels):
+      output_list.append(str(int(expr > gene_dict[gene][4][i])))
+    for i in range(outlier_levels):
+      output_list.append(str(int(expr < gene_dict[gene][5][i])))
+  output_file.write('\t'.join(output_list)+'\n')
 output_file.close()
