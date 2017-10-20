@@ -19,6 +19,7 @@ def fix_ighl(gene):
 
 def parse_fusion_file(fusion_file_path, fusion_tool):
   fusion_file = open(fusion_file_path, 'r')
+  fusion_dict = {}
   if fusion_tool == "star-fusion":
     fusion_file.readline() #skip the header
     for line in fusion_file:
@@ -28,9 +29,9 @@ def parse_fusion_file(fusion_file_path, fusion_tool):
       g1 = fix_ighl(geneA)
       g2 = fix_ighl(geneB)
       if g1 not in fusion_dict:
-        fusion_dict[g1] = [[]*10]
+        fusion_dict[g1] = [ [] for x in range(10) ]
       if g2 not in fusion_dict:
-        fusion_dict[g2] = [[]*10]
+        fusion_dict[g2] = [ [] for x in range(10) ]
       if g1 in fusion_dict:
         fusion_dict[g1][0].append(geneA)
         fusion_dict[g1][1].append(geneB)
@@ -65,19 +66,12 @@ gene_list_file=open(sys.argv[3],'r')
 fusion_tool=sys.argv[4]
 fusion_file_path=sys.argv[5]
 
-for line in input_files:
-  line = line.strip().split()
-  sample_list.append(line[0])
-  tool_list.append(line[1])
-  fusion_file_list.append(line[2])
-input_files.close()
-
 gene_list=[]
 for gene in gene_list_file:
   gene_list.append(gene.strip())
 gene_list_file.close()
 
-fusion_dict = parse_fusion_file(fusion_file_path, fusion_tool, gene_list)
+fusion_dict = parse_fusion_file(fusion_file_path, fusion_tool)
 fusion_outlier_file = open(fusion_outlier_file_path, 'w')
 outlier_file = open(outlier_file_path, 'r')
 line = outlier_file.readline()
@@ -87,12 +81,13 @@ fusion_outlier_file.write('\t'.join(line)+'\n')
 for line in outlier_file:
   line = line.strip().split()
   line.append(fusion_tool)
-  gene = ighl_fix(line[0])
+  gene = fix_ighl(line[0])
   if gene in fusion_dict:
     for element in fusion_dict[gene]:
       line.append(';'.join(element))
   else:
-    line.extend([fusion_tool].extend(["NA"]*10)
+    line.append(fusion_tool)
+    line.extend(["NA"]*10)
   fusion_outlier_file.write('\t'.join(line)+'\n')
 
 outlier_file.close()
