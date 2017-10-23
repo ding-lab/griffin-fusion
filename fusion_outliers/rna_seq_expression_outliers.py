@@ -13,9 +13,20 @@ gene_list_file.close()
 sample_of_interest=sys.argv[3]
 output_file=open(sys.argv[4],'w')
 outlier_levels=int(sys.argv[5])
-input_file_header=sys.argv[6]
+if sys.argv[6] == "True":
+  input_file_header = True
+elif sys.argv[6] == "False":
+  input_file_header = False
+else:
+  sys.exit("Input file header argument must be True or False.")
 gene_column=int(sys.argv[7])
 expr_column=int(sys.argv[8])
+if sys.argv[9] == "True":
+  log10_transform = True
+elif sys.argv[9] == "False":
+  log10_transform = False
+else:
+  sys.exit("log10 tranformation argument must be True or False.")
 
 gene_dict = {}
 for gene in gene_list:
@@ -40,7 +51,10 @@ for line in input_files:
     for sline in sample_file:
       sline = sline.strip().split()
       gene = sline[gene_column]
-      expr = sline[expr_column]
+      if log10_transform:
+        expr = float(np.log10(float(sline[expr_column])+1))
+      else:
+        expr = float(sline[expr_column])
       if gene in sample_dict:
         sys.exit("Gene "+gene+" appears at least twice in sample "+sample+" input file.")
       else:
