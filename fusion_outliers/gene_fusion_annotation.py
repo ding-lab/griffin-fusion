@@ -86,7 +86,6 @@ for line in outlier_file:
     for element in fusion_dict[gene]:
       line.append(';'.join(element))
   else:
-    line.append(fusion_tool)
     line.extend(["NA"]*10)
   fusion_outlier_file.write('\t'.join(line)+'\n')
 
