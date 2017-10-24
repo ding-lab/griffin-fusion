@@ -1,4 +1,4 @@
-import sys
+import sys, os
 
 def fix_ighl(gene):
   #From the file given by STAR-Fusion: gtf=~/GRCh37_gencode_v19_CTAT_lib_July192017/ctat_genome_lib_build_dir/ref_annot.gtf
