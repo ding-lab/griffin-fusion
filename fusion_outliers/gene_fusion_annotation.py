@@ -18,46 +18,47 @@ def fix_ighl(gene):
   return(g)
 
 def parse_fusion_file(fusion_file_path, fusion_tool):
-  fusion_file = open(fusion_file_path, 'r')
   fusion_dict = {}
-  if fusion_tool == "star-fusion":
-    fusion_file.readline() #skip the header
-    for line in fusion_file:
-      line = line.strip().split('\t')
-      FusionName, JunctionReadCount, SpanningFragCount, SpliceType, LeftGene, LeftBreakpoint, RightGene, RightBreakpoint = line[0:8]
-      geneA, geneB = FusionName.split("--")
-      g1 = fix_ighl(geneA)
-      g2 = fix_ighl(geneB)
-      if g1 not in fusion_dict:
-        fusion_dict[g1] = [ [] for x in range(10) ]
-      if g2 not in fusion_dict:
-        fusion_dict[g2] = [ [] for x in range(10) ]
-      if g1 in fusion_dict:
-        fusion_dict[g1][0].append(geneA)
-        fusion_dict[g1][1].append(geneB)
-        fusion_dict[g1][2].append(FusionName)
-        fusion_dict[g1][3].append(JunctionReadCount)
-        fusion_dict[g1][4].append(SpanningFragCount)
-        fusion_dict[g1][5].append(LeftGene)
-        fusion_dict[g1][6].append(LeftBreakpoint)
-        fusion_dict[g1][7].append(RightGene)
-        fusion_dict[g1][8].append(RightBreakpoint)
-        fusion_dict[g1][9].append('#'.join(line))
-      if g2 in fusion_dict:
-        fusion_dict[g2][0].append(geneA)
-        fusion_dict[g2][1].append(geneB)
-        fusion_dict[g2][2].append(FusionName)
-        fusion_dict[g2][3].append(JunctionReadCount)
-        fusion_dict[g2][4].append(SpanningFragCount)
-        fusion_dict[g2][5].append(LeftGene)
-        fusion_dict[g2][6].append(LeftBreakpoint)
-        fusion_dict[g2][7].append(RightGene)
-        fusion_dict[g2][8].append(RightBreakpoint)
-        fusion_dict[g2][9].append('#'.join(line))
-  else:
+  if os.path.isfile(fusion_file_path):
+    fusion_file = open(fusion_file_path, 'r')
+    if fusion_tool == "star-fusion":
+      fusion_file.readline() #skip the header
+      for line in fusion_file:
+        line = line.strip().split('\t')
+        FusionName, JunctionReadCount, SpanningFragCount, SpliceType, LeftGene, LeftBreakpoint, RightGene, RightBreakpoint = line[0:8]
+        geneA, geneB = FusionName.split("--")
+        g1 = fix_ighl(geneA)
+        g2 = fix_ighl(geneB)
+        if g1 not in fusion_dict:
+          fusion_dict[g1] = [ [] for x in range(10) ]
+        if g2 not in fusion_dict:
+          fusion_dict[g2] = [ [] for x in range(10) ]
+        if g1 in fusion_dict:
+          fusion_dict[g1][0].append(geneA)
+          fusion_dict[g1][1].append(geneB)
+          fusion_dict[g1][2].append(FusionName)
+          fusion_dict[g1][3].append(JunctionReadCount)
+          fusion_dict[g1][4].append(SpanningFragCount)
+          fusion_dict[g1][5].append(LeftGene)
+          fusion_dict[g1][6].append(LeftBreakpoint)
+          fusion_dict[g1][7].append(RightGene)
+          fusion_dict[g1][8].append(RightBreakpoint)
+          fusion_dict[g1][9].append('#'.join(line))
+        if g2 in fusion_dict:
+          fusion_dict[g2][0].append(geneA)
+          fusion_dict[g2][1].append(geneB)
+          fusion_dict[g2][2].append(FusionName)
+          fusion_dict[g2][3].append(JunctionReadCount)
+          fusion_dict[g2][4].append(SpanningFragCount)
+          fusion_dict[g2][5].append(LeftGene)
+          fusion_dict[g2][6].append(LeftBreakpoint)
+          fusion_dict[g2][7].append(RightGene)
+          fusion_dict[g2][8].append(RightBreakpoint)
+          fusion_dict[g2][9].append('#'.join(line))
+    else: 
+      fusion_file.close()
+      sys.exit("Fusion tool "+tool+" not yet supported.")
     fusion_file.close()
-    sys.exit("Fusion tool "+tool+" not yet supported.")
-  fusion_file.close()
   return(fusion_dict)
 
 outlier_file_path=sys.argv[1]
@@ -80,13 +81,16 @@ line.extend(['fusion_tool','geneA','geneB','fusion','junction_read_count','spann
 fusion_outlier_file.write('\t'.join(line)+'\n')
 for line in outlier_file:
   line = line.strip().split()
-  line.append(fusion_tool)
-  gene = fix_ighl(line[0])
-  if gene in fusion_dict:
-    for element in fusion_dict[gene]:
-      line.append(';'.join(element))
+  if len(fusion_dict) == 0:
+    line.extend(["Fusion_file_NA"]*11)
   else:
-    line.extend(["NA"]*10)
+    line.append(fusion_tool)
+    gene = fix_ighl(line[0])
+    if gene in fusion_dict:
+      for element in fusion_dict[gene]:
+        line.append(';'.join(element))
+    else:
+      line.extend(["None"]*10)
   fusion_outlier_file.write('\t'.join(line)+'\n')
 
 outlier_file.close()
