@@ -11,10 +11,10 @@ ylabel <- args[5]
 fusion_status <- factor((df$fusion_info == "None") + 2*(df$fusion_info == "Fusion_file_NA"))
 levels(fusion_status) <- c("Fusion", "None", "NA")
 
-pval <- t.test(df$expression_level[fusion_status=="Fusion"], df$expression_level[fusion_status=="None"])$p.value
-if(pval < 0.0005){
-  small_pval <- "p < 0.0005"
-}
+#pval <- t.test(df$expression_level[fusion_status=="Fusion"], df$expression_level[fusion_status=="None"])$p.value
+#if(pval < 0.0005){
+#  small_pval <- "p < 0.0005"
+#}
 
 alpha_level <- df[,outlier_level]/2 + 0.5
 plot_df <- data.frame(df[,c("gene","expression_level",outlier_level)], fusion_status=fusion_status, alpha_level=alpha_level)
@@ -30,11 +30,11 @@ p <- p + theme_bw(base_size=20)
 p <- p + scale_color_brewer(palette="Set1")
 p <- p + labs(x="Fusion Status", y=ylabel, title=title)
 p <- p + guides(color=FALSE, alpha=FALSE)
-if(pval < 0.0005){
-  p <- p + annotate("text", x=1,y=0,hjust=0.5,vjust=-0.2,label=small_pval)
-} else {
-  p <- p + annotate("text", x=1,y=0,hjust=0.5,vjust=-0.2,label=paste0("p = ", sprintf("%.3f",round(pval,3))))
-}
+#if(pval < 0.0005){
+#  p <- p + annotate("text", x=1,y=0,hjust=0.5,vjust=-0.2,label=small_pval)
+#} else {
+#  p <- p + annotate("text", x=1,y=0,hjust=0.5,vjust=-0.2,label=paste0("p = ", sprintf("%.3f",round(pval,3))))
+#}
 
 pdf(plot_file, 10, 10)
 p
