@@ -1,5 +1,9 @@
 import sys
+import math
 from scipy import stats
+
+import warnings
+warnings.simplefilter('error')
 
 input_files = open(sys.argv[1],'r')
 outlier_level = sys.argv[2]
@@ -20,15 +24,14 @@ for i in range(n_samples):
     line = line.strip().split()
     gene = line[0]
     expr = float(line[2])
-    outlier = line[outlier_index]
+    outlier = int(line[outlier_index])
     fusion = line[fusion_index]
     if gene not in gene_dict:
-      gene_dict[gene] = [[None]*n_samples, [None]*n_samples, [None]*n_samples, False, False]
+      gene_dict[gene] = [[None]*n_samples, [None]*n_samples, [None]*n_samples, None, None, None, None]
     gene_dict[gene][0][i] = expr
     gene_dict[gene][1][i] = outlier
     gene_dict[gene][2][i] = fusion
   file.close()
-
 
 for k,v in gene_dict.items():
   #t-test expression levels between fusion groups
@@ -41,7 +44,13 @@ for k,v in gene_dict.items():
       pass
     else:
       fusion_exp.append(a)
-  t, gene_dict[k][3] = scipy.stats.ttest_ind(fusion_exp, nonfusion_exp, equal_var=False)
+  if len(fusion_exp) < 2 or len(nonfusion_exp) < 2:
+    t, gene_dict[k][3] = [float('NaN'), float('NaN')]
+    mwu, gene_dict[k][4] = [float('NaN'), float('NaN')]
+  else:
+    t, gene_dict[k][3] = stats.ttest_ind(fusion_exp, nonfusion_exp, axis=0, equal_var=False)
+    #Mann-Whitney U test
+    mwu, gene_dict[k][4] = stats.mannwhitneyu(fusion_exp, nonfusion_exp, alternative='two-sided')
   #non-parametric test outlier status and fusion status
   fus_out, fus_notout, notfus_out, notfus_notout = [0]*4
   for a,b in zip(v[1],v[2]):
@@ -53,13 +62,14 @@ for k,v in gene_dict.items():
       fus_notout += 1
     elif a == 1 and b != "Fusion_file_NA":
       fus_out += 1
-  oddsratio, gene_dict[k][4] = scipy.stats.fisher_exact([[notfus_notout,notfus_out],[fus_notout,fus_out]])
+  oddsratio, gene_dict[k][5] = stats.fisher_exact([[notfus_notout,notfus_out],[fus_notout,fus_out]])
+  gene_dict[k][6] = fus_out
 
 sig_genes = []
 for k,v in gene_dict.items():
-  if v[3] < 0.05 or v[4] < 0.05:
+  if (not math.isnan(v[3]) and v[3] < 0.05) or (not math.isnan(v[4]) and v[4] < 0.05) or (v[5] < 0.05 and gene_dict[k][6] > 0):
     sig_genes.append(k)
 
 for gene in sorted(sig_genes):
-  print('\t'.join([gene, str(gene_dict[gene][3]), str(gene_dict[gene][4])]))
+  print('\t'.join([gene, str(gene_dict[gene][3]), str(gene_dict[gene][4]), str(gene_dict[gene][5]), str(gene_dict[gene][6])]))
 
