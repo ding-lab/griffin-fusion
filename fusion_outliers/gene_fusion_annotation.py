@@ -18,8 +18,10 @@ def fix_ighl(gene):
   return(g)
 
 def parse_fusion_file(fusion_file_path, fusion_tool):
-  fusion_dict = {}
-  if os.path.isfile(fusion_file_path):
+  if not os.path.isfile(fusion_file_path):
+    fusion_dict = None
+  else:
+    fusion_dict = {}
     fusion_file = open(fusion_file_path, 'r')
     if fusion_tool == "star-fusion":
       fusion_file.readline() #skip the header
@@ -81,7 +83,7 @@ line.extend(['fusion_tool','geneA','geneB','fusion','junction_read_count','spann
 fusion_outlier_file.write('\t'.join(line)+'\n')
 for line in outlier_file:
   line = line.strip().split()
-  if len(fusion_dict) == 0:
+  if fusion_dict is None:
     line.extend(["Fusion_file_NA"]*11)
   else:
     line.append(fusion_tool)
@@ -90,7 +92,7 @@ for line in outlier_file:
       for element in fusion_dict[gene]:
         line.append(';'.join(element))
     else:
-      line.extend(["None"]*10)
+      line.extend(["None_reported"]*10)
   fusion_outlier_file.write('\t'.join(line)+'\n')
 
 outlier_file.close()
