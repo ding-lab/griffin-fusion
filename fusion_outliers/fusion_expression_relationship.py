@@ -23,14 +23,17 @@ for i in range(n_samples):
   for line in file:
     line = line.strip().split()
     gene = line[0]
-    expr = float(line[2])
-    outlier = int(line[outlier_index])
-    fusion = line[fusion_index]
-    if gene not in gene_dict:
-      gene_dict[gene] = [[None]*n_samples, [None]*n_samples, [None]*n_samples, None, None, None, None]
-    gene_dict[gene][0][i] = expr
-    gene_dict[gene][1][i] = outlier
-    gene_dict[gene][2][i] = fusion
+    if line[2] == "NA":
+      pass
+    else:
+      expr = float(line[2])
+      outlier = int(line[outlier_index])
+      fusion = line[fusion_index]
+      if gene not in gene_dict:
+        gene_dict[gene] = [[None]*n_samples, [None]*n_samples, [None]*n_samples, None, None, None, None]
+      gene_dict[gene][0][i] = expr
+      gene_dict[gene][1][i] = outlier
+      gene_dict[gene][2][i] = fusion
   file.close()
 
 for k,v in gene_dict.items():
