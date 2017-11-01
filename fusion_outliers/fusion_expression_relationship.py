@@ -41,7 +41,7 @@ for k,v in gene_dict.items():
   fusion_exp = []
   nonfusion_exp = []
   for a,b in zip(v[0], v[2]):
-    if b == "None":
+    if b == "None_reported":
       nonfusion_exp.append(a)
     elif b == "Fusion_file_NA":
       pass
@@ -57,9 +57,9 @@ for k,v in gene_dict.items():
   #non-parametric test outlier status and fusion status
   fus_out, fus_notout, notfus_out, notfus_notout = [0]*4
   for a,b in zip(v[1],v[2]):
-    if a == 0 and b == "None":
+    if a == 0 and b == "None_reported":
       notfus_notout += 1
-    elif a == 1 and b == "None":
+    elif a == 1 and b == "None_reported":
       notfus_out += 1
     elif a == 0 and b != "Fusion_file_NA":
       fus_notout += 1

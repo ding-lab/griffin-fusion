@@ -8,10 +8,10 @@ plot_file <- args[3]
 title <- args[4]
 ylabel <- args[5]
 
-fusion_status <- factor((df$fusion_info == "None") + 2*(df$fusion_info == "Fusion_file_NA"))
-levels(fusion_status) <- c("Fusion", "None", "NA")
+fusion_status <- factor((df$fusion_info == "None_reported") + 2*(df$fusion_info == "Fusion_file_NA"))
+levels(fusion_status) <- c("Fusion", "None_reported", "NA")
 
-#pval <- t.test(df$expression_level[fusion_status=="Fusion"], df$expression_level[fusion_status=="None"])$p.value
+#pval <- t.test(df$expression_level[fusion_status=="Fusion"], df$expression_level[fusion_status=="None_reported"])$p.value
 #if(pval < 0.0005){
 #  small_pval <- "p < 0.0005"
 #}
