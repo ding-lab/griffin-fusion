@@ -127,7 +127,7 @@ for gene in sorted(gene_dict.keys()):
     underfisher = v[7]
     print_gene=True
   #Fusion percentile
-  if not math.isnan(v[12]) and (v[12] >= 0.90 or v[12] <= 0.10) and len(v[11]) > 2:
+  if not math.isnan(v[12]) and (v[12] >= 0.90 or v[12] <= 0.10) and len(fus_pct) > 2:
     fusionpct = v[12]
     print_gene=True
 
