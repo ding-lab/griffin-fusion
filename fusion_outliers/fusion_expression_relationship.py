@@ -35,12 +35,12 @@ for i in range(n_samples):
       over_outlier = int(line[over_outlier_index])
       under_outlier = int(line[under_outlier_index])
       fusion = line[fusion_index]
-      pct = line[percentile_index]
+      pct = float(line[percentile_index])
       if gene not in gene_dict:
         #gene_dict[gene] = [ 0.expression , 1.overexpression, 2.underexpression, 3.fusion, 4.t-test, 5.mann-whitney-u, 
         #                    6.fishers exact over, 7.fishers exact under, 8.num fusion over outliers, 9.num fusion under outliers, 10.total samples with fusion data
         #                    11. percentiles, 12. fusion percentile median ]
-        gene_dict[gene] = [[None]*n_samples, [None]*n_samples, [None]*n_samples, [None]*n_samples, None, None, None, None, None, None, None, [None]*n_samples]
+        gene_dict[gene] = [[None]*n_samples, [None]*n_samples, [None]*n_samples, [None]*n_samples, None, None, None, None, None, None, None, [None]*n_samples, None]
       gene_dict[gene][0][i] = expr
       gene_dict[gene][1][i] = over_outlier
       gene_dict[gene][2][i] = under_outlier
@@ -100,10 +100,13 @@ for k,v in gene_dict.items():
       pass
     elif a != "Fusion_file_NA":
       fus_pct.append(b)
-  gene_dict[k][12] = float(np.median(fus_pct))
- 
+  if not fus_pct == []:
+    gene_dict[k][12] = float(np.median(fus_pct))
+  else:
+    gene_dict[k][12] = float('NaN')
+
 multiple_test_corrected_pvalue = 0.05/len(gene_dict.keys())
-for gene in sorted(sig_genes):
+for gene in sorted(gene_dict.keys()):
   print_gene=False
   v = gene_dict[gene]
   ttest, mwutest, overfisher, underfisher, fusionpct = ["NS"]*5
@@ -124,7 +127,7 @@ for gene in sorted(sig_genes):
     underfisher = v[7]
     print_gene=True
   #Fusion percentile
-  if v[12] >= 0.90 or v[12] <= 0.10:
+  if not math.isnan(v[12]) and (v[12] >= 0.90 or v[12] <= 0.10) and len(v[11]) > 2:
     fusionpct = v[12]
     print_gene=True
 
