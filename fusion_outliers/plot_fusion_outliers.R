@@ -21,11 +21,11 @@ for(i in 1:nrow(df)){
     a <- (as.character(df$gene[i]) %in% strsplit(as.character(df$geneA[i]),';')[[1]])
     b <- (as.character(df$gene[i]) %in% strsplit(as.character(df$geneB[i]),';')[[1]])
     if(a & b){
-      five_prime_three_prime[i] <- "Both"
+      five_prime_three_prime[i] <- "5' and 3'"
     } else if(a & !b){
-      five_prime_three_prime[i] <- "5 prime"
+      five_prime_three_prime[i] <- "5' only"
     } else if(!a & b){
-      five_prime_three_prime[i] <- "3 prime"
+      five_prime_three_prime[i] <- "3' only"
     } else{
       exit("Fusion but neither 5' nor 3'")
     }
