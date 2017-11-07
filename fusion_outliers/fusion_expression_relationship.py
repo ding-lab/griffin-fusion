@@ -25,6 +25,8 @@ for i in range(n_samples):
   over_outlier_index = first_line.index("overexpression"+outlier_level)
   under_outlier_index = first_line.index("underexpression"+outlier_level)
   fusion_index = first_line.index("fusion_info")
+  geneA_index = first_line.index("geneA")
+  geneB_index = first_line.index("geneB")
   for line in file:
     line = line.strip().split()
     gene = line[gene_index]
@@ -36,16 +38,29 @@ for i in range(n_samples):
       under_outlier = int(line[under_outlier_index])
       fusion = line[fusion_index]
       pct = float(line[percentile_index])
-      if gene not in gene_dict:
-        #gene_dict[gene] = [ 0.expression , 1.overexpression, 2.underexpression, 3.fusion, 4.t-test, 5.mann-whitney-u, 
-        #                    6.fishers exact over, 7.fishers exact under, 8.num fusion over outliers, 9.num fusion under outliers, 10.total samples with fusion data
-        #                    11. percentiles, 12. fusion percentile median , 13. number of fusions]
-        gene_dict[gene] = [[None]*n_samples, [None]*n_samples, [None]*n_samples, [None]*n_samples, None, None, None, None, None, None, None, [None]*n_samples, None, None]
-      gene_dict[gene][0][i] = expr
-      gene_dict[gene][1][i] = over_outlier
-      gene_dict[gene][2][i] = under_outlier
-      gene_dict[gene][3][i] = fusion
-      gene_dict[gene][11][i] = pct
+      geneA_status = (gene in line[geneA_index].split(";"))
+      geneB_status = (gene in line[geneB_index].split(";"))
+      for gene_AB in [ gene+"__5prime", gene+"__3prime" ]:
+        if gene_AB not in gene_dict:
+          #gene_dict[gene] = [ 0.expression , 1.overexpression, 2.underexpression, 3.fusion, 4.t-test, 5.mann-whitney-u, 
+          #                    6.fishers exact over, 7.fishers exact under, 8.num fusion over outliers, 9.num fusion under outliers, 10.total samples with fusion data
+          #                    11. percentiles, 12. fusion percentile median , 13. number of fusions, 14 15 geneA gene B status]
+          gene_dict[gene_AB] = [[None]*n_samples, [None]*n_samples, [None]*n_samples, [None]*n_samples, None, None, None, None, None, None, None, [None]*n_samples, [None]*n_samples, [None]*n_samples]
+        gene_dict[gene_AB][0][i] = expr
+        gene_dict[gene_AB][1][i] = over_outlier
+        gene_dict[gene_AB][2][i] = under_outlier
+        gene_dict[gene_AB][3][i] = fusion
+        gene_dict[gene_AB][11][i] = pct
+        gene_dict[gene_AB][14][i] = geneA_status
+        gene_dict[gene_AB][15][i] = geneB_status
+        if fusion == "Fusion_file_NA":
+          gene_dict[gene_AB][3][i] = fusion
+        elif gene_AB.endswith("__5prime") and geneA_status:
+          gene_dict[gene_AB][3][i] = fusion
+        elif gene_AB.endswith("__3prime") and geneB_status:
+          gene_dict[gene_AB][3][i] = fusion
+        else:
+          gene_dict[gene_AB][3][i] = "None_reported"
   file.close()
 
 for k,v in gene_dict.items():
