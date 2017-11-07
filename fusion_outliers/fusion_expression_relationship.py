@@ -45,7 +45,7 @@ for i in range(n_samples):
           #gene_dict[gene] = [ 0.expression , 1.overexpression, 2.underexpression, 3.fusion, 4.t-test, 5.mann-whitney-u, 
           #                    6.fishers exact over, 7.fishers exact under, 8.num fusion over outliers, 9.num fusion under outliers, 10.total samples with fusion data
           #                    11. percentiles, 12. fusion percentile median , 13. number of fusions, 14 15 geneA gene B status]
-          gene_dict[gene_AB] = [[None]*n_samples, [None]*n_samples, [None]*n_samples, [None]*n_samples, None, None, None, None, None, None, None, [None]*n_samples, [None]*n_samples, [None]*n_samples]
+          gene_dict[gene_AB] = [[None]*n_samples, [None]*n_samples, [None]*n_samples, [None]*n_samples, None, None, None, None, None, None, None, [None]*n_samples, [None]*n_samples, [None]*n_samples, [None]*n_samples, [None]*n_samples]
         gene_dict[gene_AB][0][i] = expr
         gene_dict[gene_AB][1][i] = over_outlier
         gene_dict[gene_AB][2][i] = under_outlier
@@ -149,5 +149,5 @@ for gene in sorted(gene_dict.keys()):
 
   n_fusions = v[13]
   if print_gene and n_fusions > 2:
-    print('\t'.join([str(x) for x in [gene, n_fusions, ttest, mwutest, overfisher, underfisher, fusionpct]]))
+    print('\t'.join([str(x) for x in [gene.split("__")[0], gene.split("__")[1], n_fusions, ttest, mwutest, overfisher, underfisher, fusionpct]]))
 
