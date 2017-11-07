@@ -12,14 +12,14 @@ fusion_status <- factor((df$fusion_info == "None_reported") + 2*(df$fusion_info 
 levels(fusion_status) <- c("Fusion", "None_reported", "NA")
 
 five_prime_three_prime <- rep(NA,nrow(df))
-for(i in nrow(df)){
-  if(df$fusion_info[i] == "None_reported"){
+for(i in 1:nrow(df)){
+  if(as.character(df$fusion_info[i]) == "None_reported"){
     five_prime_three_prime[i] <- "None"
-  } else if(df$fusion_info[i] == "Fusion_file_NA"){
+  } else if(as.character(df$fusion_info[i]) == "Fusion_file_NA"){
     five_prime_three_prime[i] <- "NA"
   } else{
-    a <- df$gene[i] %in% strsplit(df$geneA[i],';')[[1]]
-    b <- df$gene[i] %in% strsplit(df$geneB[i],';')[[1]]
+    a <- (as.character(df$gene[i]) %in% strsplit(as.character(df$geneA[i]),';')[[1]])
+    b <- (as.character(df$gene[i]) %in% strsplit(as.character(df$geneB[i]),';')[[1]])
     if(a & b){
       five_prime_three_prime[i] <- "Both"
     } else if(a & !b){
@@ -29,6 +29,7 @@ for(i in nrow(df)){
     } else{
       exit("Fusion but neither 5' nor 3'")
     }
+  }
 }
 
 #pval <- t.test(df$expression_level[fusion_status=="Fusion"], df$expression_level[fusion_status=="None_reported"])$p.value
@@ -43,13 +44,13 @@ library(ggplot2)
 
 set.seed(10)
 p <- ggplot(plot_df, aes(x=fusion_status, y=expression_level, color=five_prime_three_prime)) #color=fusion_status))
-p <- p + geom_violin()
+p <- p + geom_violin(color="black")
 p <- p + geom_jitter(aes(alpha=alpha_level), height=0, width=0.25)
 p <- p + ylim(0, max(df$expression_level))
 p <- p + theme_bw(base_size=20)
 p <- p + scale_color_brewer(palette="Set1")
-p <- p + labs(x="Fusion Status", y=ylabel, title=title)
-p <- p + guides(color=FALSE, alpha=FALSE)
+p <- p + labs(x="Fusion Status", y=ylabel, title=title, color="Fusion")
+p <- p + guides(alpha=FALSE) #, color=FALSE)
 #if(pval < 0.0005){
 #  p <- p + annotate("text", x=1,y=0,hjust=0.5,vjust=-0.2,label=small_pval)
 #} else {
