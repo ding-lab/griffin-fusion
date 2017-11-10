@@ -11,6 +11,8 @@ ylabel <- args[5]
 
 gene_id <- df$gene[1]
 
+df$cnv <- factor(df$cnv)
+
 fusion_status <- factor((df$fusion_info == "None_reported") + 2*(df$fusion_info == "Fusion_file_NA"))
 levels(fusion_status) <- c("Fusion", "None reported", "NA")
 
@@ -48,18 +50,20 @@ set.seed(10)
 
 outlier_status <- apply(df[,c(over_outlier_level, under_outlier_level)], 1, sum)
 alpha_level <- outlier_status/2 + 0.5
-plot_df <- data.frame(df[,c("gene","expression_level")], fusion_status=fusion_status, fusion_status_j=jitter(as.numeric(fusion_status)), alpha_level=alpha_level, five_prime_three_prime, gene_partners=gene_partners)
+plot_df <- data.frame(df[,c("gene","cnv","expression_level")], fusion_status=fusion_status, fusion_status_j=jitter(as.numeric(fusion_status)), alpha_level=alpha_level, five_prime_three_prime, gene_partners=gene_partners)
 
 library(ggplot2)
 library(ggrepel)
 
-p <- ggplot(plot_df, aes(x=fusion_status, y=expression_level, color=five_prime_three_prime))
+#p <- ggplot(plot_df, aes(x=fusion_status, y=expression_level, color=five_prime_three_prime))
+p <- ggplot(plot_df, aes(x=fusion_status, y=expression_level, color=cnv))
 p <- p + geom_violin(color="black")
-p <- p + geom_point(aes(x=fusion_status_j, alpha=alpha_level))
+p <- p + geom_point(data=subset(plot_df, fusion_status != "Fusion"), aes(x=fusion_status_j, alpha=alpha_level))
+p <- p + geom_text(data=subset(plot_df, fusion_status == "Fusion"), aes(x=fusion_status_j, alpha=alpha_level, label=five_prime_three_prime))
 p <- p + geom_text_repel(data=subset(plot_df, fusion_status=="Fusion"), aes(x=fusion_status_j, y=expression_level, label=gene_partners, alpha=alpha_level), show.legend=FALSE)
 p <- p + ylim(0, max(df$expression_level))
 p <- p + theme_bw(base_size=20)
-p <- p + scale_color_brewer(palette="Set1", drop=FALSE, breaks=c("5' and 3'", "5' only", "3' only"))
+p <- p + scale_color_brewer(palette="Set1", drop=FALSE) #, breaks=c("5' and 3'", "5' only", "3' only"))
 p <- p + labs(x="Fusion Status", y=ylabel, title=title, color=paste0(gene_id,"\nPosition"))
 p <- p + guides(alpha=FALSE)
 
