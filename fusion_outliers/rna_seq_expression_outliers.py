@@ -21,6 +21,7 @@ else:
   sys.exit("Input file header argument must be True or False.")
 gene_column=int(sys.argv[7])
 expr_column=int(sys.argv[8])
+cnv_column=int(sys.argv[10])
 if sys.argv[9] == "True":
   log10_transform = True
 elif sys.argv[9] == "False":
@@ -33,7 +34,7 @@ for gene in gene_list:
   if gene in gene_dict:
     next
   else:
-    gene_dict[gene] = [[],None,None]
+    gene_dict[gene] = [[],None,None,[]]
 
 sample_list = []
 
@@ -51,6 +52,7 @@ for line in input_files:
     for sline in sample_file:
       sline = sline.strip().split()
       gene = sline[gene_column]
+      cnv = sline[cnv_column]
       if log10_transform:
         expr = float(np.log10(float(sline[expr_column])+1))
       else:
@@ -58,12 +60,14 @@ for line in input_files:
       if gene in sample_dict:
         sys.exit("Gene "+gene+" appears at least twice in sample "+sample+" input file.")
       else:
-        sample_dict[gene] = float(expr)
+        sample_dict[gene] = [float(expr), cnv]
     for gene in gene_list:
       if gene in sample_dict:
-        gene_dict[gene][0].append(sample_dict[gene])
+        gene_dict[gene][0].append(sample_dict[gene][0])
+        gene_dict[gene][3].append(sample_dict[gene][1])
       else:
         gene_dict[gene][0].append("NA")
+        gene_dict[gene][3].append("NA")
   sample_file.close()
 input_files.close()
 
@@ -89,16 +93,17 @@ for gene in gene_list:
       gene_dict[gene][1] = overexpression_outlier_level_list
       gene_dict[gene][2] = underexpression_outlier_level_list
 
-output_file.write( '\t'.join(['gene','sample','expression_level','percentile'])+'\t'+'\t'.join(['overexpression'+str(x) for x in range(1,outlier_levels+1)])+'\t'+'\t'.join(['underexpression'+str(x) for x in range(1,outlier_levels+1)])+'\n')
+output_file.write( '\t'.join(['gene','sample','cnv','expression_level','percentile'])+'\t'+'\t'.join(['overexpression'+str(x) for x in range(1,outlier_levels+1)])+'\t'+'\t'.join(['underexpression'+str(x) for x in range(1,outlier_levels+1)])+'\n')
 sample_number=sample_list.index(sample_of_interest)
 for gene in gene_list:
   gene_na = all([x == "NA" for x in gene_dict[gene][0]])
   expr = gene_dict[gene][0][sample_number]
+  cnv = gene_dict[gene][3][sample_number]
   if gene_na:
     pct = "NA"
   else:
     pct = float( [ x <= expr for x in gene_dict[gene][0] ].count(True) )/len(sample_list)
-  output_list = [gene, sample_list[sample_number], str(expr), str(pct)]
+  output_list = [gene, sample_list[sample_number], str(cnv), str(expr), str(pct)]
   if gene_na:
     output_list.extend(["NA"]*outlier_levels*2)
   else:
