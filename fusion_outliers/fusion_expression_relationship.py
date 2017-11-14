@@ -121,9 +121,10 @@ for k,v in gene_dict.items():
     gene_dict[k][12] = float('NaN')
   gene_dict[k][13] = len(fus_pct)
 
-multiple_test_corrected_pvalue = 0.05/len(gene_dict.keys())
+multiple_test_corrected_pvalue = 2*0.05/len(gene_dict.keys())
 for gene in sorted(gene_dict.keys()):
   print_gene=False
+  pct_out=False
   v = gene_dict[gene]
   ttest, mwutest, overfisher, underfisher, fusionpct = ["NS"]*5
   #t-test
@@ -143,11 +144,11 @@ for gene in sorted(gene_dict.keys()):
     underfisher = v[7]
     print_gene=True
   #Fusion percentile
-  if not math.isnan(v[12]) and (v[12] >= 0.90 or v[12] <= 0.10):
+  if not math.isnan(v[12]) and (v[12] >= 0.75 or v[12] <= 0.25):
     fusionpct = v[12]
-    print_gene=True
+    pct_out=True
 
   n_fusions = v[13]
-  if print_gene and n_fusions > 2:
+  if print_gene and n_fusions > 2 and pct_out:
     print('\t'.join([str(x) for x in [gene.split("__")[0], gene.split("__")[1], n_fusions, ttest, mwutest, overfisher, underfisher, fusionpct]]))
 
