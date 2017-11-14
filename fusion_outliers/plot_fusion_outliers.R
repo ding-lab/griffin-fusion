@@ -53,7 +53,7 @@ p <- p + scale_fill_brewer(palette="Set1", drop=FALSE)
 p <- p + labs(x="Fusion Status", y=ylabel, title=title, color="CNV status")
 p <- p + guides(fill=FALSE, alpha=FALSE)
 
-pdf(plot_file, 10, 10)
+pdf(plot_file, 10, 10, useDingbats = FALSE)
 p
 shh <- dev.off()
 
