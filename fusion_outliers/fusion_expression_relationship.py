@@ -132,9 +132,9 @@ for gene in sorted(gene_dict.keys()):
     ttest = v[4]
     print_gene=True
   #MWU test
-  if not math.isnan(v[5]) and v[5] < multiple_test_corrected_pvalue:
-    mwutest = v[5]
-    print_gene=True
+  #if not math.isnan(v[5]) and v[5] < multiple_test_corrected_pvalue:
+  #  mwutest = v[5]
+  #  print_gene=True
   #Fisher Exact -- overexpression
   if v[6] < multiple_test_corrected_pvalue:
     overfisher = v[6]
@@ -144,7 +144,7 @@ for gene in sorted(gene_dict.keys()):
     underfisher = v[7]
     print_gene=True
   #Fusion percentile
-  if not math.isnan(v[12]) and (v[12] >= 0.75 or v[12] <= 0.25):
+  if not math.isnan(v[12]) and (v[12] >= 0.90 or v[12] <= 0.10):
     fusionpct = v[12]
     pct_out=True
 
