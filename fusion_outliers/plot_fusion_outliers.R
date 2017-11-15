@@ -37,7 +37,7 @@ set.seed(10)
 
 outlier_status <- apply(df[,c(over_outlier_level, under_outlier_level)], 1, sum)
 alpha_level <- outlier_status/2 + 0.5
-plot_df <- data.frame(df[,c("gene","cnv","expression_level")], fusion_status=fusion_status, fusion_status_j=jitter(as.numeric(fusion_status)), alpha_level=alpha_level, gene_partners=gene_partners)
+plot_df <- data.frame(df[,c("gene","cnv","expression_level")], fusion_status=fusion_status, fusion_status_j=jitter(as.numeric(fusion_status)), alpha_level=alpha_level, gene_partners=gene_partners)[df$fusion_info != "Fusion_file_NA",]
 
 library(ggplot2)
 library(ggrepel)
