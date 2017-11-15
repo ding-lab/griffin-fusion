@@ -29,7 +29,7 @@ for(i in 1:nrow(df)){
   if( !(as.character(df$fusion_info[i]) %in% c("None_reported","Fusion_file_NA")) ){
     genes_a <- strsplit(as.character(df$geneA[i]),';')[[1]]
     genes_b <- strsplit(as.character(df$geneB[i]),';')[[1]]
-    gene_partners[i] <- paste( paste(genes_a,genes_b,sep="--"), collapse='\n')
+    gene_partners[i] <- paste( unique(sort(paste(genes_a,genes_b,sep="--"))), collapse='\n')
   }
 }
 
