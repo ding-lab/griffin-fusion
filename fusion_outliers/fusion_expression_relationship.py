@@ -8,6 +8,10 @@ from scipy import stats
 
 input_files = open(sys.argv[1],'r')
 outlier_level = sys.argv[2]
+if len(sys.argv) == 4:
+  filters = eval(sys.argv[3])
+else:
+  filters = False
 
 input_file_list = []
 for input_file in input_files:
@@ -44,8 +48,8 @@ for i in range(n_samples):
         if gene_AB not in gene_dict:
           #gene_dict[gene] = [ 0.expression , 1.overexpression, 2.underexpression, 3.fusion, 4.t-test, 5.mann-whitney-u, 
           #                    6.fishers exact over, 7.fishers exact under, 8.num fusion over outliers, 9.num fusion under outliers, 10.total samples with fusion data
-          #                    11. percentiles, 12. fusion percentile median , 13. number of fusions, 14 15 geneA gene B status]
-          gene_dict[gene_AB] = [[None]*n_samples, [None]*n_samples, [None]*n_samples, [None]*n_samples, None, None, None, None, None, None, None, [None]*n_samples, [None]*n_samples, [None]*n_samples, [None]*n_samples, [None]*n_samples]
+          #                    11. percentiles, 12. fusion percentile median , 13. number of fusions, 14 15 geneA gene B status, 16 fusion percentiles]
+          gene_dict[gene_AB] = [[None]*n_samples, [None]*n_samples, [None]*n_samples, [None]*n_samples, None, None, None, None, None, None, None, [None]*n_samples, [None]*n_samples, [None]*n_samples, [None]*n_samples, [None]*n_samples, []]
         gene_dict[gene_AB][0][i] = expr
         gene_dict[gene_AB][1][i] = over_outlier
         gene_dict[gene_AB][2][i] = under_outlier
@@ -120,6 +124,7 @@ for k,v in gene_dict.items():
   else:
     gene_dict[k][12] = float('NaN')
   gene_dict[k][13] = len(fus_pct)
+  gene_dict[k][16] = fus_pct
 
 multiple_test_corrected_pvalue = 2*0.05/len(gene_dict.keys())
 for gene in sorted(gene_dict.keys()):
@@ -147,8 +152,18 @@ for gene in sorted(gene_dict.keys()):
   if not math.isnan(v[12]) and (v[12] >= 0.90 or v[12] <= 0.10):
     fusionpct = v[12]
     pct_out=True
+  #Overall percentile
+  gene_short = gene.split("__")[0]
+  gene53 = [x for x in gene_dict[gene_short+"__5prime"][16]]
+  gene53.extend(gene_dict[gene_short+"__3prime"][16])
+  if gene53 == []:
+    overall_pct = "NA"
+    total_num = 0
+  else:
+    overall_pct = float(np.median(gene53))
+    total_num = len(gene53)
 
   n_fusions = v[13]
-  if print_gene and n_fusions > 2 and pct_out:
-    print('\t'.join([str(x) for x in [gene.split("__")[0], gene.split("__")[1], n_fusions, ttest, mwutest, overfisher, underfisher, fusionpct]]))
-
+  
+  if (filters and print_gene and n_fusions > 2 and pct_out) or not filters:
+    print('\t'.join([str(x) for x in [gene.split("__")[0], gene.split("__")[1], n_fusions, ttest, mwutest, overfisher, underfisher, fusionpct, overall_pct, total_num]]))
