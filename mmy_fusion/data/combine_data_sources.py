@@ -27,6 +27,16 @@ for line in f:
 f.close()
 
 #Druggability DEPO
+f = open("DEPO_final_20170206.txt")
+f.readline()
+depo_dict = {}
+for line in f:
+  Gene, Disease, Variant, Effect, Source, Drug, Drug_Class, Evidence_Level, PubMed_ID, Gene_Class, Variant_Type = line.strip().split('\t')
+  Gene.replace("-","--")
+  if Effect == "Sensitive" and Variant == "any" and Variant_Type == "Fusion":
+    if Gene not in depo_dict:
+      depo_dict[Gene] = ''
+f.close()
 
 #read in sample list, assign primary secondary etc
 f = open("sample_list.with_file_names.txt","r")
@@ -264,6 +274,7 @@ column_labels.extend(["Overlap", "bpRangeA", "bpRangeB", "depthA", "depthB", "n_
 column_labels.extend(["geneA_tpm", "geneA_log10tpm", "geneA_pct", "geneA_pct75_tpm", "geneA_pct25_tpm", "geneA_iqr_tpm", "geneA_pct75_log10tpm", "geneA_pct25_log10tpm", "geneA_iqr_log10tpm", "geneA_outlier_over_tpm", "geneA_outlier_under_tpm", "geneA_outlier_over_log10tpm", "geneA_outlier_under_log10tpm", "geneA_log2ratio_cnv"])
 column_labels.extend(["geneB_tpm", "geneB_log10tpm", "geneB_pct", "geneB_pct75_tpm", "geneB_pct25_tpm", "geneB_iqr_tpm", "geneB_pct75_log10tpm", "geneB_pct25_log10tpm", "geneB_iqr_log10tpm", "geneB_outlier_over_tpm", "geneB_outlier_under_tpm", "geneB_outlier_over_log10tpm", "geneB_outlier_under_log10tpm", "geneB_log2ratio_cnv"])
 column_labels.extend(["geneA_oncogene", "geneA_tsg", "geneA_mmy_known", "geneA_driver", "geneB_oncogene", "geneB_tsg", "geneB_mmy_known", "geneB_driver", "fusion_recurrence"])
+column_labels.extend(["drug_fusion", "drug_geneA", "drug_geneB"])
 #column_labels.extend([""])
 
 
@@ -341,7 +352,20 @@ for fusion_key in sorted(filtered_fusions_dict.keys()):
     geneB_driver = 1
   else:
     geneB_driver = 0
-  print_list.extend([str(x) for x in [geneA_oncogene, geneA_tsg, geneA_mmy_known, geneA_driver, geneB_oncogene, geneB_tsg, geneB_mmy_known, geneB_driver, fusion_recurrence[fus]]])
+  #druggability
+  if fus in depo_dict:
+    drug_fusion = 1
+  else:
+    drug_fusion = 0
+  if geneA in depo_dict:
+    drug_geneA = 1
+  else:
+    drug_geneA = 0
+  if geneB in depo_dict:
+    drug_geneB = 1
+  else:
+    drug_geneB = 0
+  print_list.extend([str(x) for x in [geneA_oncogene, geneA_tsg, geneA_mmy_known, geneA_driver, geneB_oncogene, geneB_tsg, geneB_mmy_known, geneB_driver, fusion_recurrence[fus], drug_fusion, drug_geneA, drug_geneB]])
 
   #print it out
   w.write('\t'.join( [ str(x).replace(" ","_") if x else "NA" for x in print_list] )+"\n") #
