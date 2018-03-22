@@ -64,4 +64,5 @@ has_fgfr3_fusion=(fgfr3_log10tpm[,1] %in% srr_with_fgfr3_fusion)
 has_whsc1_fusion=(fgfr3_log10tpm[,1] %in% srr_with_whsc1_fusion)
 has_fusion = factor(c("No fusion", "FGFR3 fusion", "WHSC1 fusion", "Both fusions")[1+1*has_fgfr3_fusion + 2*has_whsc1_fusion], levels=c("No fusion", "FGFR3 fusion", "WHSC1 fusion", "Both fusions"))
 plot_df <- data.frame(srr=fgfr3_log10tpm[,1], FGFR3=fgfr3_log10tpm[,2], WHSC1=whsc1_log10tpm[,2], has_fusion=has_fusion, has_t414=(fgfr3_log10tpm[,1] %in% srr_with_t414))
-ggplot(plot_df, aes(x=WHSC1, y=FGFR3, color=has_fusion, shape=has_t414)) + geom_point() + theme_bw(base_size=20) + labs(color="IGH fusion status", shape="Has t(4;14)", title="Gene Expression and IGH--FGFR3/WHSC1 Fusions", x="WHSC1 Gene TPM (log10)", y="FGFR3 Gene TPM (log10)")
+ggplot(plot_df, aes(x=WHSC1, y=FGFR3, color=has_fusion, shape=has_t414)) + geom_point(size=3) + theme_bw(base_size=20) + labs(color="IGH fusion status", shape="Has t(4;14)", title="Gene Expression and IGH--FGFR3/WHSC1 Fusions", x="WHSC1 Gene TPM (log10)", y="FGFR3 Gene TPM (log10)")
+
