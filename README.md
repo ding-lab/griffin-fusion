@@ -2,6 +2,5 @@
 Suite of fusion gene analysis tools
 
 # TODO
-1. Come up with next steps
-2. Convert to argparse for input argument parsing
-3. Establish software map for how modules will fit together and long term vision
+1. Multiple myeloma fusion analysis project
+2. Future module development plan
