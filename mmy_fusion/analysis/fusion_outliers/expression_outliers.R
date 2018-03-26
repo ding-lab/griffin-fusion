@@ -1,7 +1,7 @@
 #Analysis of fusions with outlier expression
 
 get_expr_df <- function(df, this_gene){
-  srr_with_fusion <- sort(unique(subset(df, geneA == gene | geneB == gene)$srr))
+  srr_with_fusion <- sort(unique(subset(df, geneA == this_gene | geneB == this_gene)$srr))
   this_gene_expr <- subset(expr, gene == this_gene)
   expr_with_fusion <- data.frame(subset(this_gene_expr, srr %in% srr_with_fusion), fusion_status="Fusion")
   expr_without_fusion <- data.frame(subset(this_gene_expr, !(srr %in% srr_with_fusion)), fusion_status="None reported")
@@ -40,22 +40,29 @@ get_expr_df <- function(df, this_gene){
 
 significance <- function(df, this_gene){
   this_gene_expr <- get_expr_df(df, this_gene)
+  expr_with_fusion <- subset(this_gene_expr, fusion_status=="Fusion")
+  expr_without_fusion <- subset(this_gene_expr, fusion_status!="Fusion")
   
   median_pct <- median(expr_with_fusion$pct)
   
-  t.test.pvalue.overexpression <- t.test(expr_with_fusion$log10tpm, expr_without_fusion$log10tpm, alternative="greater")$p.value #Fusion greater than No fusion
-  t.test.pvalue.underexpression <- t.test(expr_with_fusion$log10tpm, expr_without_fusion$log10tpm, alternative="less")$p.value #Fusion less than No fusion
+  if( nrow(expr_with_fusion) > 1){
+    t.test.pvalue.overexpression <- t.test(expr_with_fusion$log10tpm, expr_without_fusion$log10tpm, alternative="greater")$p.value #Fusion greater than No fusion
+    t.test.pvalue.underexpression <- t.test(expr_with_fusion$log10tpm, expr_without_fusion$log10tpm, alternative="less")$p.value #Fusion less than No fusion
+  } else{
+    t.test.pvalue.overexpression <- NA
+    t.test.pvalue.underexpression <- NA
+  }
   
   fisher.pvalue.overexpression <- fisher.test(table(this_gene_expr[,c("outlier_over_tpm", "fusion_status")]), alternative="less")$p.value #No fusion is less than Fusion
   fisher.pvalue.underexpression <- fisher.test(table(this_gene_expr[,c("outlier_over_tpm", "fusion_status")]), alternative="greater")$p.value #No fusion is greater than Fusion
   
-  return(c(this_gene, length(srr_with_fusion), median_pct, t.test.pvalue.overexpression, t.test.pvalue.underexpression, fisher.pvalue.overexpression, fisher.pvalue.underexpression))
+  return(data.frame(gene=this_gene, n_samples_with_fusion=nrow(expr_with_fusion), n_samples=nrow(this_gene_expr), median_expr_pct=median_pct, ttest_over=t.test.pvalue.overexpression, ttest_under=t.test.pvalue.underexpression, fisher_over=fisher.pvalue.overexpression, fisher_under=fisher.pvalue.underexpression))
 }
 
-plotting <- function(df, this_gene, pdf_path, ymax_value){
+plotting <- function(df, this_gene, pdf_path, ymax_value, labels=TRUE){
   this_gene_expr <- get_expr_df(df, this_gene)
   
-  plot_df <- data.frame(this_gene_expr, fusion_status_j=jitter(as.numeric(df$fusion_status)))
+  plot_df <- data.frame(this_gene_expr, fusion_status_j=jitter(as.numeric(this_gene_expr$fusion_status)))
   
   if( any(plot_df$fusion_status == "Fusion") ){
     library(ggplot2)
@@ -64,13 +71,15 @@ plotting <- function(df, this_gene, pdf_path, ymax_value){
     p <- ggplot(plot_df, aes(x=fusion_status, y=log10tpm, color=cnv, fill=cnv))
     
     p <- p + geom_violin(aes(fill=NULL),color="black", draw_quantiles=c(0.5))
-    p <- p + geom_point(aes(x=fusion_status_j), alpha=0.75)
-    p <- p + geom_label_repel(data=subset(plot_df, fusion_status=="Fusion"), aes(x=fusion_status_j, y=log10tpm, label=gene_partners), label.size=NA, color=c('white','black')[as.numeric(subset(plot_df, fusion_status=="Fusion")$cnv=="No Data")+1], box.padding=0.35, point.padding=0.5, segment.color="grey50")
+    p <- p + geom_point(aes(x=fusion_status_j), alpha=0.75, shape=16)
+    if(labels){
+      p <- p + geom_label_repel(data=subset(plot_df, fusion_status=="Fusion"), aes(x=fusion_status_j, y=log10tpm, label=gene_partners), label.size=NA, color=c('white','black')[as.numeric(subset(plot_df, fusion_status=="Fusion")$cnv=="No data")+1], box.padding=0.35, point.padding=0.5, segment.color="grey50")
+    }
     p <- p + ylim(0, ymax_value)
     p <- p + theme_bw(base_size=20)
     p <- p + scale_color_brewer(palette="Set1", drop=FALSE)
     p <- p + scale_fill_brewer(palette="Set1", drop=FALSE)
-    p <- p + labs(x="Fusion Status", y=ylabel, title=title, color="CNV Status")
+    p <- p + labs(x="Fusion Status", y="Gene Expression TPM (log10)", color="CNV Status", title=paste0("Fusion Gene Expression (", this_gene, ")"))
     p <- p + guides(fill=FALSE, alpha=FALSE)
     
     pdf(pdf_path, 10, 10, useDingbats = FALSE)
@@ -79,11 +88,29 @@ plotting <- function(df, this_gene, pdf_path, ymax_value){
   }
 }
 
-
-
-
-
-
-
-
 genes_with_fusions <- sort(unique(c(as.character(primary_df$geneA), as.character(primary_df$geneB))))
+ymax_value <- max(primary_df$geneA_log10tpm, primary_df$geneB_log10tpm, na.rm=T)
+n_genes <- length(genes_with_fusions)
+
+significance_df <- NULL
+count_up <- 0
+for(this_gene in genes_with_fusions){
+  count_up <- count_up + 1
+  if( this_gene %in% c("IGH@","IGK@","IGL@")){
+    next
+  }
+  # get significance of all genes
+  print(count_up/n_genes)
+  significant <- significance(primary_df, this_gene)
+  significance_df <- rbind(significance_df, significant)
+  
+  #plot all genes
+  plotting(primary_df, this_gene, paste0("fusion_outliers/all_plots/",this_gene,".pdf"), ymax_value)
+  
+  #if significant, plot in significant folder
+  pvalue_threshold <- 0.05/n_genes
+  if(significant$n_samples_with_fusion > 1 & significant$median_expr_pct > 0.90 & (significant$ttest_over < pvalue_threshold | significant$fisher_over < pvalue_threshold)){
+    plotting(primary_df, this_gene, paste0("fusion_outliers/significant_plots_over/",this_gene,".pdf"), ymax_value)
+  } else if(significant$n_samples_with_fusion > 1 & significant$median_expr_pct > 0.50 & (significant$ttest_under < pvalue_threshold | significant$fisher_under < pvalue_threshold)){
+    plotting(primary_df, this_gene, paste0("fusion_outliers/significant_plots_under/",this_gene,".pdf"), ymax_value)
+  }
