@@ -52,10 +52,31 @@ significance <- function(df, this_gene){
   return(c(this_gene, length(srr_with_fusion), median_pct, t.test.pvalue.overexpression, t.test.pvalue.underexpression, fisher.pvalue.overexpression, fisher.pvalue.underexpression))
 }
 
-plotting <- function(df, this_gene, pdf_path){
+plotting <- function(df, this_gene, pdf_path, ymax_value){
   this_gene_expr <- get_expr_df(df, this_gene)
   
+  plot_df <- data.frame(this_gene_expr, fusion_status_j=jitter(as.numeric(df$fusion_status)))
   
+  if( any(plot_df$fusion_status == "Fusion") ){
+    library(ggplot2)
+    library(ggrepel)
+    
+    p <- ggplot(plot_df, aes(x=fusion_status, y=log10tpm, color=cnv, fill=cnv))
+    
+    p <- p + geom_violin(aes(fill=NULL),color="black", draw_quantiles=c(0.5))
+    p <- p + geom_point(aes(x=fusion_status_j), alpha=0.75)
+    p <- p + geom_label_repel(data=subset(plot_df, fusion_status=="Fusion"), aes(x=fusion_status_j, y=log10tpm, label=gene_partners), label.size=NA, color=c('white','black')[as.numeric(subset(plot_df, fusion_status=="Fusion")$cnv=="No Data")+1], box.padding=0.35, point.padding=0.5, segment.color="grey50")
+    p <- p + ylim(0, ymax_value)
+    p <- p + theme_bw(base_size=20)
+    p <- p + scale_color_brewer(palette="Set1", drop=FALSE)
+    p <- p + scale_fill_brewer(palette="Set1", drop=FALSE)
+    p <- p + labs(x="Fusion Status", y=ylabel, title=title, color="CNV Status")
+    p <- p + guides(fill=FALSE, alpha=FALSE)
+    
+    pdf(pdf_path, 10, 10, useDingbats = FALSE)
+    print(p)
+    shh <- dev.off()
+  }
 }
 
 
