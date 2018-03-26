@@ -100,7 +100,7 @@ genes_with_fusions <- sort(unique(c(as.character(primary_df$geneA), as.character
 ymax_value <- max(primary_df$geneA_log10tpm, primary_df$geneB_log10tpm, na.rm=T)
 n_genes <- length(genes_with_fusions)
 
-significance_df <- NULL
+significance_df <- as.data.frame(matrix(NA, n_genes, 8))
 count_up <- 0
 for(this_gene in genes_with_fusions){
   count_up <- count_up + 1
@@ -110,7 +110,7 @@ for(this_gene in genes_with_fusions){
   # get significance of all genes
   print(count_up/n_genes)
   significant <- significance(primary_df, this_gene)
-  significance_df <- rbind(significance_df, significant)
+  significance_df[count_up,] <- significant
   
   #plot all genes
   plotting(primary_df, this_gene, paste0("fusion_outliers/all_plots/",this_gene,".pdf"), ymax_value)
