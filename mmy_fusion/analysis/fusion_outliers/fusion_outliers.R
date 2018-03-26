@@ -102,7 +102,7 @@ n_genes <- length(genes_with_fusions)
 
 significance_df <- NULL
 count_up <- 0
-for(this_gene in c("WHSC1")){ #genes_with_fusions){
+for(this_gene in genes_with_fusions){
   count_up <- count_up + 1
   if( this_gene %in% c("IGH@","IGK@","IGL@")){
     next
