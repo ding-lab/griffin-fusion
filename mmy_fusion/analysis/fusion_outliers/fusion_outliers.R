@@ -101,12 +101,13 @@ ymax_value <- max(primary_df$geneA_log10tpm, primary_df$geneB_log10tpm, na.rm=T)
 n_genes <- length(genes_with_fusions)
 
 significance_df <- as.data.frame(matrix(NA, n_genes, 8))
+names(significance_df) <- c("gene","n_samples_with_fusion","n_samples","median_expr_pct","ttest_over","ttest_under","fisher_over","fisher_under")
 count_up <- 0
 for(this_gene in genes_with_fusions){
-  count_up <- count_up + 1
   if( this_gene %in% c("IGH@","IGK@","IGL@")){
     next
   }
+  count_up <- count_up + 1
   # get significance of all genes
   print(count_up/n_genes)
   significant <- significance(primary_df, this_gene)
@@ -127,4 +128,4 @@ for(this_gene in genes_with_fusions){
   }
 }
 
-write.table(significance_df, "fusion_outliers/significance.tsv", quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
+write.table(significance_df[apply(significance_df, 1, function(x) !all(is.na(x))),], "fusion_outliers/significance.tsv", quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
