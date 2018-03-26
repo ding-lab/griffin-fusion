@@ -114,3 +114,4 @@ for(this_gene in genes_with_fusions){
   } else if(significant$n_samples_with_fusion > 1 & significant$median_expr_pct > 0.50 & (significant$ttest_under < pvalue_threshold | significant$fisher_under < pvalue_threshold)){
     plotting(primary_df, this_gene, paste0("fusion_outliers/significant_plots_under/",this_gene,".pdf"), ymax_value)
   }
+}
