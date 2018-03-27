@@ -15,6 +15,11 @@ tsg_list = []
 for line in f:
   tsg_list.append(line.strip())
 f.close()
+f = open("kinase.tsv", "r")
+kinase_list = []
+for line in f:
+  kinase_list.append(line.strip())
+f.close()
 f = open("mmy_known.tsv", "r")
 mmy_known_list = []
 for line in f:
@@ -273,7 +278,7 @@ column_labels.extend(["Age", "age_ge_66", "Female", "Race_White", "Race_Black", 
 column_labels.extend(["Overlap", "bpRangeA", "bpRangeB", "depthA", "depthB", "n_discordant", "discordant_reads","wgs_bam"])
 column_labels.extend(["geneA_tpm", "geneA_log10tpm", "geneA_pct", "geneA_pct75_tpm", "geneA_pct25_tpm", "geneA_iqr_tpm", "geneA_pct75_log10tpm", "geneA_pct25_log10tpm", "geneA_iqr_log10tpm", "geneA_outlier_over_tpm", "geneA_outlier_under_tpm", "geneA_outlier_over_log10tpm", "geneA_outlier_under_log10tpm", "geneA_log2ratio_cnv"])
 column_labels.extend(["geneB_tpm", "geneB_log10tpm", "geneB_pct", "geneB_pct75_tpm", "geneB_pct25_tpm", "geneB_iqr_tpm", "geneB_pct75_log10tpm", "geneB_pct25_log10tpm", "geneB_iqr_log10tpm", "geneB_outlier_over_tpm", "geneB_outlier_under_tpm", "geneB_outlier_over_log10tpm", "geneB_outlier_under_log10tpm", "geneB_log2ratio_cnv"])
-column_labels.extend(["geneA_oncogene", "geneA_tsg", "geneA_mmy_known", "geneA_driver", "geneB_oncogene", "geneB_tsg", "geneB_mmy_known", "geneB_driver", "fusion_recurrence"])
+column_labels.extend(["geneA_oncogene", "geneA_tsg", "geneA_kinase", "geneA_mmy_known", "geneA_driver", "geneB_oncogene", "geneB_tsg", "geneB_kinase", "geneB_mmy_known", "geneB_driver", "fusion_recurrence"])
 column_labels.extend(["drug_fusion", "drug_geneA", "drug_geneB"])
 #column_labels.extend([""])
 
@@ -328,6 +333,10 @@ for fusion_key in sorted(filtered_fusions_dict.keys()):
     geneA_tsg = 1
   else:
     geneA_tsg = 0
+  if geneA in kinase_list:
+    geneA_kinase = 1
+  else:
+    geneA_kinase = 0
   if geneA in mmy_known_list:
     geneA_mmy_known = 1
   else:
@@ -344,6 +353,10 @@ for fusion_key in sorted(filtered_fusions_dict.keys()):
     geneB_tsg = 1
   else:
     geneB_tsg = 0
+  if geneB in kinase_list:
+    geneB_kinase = 1
+  else:
+    geneB_kinase = 0
   if geneB in mmy_known_list:
     geneB_mmy_known = 1
   else:
@@ -365,7 +378,7 @@ for fusion_key in sorted(filtered_fusions_dict.keys()):
     drug_geneB = 1
   else:
     drug_geneB = 0
-  print_list.extend([str(x) for x in [geneA_oncogene, geneA_tsg, geneA_mmy_known, geneA_driver, geneB_oncogene, geneB_tsg, geneB_mmy_known, geneB_driver, fusion_recurrence[fus], drug_fusion, drug_geneA, drug_geneB]])
+  print_list.extend([str(x) for x in [geneA_oncogene, geneA_tsg, geneA_kinase, geneA_mmy_known, geneA_driver, geneB_oncogene, geneB_tsg, geneB_kinase, geneB_mmy_known, geneB_driver, fusion_recurrence[fus], drug_fusion, drug_geneA, drug_geneB]])
 
   #print it out
   w.write('\t'.join( [ str(x).replace(" ","_") if x else "NA" for x in print_list] )+"\n") #
