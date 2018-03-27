@@ -3,43 +3,50 @@
 get_expr_df <- function(df, this_gene){
   srr_with_fusion <- sort(unique(subset(df, geneA == this_gene | geneB == this_gene)$srr))
   this_gene_expr <- subset(expr, gene == this_gene)
-  expr_with_fusion <- data.frame(subset(this_gene_expr, srr %in% srr_with_fusion), fusion_status="Fusion")
-  expr_without_fusion <- data.frame(subset(this_gene_expr, !(srr %in% srr_with_fusion)), fusion_status="None reported")
-  this_gene_expr <- rbind(expr_with_fusion, expr_without_fusion)
+  if(nrow(this_gene_expr) > 0){
+    expr_with_fusion <- data.frame(subset(this_gene_expr, srr %in% srr_with_fusion), fusion_status="Fusion")
+    expr_without_fusion <- data.frame(subset(this_gene_expr, !(srr %in% srr_with_fusion)), fusion_status="None reported")
+    this_gene_expr <- rbind(expr_with_fusion, expr_without_fusion)
   
-  gene_partners <- NULL
-  cnv <- NULL
-  for(this_srr in this_gene_expr$srr){
-    if(this_srr %in% srr_with_fusion){
-      gene_partners <- c(gene_partners, paste( unique(sort(subset(primary_df, srr == this_srr & (geneA == this_gene | geneB == this_gene) )$fusion)) , collapse='\n'))
-    } else{
-      gene_partners <- c(gene_partners, NA)
-    }
+    gene_partners <- NULL
+    cnv <- NULL
+    for(this_srr in this_gene_expr$srr){
+      if(this_srr %in% srr_with_fusion){
+        gene_partners <- c(gene_partners, paste( unique(sort(subset(primary_df, srr == this_srr & (geneA == this_gene | geneB == this_gene) )$fusion)) , collapse='\n'))
+      } else{
+        gene_partners <- c(gene_partners, NA)
+      }
     
-    tn_cnv_ratio = exp(subset(this_gene_expr, srr == this_srr)$gene_avg_cnv)
-    if(is.na(tn_cnv_ratio)){
-      this_cnv <- "No data"
-    } else if(tn_cnv_ratio > 2){
-      this_cnv <- "Major amplification"
-    } else if(tn_cnv_ratio > 1.25){
-      this_cnv <- "Minor amplification"
-    } else if(tn_cnv_ratio > 0.75){
-      this_cnv <- "Neutral"
-    } else if(tn_cnv_ratio > 0.5){
-      this_cnv <- "Minor deletion"
-    } else{
-      this_cnv <- "Major deletion"
-    }  
-    cnv <- c(cnv, this_cnv)
+      tn_cnv_ratio = exp(subset(this_gene_expr, srr == this_srr)$gene_avg_cnv)
+      if(is.na(tn_cnv_ratio)){
+        this_cnv <- "No data"
+      } else if(tn_cnv_ratio > 2){
+        this_cnv <- "Major amplification"
+      } else if(tn_cnv_ratio > 1.25){
+        this_cnv <- "Minor amplification"
+      } else if(tn_cnv_ratio > 0.75){
+        this_cnv <- "Neutral"
+      } else if(tn_cnv_ratio > 0.5){
+        this_cnv <- "Minor deletion"
+      } else{
+        this_cnv <- "Major deletion"
+      }  
+      cnv <- c(cnv, this_cnv)
+    }
+  
+    this_gene_expr <- data.frame(this_gene_expr, gene_partners = gene_partners, cnv = factor(cnv, levels=c("Major deletion","Minor deletion","Neutral","Minor amplification","Major amplification", "No data")))
+  } else{
+    this_gene_expr <- NA
   }
-  
-  this_gene_expr <- data.frame(this_gene_expr, gene_partners = gene_partners, cnv = factor(cnv, levels=c("Major deletion","Minor deletion","Neutral","Minor amplification","Major amplification", "No data")))
-  
   return(this_gene_expr)
 }
 
 significance <- function(df, this_gene){
   this_gene_expr <- get_expr_df(df, this_gene)
+  if(all(is.na(this_gene_expr))){
+    return(NA)
+  }
+  
   expr_with_fusion <- subset(this_gene_expr, fusion_status=="Fusion")
   expr_without_fusion <- subset(this_gene_expr, fusion_status!="Fusion")
   
@@ -67,7 +74,9 @@ significance <- function(df, this_gene){
   return(data.frame(gene=this_gene, n_samples_with_fusion=nrow(expr_with_fusion), n_samples=nrow(this_gene_expr), median_expr_pct=median_pct, ttest_over=t.test.pvalue.overexpression, ttest_under=t.test.pvalue.underexpression, fisher_over=fisher.pvalue.overexpression, fisher_under=fisher.pvalue.underexpression))
 }
 
-plotting <- function(df, this_gene, pdf_path, ymax_value, labels=TRUE){
+plotting <- function(df, this_gene, pdf_path, ymax_value, labels=TRUE, seed=10){
+  set.seed(seed)
+  
   this_gene_expr <- get_expr_df(df, this_gene)
   
   plot_df <- data.frame(this_gene_expr, fusion_status_j=jitter(as.numeric(this_gene_expr$fusion_status)))
@@ -100,32 +109,44 @@ genes_with_fusions <- sort(unique(c(as.character(primary_df$geneA), as.character
 ymax_value <- max(primary_df$geneA_log10tpm, primary_df$geneB_log10tpm, na.rm=T)
 n_genes <- length(genes_with_fusions)
 
-significance_df <- as.data.frame(matrix(NA, n_genes, 8))
-names(significance_df) <- c("gene","n_samples_with_fusion","n_samples","median_expr_pct","ttest_over","ttest_under","fisher_over","fisher_under")
-count_up <- 0
-for(this_gene in genes_with_fusions){
-  if( this_gene %in% c("IGH@","IGK@","IGL@")){
-    next
+significance_df <- NULL
+
+if(TRUE){ #warning, takes several hours for MMY dataset
+  count_up <- 0
+  for(this_gene in genes_with_fusions){
+    significant <- significance(primary_df, this_gene)
+    if( this_gene %in% c("IGH@","IGK@","IGL@","IGH@pseudo","IGK@pseudo","IGL@pseudo") | all(is.na(significant))){
+      next
+    }
+    
+    count_up <- count_up + 1
+    print(count_up/n_genes)
+    significance_df <- rbind(significance_df, significant)
+    
+    #plot all genes
+    plotting(primary_df, this_gene, paste0("fusion_outliers/all_plots/",this_gene,".pdf"), ymax_value)
+    #plotting(primary_df, this_gene, paste0("fusion_outliers/all_plots_withoutlabel/",this_gene,".pdf"), ymax_value, label=FALSE)
+    
   }
-  count_up <- count_up + 1
-  # get significance of all genes
-  print(count_up/n_genes)
-  significant <- significance(primary_df, this_gene)
-  significance_df[count_up,] <- significant
   
-  #plot all genes
-  plotting(primary_df, this_gene, paste0("fusion_outliers/all_plots/",this_gene,".pdf"), ymax_value)
-  plotting(primary_df, this_gene, paste0("fusion_outliers/all_plots_withoutlabel/",this_gene,".pdf"), ymax_value, label=FALSE)
-  
-  #if significant, plot in significant folder
-  pvalue_threshold <- 0.05/n_genes
-  if(significant$n_samples_with_fusion > 1 & significant$median_expr_pct > 0.90 & ( (!is.na(significant$ttest_over) & significant$ttest_over < pvalue_threshold) | (!is.na(significant$fisher_over) & significant$fisher_over < pvalue_threshold) )){
+  write.table(significance_df[apply(significance_df, 1, function(x) !all(is.na(x))),], "fusion_outliers/significance.tsv", quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
+}
+
+sig_df <- read.table("fusion_outliers/significance.tsv", header=T)
+n_genes_recurrent_fusions <- nrow(subset(sig_df, n_samples_with_fusion > 1))
+genes_recurrent_fusions <- subset(sig_df, n_samples_with_fusion > 1)$gene
+pvalue_threshold <- 0.01
+
+#if significant, plot in significant folder
+for(this_gene in genes_recurrent_fusions){
+  significant <- subset(sig_df, gene == this_gene)
+  if(significant$n_samples_with_fusion > 1 & significant$median_expr_pct > 0.50 & ( (!is.na(significant$ttest_over) & significant$ttest_over < pvalue_threshold) | (!is.na(significant$fisher_over) & significant$fisher_over < pvalue_threshold) )){
+    print(paste0("Over: ",this_gene))
     plotting(primary_df, this_gene, paste0("fusion_outliers/significant_plots_over/",this_gene,".pdf"), ymax_value)
     plotting(primary_df, this_gene, paste0("fusion_outliers/significant_plots_over_withoutlabel/",this_gene,".pdf"), ymax_value, label=FALSE)
   } else if(significant$n_samples_with_fusion > 1 & significant$median_expr_pct < 0.50 & ( (!is.na(significant$ttest_under) & significant$ttest_under < pvalue_threshold) | (!is.na(significant$fisher_under) & significant$fisher_under < pvalue_threshold) )){
+    print(paste0("Under: ",this_gene))
     plotting(primary_df, this_gene, paste0("fusion_outliers/significant_plots_under/",this_gene,".pdf"), ymax_value)
     plotting(primary_df, this_gene, paste0("fusion_outliers/significant_plots_under_withoutlabel/",this_gene,".pdf"), ymax_value, label=FALSE)
   }
 }
-
-write.table(significance_df[apply(significance_df, 1, function(x) !all(is.na(x))),], "fusion_outliers/significance.tsv", quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
