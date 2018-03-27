@@ -14,7 +14,7 @@ get_expr_df <- function(df, this_gene){
       if(this_srr %in% srr_with_fusion){
         gene_partners <- c(gene_partners, paste( unique(sort(subset(primary_df, srr == this_srr & (geneA == this_gene | geneB == this_gene) )$fusion)) , collapse='\n'))
       } else{
-        gene_partners <- c(gene_partners, NA)
+        gene_partners <- c(gene_partners, "")
       }
     
       tn_cnv_ratio = exp(subset(this_gene_expr, srr == this_srr)$gene_avg_cnv)
@@ -59,7 +59,7 @@ get_expr_df_multiple <- function(df, gene_list){
         if(this_srr %in% srr_with_fusion){
           gene_partners <- c(gene_partners, paste( unique(sort(subset(primary_df, srr == this_srr & (geneA == this_gene | geneB == this_gene) )$fusion)) , collapse='\n'))
         } else{
-          gene_partners <- c(gene_partners, NA)
+          gene_partners <- c(gene_partners, "")
         }
         
         tn_cnv_ratio = exp(subset(this_gene_expr, srr == this_srr)$gene_avg_cnv)
@@ -165,21 +165,18 @@ plotting_multiple <- function(df, gene_list, pdf_path, ymax_value, labels=TRUE, 
   
   this_gene_expr <- get_expr_df_multiple(df, gene_list)
   
-  plot_df <- data.frame(this_gene_expr, fusion_status_j=jitter(as.numeric(this_gene_expr$fusion_status)))
-  plot_df <- data.frame(plot_df, cnv_text_color=c('white','black')[as.numeric(plot_df$cnv=="No data")+1])
-  
-  head(plot_df,30)
+  plot_df <- data.frame(this_gene_expr, gene_x=droplevels(factor(this_gene_expr$gene, levels=gene_list)), fusion_status_j=jitter(as.numeric(droplevels(factor(this_gene_expr$gene, levels=gene_list)))))
   
   if( any(plot_df$fusion_status == "Fusion") ){
     library(ggplot2)
     library(ggrepel)
     
-    p <- ggplot(plot_df, aes(x=fusion_status, y=log10tpm, color=cnv, fill=cnv))
+    p <- ggplot(plot_df, aes(x=gene_x, y=log10tpm, color=cnv, fill=cnv))
     
     p <- p + geom_violin(aes(fill=NULL),color="black", draw_quantiles=c(0.5))
     p <- p + geom_point(aes(x=fusion_status_j), alpha=0.75, shape=16)
     if(labels){
-      p <- p + geom_label_repel(data=subset(plot_df, fusion_status=="Fusion"), aes(x=fusion_status_j, y=log10tpm, label=gene_partners), label.size=NA, color=c('white','black')[as.numeric(subset(plot_df, fusion_status=="Fusion")$cnv=="No data")+1], box.padding=0.35, point.padding=0.5, segment.color="grey50")
+      p <- p + geom_label_repel(data=plot_df, aes(x=fusion_status_j, y=log10tpm, label=gene_partners), label.size=NA, color=c('white','black')[as.numeric(plot_df$cnv=="No data")+1], box.padding=0.35, point.padding=0.5, segment.color="grey50")
     }
     p <- p + ylim(0, ymax_value)
     p <- p + theme_bw(base_size=20)
@@ -188,9 +185,7 @@ plotting_multiple <- function(df, gene_list, pdf_path, ymax_value, labels=TRUE, 
     p <- p + labs(x="Fusion Status", y="Gene Expression TPM (log10)", color="CNV Status", title="Fusion Gene Expression (Multiple Genes)")
     p <- p + guides(fill=FALSE, alpha=FALSE)
     
-    p <- p + facet_grid( . ~ gene)
-    
-    pdf(pdf_path, 10*length(gene_list), 10, useDingbats = FALSE)
+    pdf(pdf_path, 10+2*length(gene_list), 10, useDingbats = FALSE)
     print(p)
     shh <- dev.off()
   }
