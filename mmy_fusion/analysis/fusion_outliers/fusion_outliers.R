@@ -41,6 +41,61 @@ get_expr_df <- function(df, this_gene){
   return(this_gene_expr)
 }
 
+get_expr_df_multiple <- function(df, gene_list){
+  these_genes_expr <- NULL
+  
+  for(this_gene in gene_list){
+      
+    srr_with_fusion <- sort(unique(subset(df, geneA == this_gene | geneB == this_gene)$srr))
+    this_gene_expr <- subset(expr, gene == this_gene)
+    if(nrow(this_gene_expr) > 0){
+      expr_with_fusion <- data.frame(subset(this_gene_expr, srr %in% srr_with_fusion), fusion_status="Fusion")
+      expr_without_fusion <- data.frame(subset(this_gene_expr, !(srr %in% srr_with_fusion)), fusion_status="None reported")
+      this_gene_expr <- rbind(expr_with_fusion, expr_without_fusion)
+      
+      gene_partners <- NULL
+      cnv <- NULL
+      for(this_srr in this_gene_expr$srr){
+        if(this_srr %in% srr_with_fusion){
+          gene_partners <- c(gene_partners, paste( unique(sort(subset(primary_df, srr == this_srr & (geneA == this_gene | geneB == this_gene) )$fusion)) , collapse='\n'))
+        } else{
+          gene_partners <- c(gene_partners, NA)
+        }
+        
+        tn_cnv_ratio = exp(subset(this_gene_expr, srr == this_srr)$gene_avg_cnv)
+        if(is.na(tn_cnv_ratio)){
+          this_cnv <- "No data"
+        } else if(tn_cnv_ratio > 2){
+          this_cnv <- "Major amplification"
+        } else if(tn_cnv_ratio > 1.25){
+          this_cnv <- "Minor amplification"
+        } else if(tn_cnv_ratio > 0.75){
+          this_cnv <- "Neutral"
+        } else if(tn_cnv_ratio > 0.5){
+          this_cnv <- "Minor deletion"
+        } else{
+          this_cnv <- "Major deletion"
+        }  
+        cnv <- c(cnv, this_cnv)
+      }
+      
+      this_gene_expr <- data.frame(this_gene_expr, gene_partners = gene_partners, cnv = factor(cnv, levels=c("Major deletion","Minor deletion","Neutral","Minor amplification","Major amplification", "No data")))
+    } else{
+      this_gene_expr <- NA
+    }
+    
+    if( !all(is.na(this_gene_expr)) ){
+      these_genes_expr <- rbind(these_genes_expr, this_gene_expr)  
+    }
+    
+  }
+  
+  if(is.null(this_gene_expr)){
+    these_genes_expr <- NA
+  }
+  return(these_genes_expr)
+}
+
 significance <- function(df, this_gene){
   this_gene_expr <- get_expr_df(df, this_gene)
   if(all(is.na(this_gene_expr))){
@@ -100,6 +155,42 @@ plotting <- function(df, this_gene, pdf_path, ymax_value, labels=TRUE, seed=10){
     p <- p + guides(fill=FALSE, alpha=FALSE)
     
     pdf(pdf_path, 10, 10, useDingbats = FALSE)
+    print(p)
+    shh <- dev.off()
+  }
+}
+
+plotting_multiple <- function(df, gene_list, pdf_path, ymax_value, labels=TRUE, seed=10){
+  set.seed(seed)
+  
+  this_gene_expr <- get_expr_df_multiple(df, gene_list)
+  
+  plot_df <- data.frame(this_gene_expr, fusion_status_j=jitter(as.numeric(this_gene_expr$fusion_status)))
+  plot_df <- data.frame(plot_df, cnv_text_color=c('white','black')[as.numeric(plot_df$cnv=="No data")+1])
+  
+  head(plot_df,30)
+  
+  if( any(plot_df$fusion_status == "Fusion") ){
+    library(ggplot2)
+    library(ggrepel)
+    
+    p <- ggplot(plot_df, aes(x=fusion_status, y=log10tpm, color=cnv, fill=cnv))
+    
+    p <- p + geom_violin(aes(fill=NULL),color="black", draw_quantiles=c(0.5))
+    p <- p + geom_point(aes(x=fusion_status_j), alpha=0.75, shape=16)
+    if(labels){
+      p <- p + geom_label_repel(data=subset(plot_df, fusion_status=="Fusion"), aes(x=fusion_status_j, y=log10tpm, label=gene_partners), label.size=NA, color=c('white','black')[as.numeric(subset(plot_df, fusion_status=="Fusion")$cnv=="No data")+1], box.padding=0.35, point.padding=0.5, segment.color="grey50")
+    }
+    p <- p + ylim(0, ymax_value)
+    p <- p + theme_bw(base_size=20)
+    p <- p + scale_color_brewer(palette="Set1", drop=FALSE)
+    p <- p + scale_fill_brewer(palette="Set1", drop=FALSE)
+    p <- p + labs(x="Fusion Status", y="Gene Expression TPM (log10)", color="CNV Status", title="Fusion Gene Expression (Multiple Genes)")
+    p <- p + guides(fill=FALSE, alpha=FALSE)
+    
+    p <- p + facet_grid( . ~ gene)
+    
+    pdf(pdf_path, 10*length(gene_list), 10, useDingbats = FALSE)
     print(p)
     shh <- dev.off()
   }
