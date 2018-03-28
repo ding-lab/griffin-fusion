@@ -12,10 +12,10 @@ get_high_risk_samples <- function(){
   high_risk_list <- NULL
   for(mmrf in sort(unique(samples$mmrf))){
     
-    if( mmrf %in% seqfish$MMRF & any(endsWith(as.character(subset(seqfish, MMRF==mmrf)$Study_Visit_ID), "BM"))){
-      del17p <- as.logical(subset(seqfish, MMRF==mmrf & seqfish_category=="CN_del_17p13" & endsWith(as.character(seqfish$Study_Visit_ID), "BM") )$has_event)[1]
-      t1416 <- as.logical(subset(seqfish, MMRF==mmrf & seqfish_category=="Translocation_MAF_14_16" & endsWith(as.character(seqfish$Study_Visit_ID), "BM") )$has_event)[1]
-      t1420 <- as.logical(subset(seqfish, MMRF==mmrf & seqfish_category=="Translocation_MAFB_14_20" & endsWith(as.character(seqfish$Study_Visit_ID), "BM") )$has_event)[1]
+    if( mmrf %in% seqfish$MMRF ){
+      del17p <- as.logical(subset(seqfish, MMRF==mmrf & seqfish_category=="CN_del_17p13" )$has_event)[1]
+      t1416 <- as.logical(subset(seqfish, MMRF==mmrf & seqfish_category=="Translocation_MAF_14_16" )$has_event)[1]
+      t1420 <- as.logical(subset(seqfish, MMRF==mmrf & seqfish_category=="Translocation_MAFB_14_20" )$has_event)[1]
     } else{
       del17p <- NA
       t1416 <- NA
