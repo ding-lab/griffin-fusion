@@ -131,7 +131,10 @@ f.close()
 #read in clinical_data.20171201.csv and create clinical_dict 
 f = open("clinical_data.20171201.csv","r")
 w = open("clinical_df.tsv","w")
-w.write("\t".join(["MMRF", "Clinical_category", "Clinical_value"])+"\n")
+w.write("\t".join(["PUBLIC_ID", "Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plamacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"])+"\n")
+
+"PUBLIC_ID", "Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plamacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"
+
 clinical_dict = {}
 f.readline()
 for line in f:
@@ -142,9 +145,9 @@ for line in f:
       sys.exit(sample_key + " already in clinical_dict")
     else:
       clinical_dict[sample_key] = [sample_key, PUBLIC_ID, Age, age_ge_66, Female, Race_White, Race_Black, Race_Other, race, ECOG, BM_Plasma_Cell_Percent, ISS_Stage, LDH, Bone_lesions, Plamacytoma, D_PT_deathdy, D_PT_lstalive, D_PT_pddy, TTPD, EFS, EFS_censor]
-    list_of_indicators = ["sample_key", "PUBLIC_ID", "Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plamacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"]
-    for c in range(2, len(list_of_indicators)):
-      w.write("\t".join([sample_key, list_of_indicators[c], [ str(x).replace(" ","_") if x else "NA" for x in clinical_dict[sample_key] ][c]])+"\n")
+    list_of_indicators = ["PUBLIC_ID", "Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plamacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"]
+    for c in range(1, len(list_of_indicators)):
+      w.write("\t".join([sample_key, list_of_indicators[c], clinical_dict[sample_key][c]])+"\n")
 f.close()
 w.close()
 
@@ -307,7 +310,7 @@ for fusion_key in sorted(filtered_fusions_dict.keys()):
   #seqfish
   if srr_dict[srr] == 1 and mmrf in seqfish_dict:
     print_list.extend( seqfish_dict[mmrf][0][1:] ) #Study_Visit_ID, CN_del_13q14, CN_del_13q34, CN_del_17p13, CN_gain_1q21, Hyperdiploidy, Translocation_WHSC1_4_14, Translocation_CCND3_6_14, Translocation_MYC_8_14, Translocation_MAFA_8_14, Translocation_CCND1_11_14, Translocation_CCND2_12_14, Translocation_MAF_14_16, Translocation_MAFB_14_20
-  else: #can try to fix this later but not important right now
+  else: #Study_Visit_ID can end in PB or BM, both are cancer samples
     print_list.extend( ["NA"]*14 )
   #spectrum seq (get timing of sample collection)
   if mmrf+"_"+str(srr_dict[srr]) in spectrum_dict:
