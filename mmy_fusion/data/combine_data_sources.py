@@ -130,6 +130,8 @@ f.close()
 
 #read in clinical_data.20171201.csv and create clinical_dict 
 f = open("clinical_data.20171201.csv","r")
+w = open("clinical_df.tsv","w")
+w.write("\t".join(["MMRF", "Clinical_category", "Clinical_value"])+"\n")
 clinical_dict = {}
 f.readline()
 for line in f:
@@ -140,7 +142,11 @@ for line in f:
       sys.exit(sample_key + " already in clinical_dict")
     else:
       clinical_dict[sample_key] = [sample_key, PUBLIC_ID, Age, age_ge_66, Female, Race_White, Race_Black, Race_Other, race, ECOG, BM_Plasma_Cell_Percent, ISS_Stage, LDH, Bone_lesions, Plamacytoma, D_PT_deathdy, D_PT_lstalive, D_PT_pddy, TTPD, EFS, EFS_censor]
+    list_of_indicators = ["PUBLIC_ID", "Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plamacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"]
+    for c in range(2, len(list_of_indicators)):
+      w.write("\t".join([sample_key, list_of_indicators[c-1], [ str(x).replace(" ","_") if x else "NA" for x in clinical_dict[sample_key] ][c]])+"\n")
 f.close()
+w.close()
 
 #read in fusion_evidence_discordant_reads.100000.txt and create discordant_dict
 f = open("fusion_evidence_discordant_reads.100000.txt","r")
