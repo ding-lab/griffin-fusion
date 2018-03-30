@@ -41,4 +41,46 @@ ggplot(plot_df, aes(x=as.factor(breakpointA), y=as.factor(breakpointB), color=ca
 
 
 
-ggplot(plot_df, aes(y=c("chr14","chr4"))) + geom_segment(y="chr14", yend="chr4", x=plot_df$breakpointB, xend=plot_df$breakpointA)
+
+############# Expression of oncogenes and TSGs
+library(ggplot2)
+library(scales)
+
+plot_df <- NULL
+#plot_df <- rbind(plot_df, data.frame(percentile=subset(primary_df, as.logical(geneA_kinase))$geneA_pct, gene_type="Kinase", pos="geneA"))
+#plot_df <- rbind(plot_df, data.frame(percentile=subset(primary_df, as.logical(geneB_kinase))$geneB_pct, gene_type="Kinase", pos="geneB"))
+plot_df <- rbind(plot_df, data.frame(percentile=subset(primary_df, as.logical(geneA_oncogene))$geneA_pct, gene_type="Oncogene", pos="geneA"))
+plot_df <- rbind(plot_df, data.frame(percentile=subset(primary_df, as.logical(geneB_oncogene))$geneB_pct, gene_type="Oncogene", pos="geneB"))
+plot_df <- rbind(plot_df, data.frame(percentile=subset(primary_df, as.logical(geneA_tsg))$geneA_pct, gene_type="Tumor Suppressor", pos="geneA"))
+plot_df <- rbind(plot_df, data.frame(percentile=subset(primary_df, as.logical(geneB_tsg))$geneB_pct, gene_type="Tumor Suppressor", pos="geneB"))
+#plot_df <- rbind(plot_df, data.frame(percentile=subset(primary_df, as.logical(geneA_driver))$geneA_pct,gene_type="Driver", pos="geneA"))
+#plot_df <- rbind(plot_df, data.frame(percentile=subset(primary_df, as.logical(geneB_driver))$geneB_pct,gene_type="Driver", pos="geneB"))
+
+ggplot(plot_df, aes(x=gene_type, y=percentile)) + geom_violin(size=2) + geom_jitter(data=plot_df, aes(color=pos), size=3, alpha=0.5) + theme_bw(base_size=20) + labs(x="Gene Category", y="Expression Percentile", title="Expression Percentile of Oncogenes and Tumor Suppressors", color="Gene\norientation")
+
+
+plot_df <- NULL
+oncogenes <- as.character(subset(primary_df, as.logical(geneA_oncogene))$geneA)
+oncogenes <- c(oncogenes, as.character(subset(primary_df, as.logical(geneB_oncogene))$geneB))
+oncogenes <- unique(oncogenes)
+for(g in oncogenes){
+  pct <- subset(primary_df, geneA==g)$geneA_pct
+  pct <- unique(c(pct, subset(primary_df, geneB==g)$geneB_pct))
+  plot_df <- rbind(plot_df, data.frame(gene_type="Oncogene", gene=g, n_samples=length(pct), median=median(pct)))
+}
+
+tsgs <- as.character(subset(primary_df, as.logical(geneA_tsg))$geneA)
+tsgs <- c(tsgs, as.character(subset(primary_df, as.logical(geneB_tsg))$geneB))
+tsgs <- unique(tsgs)
+for(g in tsgs){
+  pct <- subset(primary_df, geneA==g)$geneA_pct
+  pct <- unique(c(pct, subset(primary_df, geneB==g)$geneB_pct))
+  plot_df <- rbind(plot_df, data.frame(gene_type="Tumor Suppressor", gene=g, n_samples=length(pct), median=median(pct)))
+}
+
+gene_type_order <- c(order(subset(plot_df, gene_type=="Oncogene")$n_samples, decreasing=TRUE), order(subset(plot_df, gene_type=="Tumor Suppressor")$n_samples, decreasing=TRUE))
+plot_df <- data.frame(plot_df, gene_type_order=gene_type_order)
+
+
+ggplot(subset(plot_df, gene_type_order <= 10), aes(x=gene, y=gene_type, size=n_samples, color=median)) + geom_point(alpha=0.5) + scale_colour_gradient2(low=muted("blue"), high=muted("red"), midpoint = 0.5) + facet_grid( . ~ gene_type)
+
