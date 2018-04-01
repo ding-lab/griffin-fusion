@@ -131,10 +131,7 @@ f.close()
 #read in clinical_data.20171201.csv and create clinical_dict 
 f = open("clinical_data.20171201.csv","r")
 w = open("clinical_df.tsv","w")
-w.write("\t".join(["PUBLIC_ID", "Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plamacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"])+"\n")
-
-"PUBLIC_ID", "Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plamacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"
-
+w.write("\t".join(["MMRF", "Clinical_category", "Clinical_value"])+"\n")
 clinical_dict = {}
 f.readline()
 for line in f:
