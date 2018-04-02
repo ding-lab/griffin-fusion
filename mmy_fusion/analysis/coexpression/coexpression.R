@@ -19,6 +19,61 @@ ggplot(plot_df, aes(x=WHSC1, y=FGFR3, color=has_fusion, shape=has_t414)) + geom_
 
 
 ##### Breakpoints of IGH@--WHSC1 fusions #####
+delly <- read.table(paste0(data,"Filtered_Fusions_100000_delly_20180219.txt"), header=T)
+process_sv_evidence <- function(sv_ev){
+  sv_ev <- as.character(sv_ev)
+  if(is.na(sv_ev)){
+    return(NA)
+  } else{
+    sv_list <- strsplit(sv_ev,"|", fixed=TRUE)[[1]][!apply(as.matrix(strsplit(sv_ev,"|", fixed=TRUE)[[1]]), 1, function(x) grepl("*",x,fixed=TRUE))]
+    chr <- NULL
+    pos <- NULL
+    for(sv in sv_list){
+      chr <- c(chr, strsplit(sv,":")[[1]][1])
+      pos <- c(pos, strsplit(strsplit(sv,":")[[1]][2],"-")[[1]][1])
+    }
+  }
+  return(data.frame(chr=chr, pos=pos))
+}
+
+igh_whsc1_df <- subset(delly, FusionName=="IGH@--WHSC1")
+sv_breakpoints <- apply(as.matrix(igh_whsc1_df$DELLY_SV_EVIDENCE), 1, function(x) process_sv_evidence(x))
+
+bp_igh <- NULL
+bp_whsc1 <- NULL
+ex_fgfr3 <- NULL
+ex_whsc1 <- NULL
+for(this_srr in igh_whsc1_df$Sample){
+  sv_bp <- process_sv_evidence(subset(igh_whsc1_df, Sample==this_srr)$DELLY_SV_EVIDENCE)
+  if( is.na(sv_bp[1]) ){
+    this_whsc1_breakpoint <- NA
+    this_fgfr3_expression <- NA
+    this_igh_breakpoint <- NA
+    this_whsc1_expression <- NA
+  } else{
+    nrow_14 <- nrow(subset(sv_bp, chr==14))
+    nrow_4 <- nrow(subset(sv_bp, chr==4))
+    if(nrow_14==1 & nrow_4==1){
+      this_whsc1_breakpoint <- as.numeric(as.character(subset(process_sv_evidence(subset(igh_whsc1_df, Sample==this_srr)$DELLY_SV_EVIDENCE), chr==4)$pos[1]))
+      this_igh_breakpoint <- as.numeric(as.character(subset(process_sv_evidence(subset(igh_whsc1_df, Sample==this_srr)$DELLY_SV_EVIDENCE), chr==14)$pos[1]))
+      this_fgfr3_expression <- subset(expr, srr==this_srr & gene=="FGFR3")$log10tpm
+      this_whsc1_expression <- subset(expr, srr==this_srr & gene=="WHSC1")$log10tpm
+    } else{
+      this_whsc1_breakpoint <- NA
+      this_fgfr3_expression <- NA
+      this_igh_breakpoint <- NA
+      this_whsc1_expression <- NA
+    }
+  }
+  bp_igh <- c(bp_igh, this_igh_breakpoint)
+  bp_whsc1 <- c(bp_whsc1, this_whsc1_breakpoint)
+  ex_fgfr3 <- c(ex_fgfr3, this_fgfr3_expression)
+  ex_whsc1 <- c(ex_whsc1, this_whsc1_expression)
+}
+plot_df <- data.frame(bp_igh=bp_igh, bp_whsc1=bp_whsc1, ex_fgfr3=ex_fgfr3, ex_whsc1=ex_whsc1)
+
+ggplot(plot_df, aes(x=bp_igh, y=bp_whsc1, color=as.factor(round(ex_fgfr3)))) + geom_point()
+
 srr_with_whsc1_fusion_plus_wgs <- subset(primary_df, fusion=="IGH@--WHSC1" & !is.na(seqfish_Translocation_WHSC1_4_14))$srr
 bpA <- subset(primary_df, fusion=="IGH@--WHSC1" & !is.na(seqfish_Translocation_WHSC1_4_14))$posA
 bpB <- subset(primary_df, fusion=="IGH@--WHSC1" & !is.na(seqfish_Translocation_WHSC1_4_14))$posB
