@@ -10,6 +10,8 @@ names(samples) <- c("mmrf","srr")
 
 get_high_risk_samples <- function(){
   high_risk_list <- NULL
+  total <- 0
+  count <- 0
   for(mmrf in sort(unique(samples$mmrf))){
     
     if( mmrf %in% seqfish$MMRF ){
@@ -68,3 +70,6 @@ for(this_mmrf in high_risk_samples){
     druggable_high_risk_samples <- c(druggable_high_risk_samples, this_mmrf)
   }
 }
+
+subset(primary_df, mmrf %in% druggable_high_risk_samples & (drug_geneA | drug_geneB))
+
