@@ -1,3 +1,5 @@
+#TODO include variables known to be assocaited with survival ISS, 17p deletion, t(4;14)
+
 library(survival)
 #Primary samples only time to event and censoring status
 
