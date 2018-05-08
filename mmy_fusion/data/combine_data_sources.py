@@ -1,4 +1,4 @@
-regenerate_expr_file = True #warning: takes 3+ hours if regenerate_expr_file = True and test = False
+regenerate_expr_file = False #warning: takes 3+ hours if regenerate_expr_file = True and test = False
 test = False
 
 import sys
@@ -111,7 +111,7 @@ for line in f:
   if sample_key in seqfish_dict:
     seqfish_dict[sample_key].append([sample_key, Study_Visit_ID, CN_del_13q14, CN_del_13q34, CN_del_17p13, CN_gain_1q21, Hyperdiploidy, Translocation_WHSC1_4_14, Translocation_CCND3_6_14, Translocation_MYC_8_14, Translocation_MAFA_8_14, Translocation_CCND1_11_14, Translocation_CCND2_12_14, Translocation_MAF_14_16, Translocation_MAFB_14_20])
   else:
-    seqfish_dict[sample_key] = [[sample_key, Study_Visit_ID, CN_del_13q14, CN_del_13q34, CN_del_17p13, CN_gain_1q21, Hyperdiploidy, Translocation_WHSC1_4_14, Translocation_CCND3_6_14, Translocation_MYC_8_14, Translocation_MAFA_8_14, Translocation_CCND1_11_14, Translocation_CCND2_12_14, Translocation_MAF_14_16, Translocation_MAFB_14_20]]
+    seqfish_dict[sample_key] = [ [x if x else "NA" for x in [sample_key, Study_Visit_ID, CN_del_13q14, CN_del_13q34, CN_del_17p13, CN_gain_1q21, Hyperdiploidy, Translocation_WHSC1_4_14, Translocation_CCND3_6_14, Translocation_MYC_8_14, Translocation_MAFA_8_14, Translocation_CCND1_11_14, Translocation_CCND2_12_14, Translocation_MAF_14_16, Translocation_MAFB_14_20]]]
   list_of_indicators = ["sample_key", "Study_Visit_ID", "CN_del_13q14", "CN_del_13q34", "CN_del_17p13", "CN_gain_1q21", "Hyperdiploidy", "Translocation_WHSC1_4_14", "Translocation_CCND3_6_14", "Translocation_MYC_8_14", "Translocation_MAFA_8_14", "Translocation_CCND1_11_14", "Translocation_CCND2_12_14", "Translocation_MAF_14_16", "Translocation_MAFB_14_20"]
   for c in range(2,len(list_of_indicators)):
     w.write('\t'.join([sample_key, Study_Visit_ID, list_of_indicators[c], seqfish_dict[sample_key][-1][c]])+'\n')
