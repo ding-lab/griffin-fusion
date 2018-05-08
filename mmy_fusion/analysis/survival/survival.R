@@ -35,7 +35,7 @@ fusion_pairs <- names(sort(table(as.character(primary_df$fusion)), decreasing=TR
 fusion_genes <- names(sort(table(c(as.character(primary_df$geneA), as.character(primary_df$geneB))), decreasing=TRUE)[sort(table(c(as.character(primary_df$geneA), as.character(primary_df$geneB))), decreasing=TRUE) > 1])
 
 fusion_survival <- function(primary_df, this_fusion, efs_survival_df, death_survival_df){
-  if( grepl("--", this_fusion) ){
+  if( grepl("--", this_fusion, fixed=TRUE) ){
     mmrf_with_fusion <- as.character(subset(primary_df, as.character(fusion)==this_fusion)$mmrf)
   } else{
     mmrf_with_fusion <- as.character(subset(primary_df, as.character(geneA)==this_fusion | as.character(geneB)==this_fusion )$mmrf)
