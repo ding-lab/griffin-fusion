@@ -1,4 +1,4 @@
-regenerate_expr_file = False #warning: takes 3+ hours if regenerate_expr_file = True and test = False
+regenerate_expr_file = True #warning: takes 3+ hours if regenerate_expr_file = True and test = False
 test = False
 
 import sys
@@ -149,17 +149,17 @@ f.close()
 w.close()
 
 #read in fusion_evidence_discordant_reads.100000.txt and create discordant_dict
-#f = open("fusion_evidence_discordant_reads.100000.txt","r")
-#discordant_dict = {}
-#f.readline()
-#for line in f:
-#  FusionName, LeftBreakpoint, RightBreakpoint, Cancer, Sample, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, CallerN, Callers, Overlap, bpRangeA, bpRangeB, depthA, depthB, n_discordant, discordant_reads, wgs_bam = line.strip().split()
-#  fusion_key = Cancer+":"+Sample+":"+FusionName
-#  if fusion_key in discordant_dict:
-#    sys.exit(fusion_key + " already in discordant_dict")
-#  else:
-#    discordant_dict[fusion_key] = [fusion_key, Overlap, bpRangeA, bpRangeB, depthA, depthB, n_discordant, discordant_reads, wgs_bam]
-#f.close()
+f = open("fusion_evidence_discordant_reads.100000.txt","r")
+discordant_dict = {}
+f.readline()
+for line in f:
+  FusionName, LeftBreakpoint, RightBreakpoint, Cancer, Sample, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, CallerN, Callers, Overlap, bpRangeA, bpRangeB, depthA, depthB, n_discordant, discordant_reads, wgs_bam = line.strip().split()
+  fusion_key = Cancer+":"+Sample+":"+FusionName
+  if fusion_key in discordant_dict:
+    sys.exit(fusion_key + " already in discordant_dict")
+  else:
+    discordant_dict[fusion_key] = [fusion_key, Overlap, bpRangeA, bpRangeB, depthA, depthB, n_discordant, discordant_reads, wgs_bam]
+f.close()
 
 if regenerate_expr_file:
   #read in combined_cnv_results.txt and create multi-layered dictionary cnv_dict
