@@ -4,7 +4,6 @@ rsync -avh 'sfoltz@linus6.gsc.wustl.edu:/gscmnt/gc2737/ding/Analysis/RNA-seq/fus
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/00_combined_fusion_file/Hard_Filtered_Fusions.tsv \
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/01_sample_set/sample_list.807.txt \
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/01_sample_set/sample_list.with_file_names.txt \
-  /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/02_sv_annotation/Filtered_Fusions_100000_delly_20180219.txt \
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/02_sv_annotation/discordant_reads/fusion_evidence_discordant_reads.100000.txt \
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/03_cnv_annotation/all_output/combined_cnv_results.txt \
   /gscmnt/gc2737/ding/Analysis/RNA-seq/Gene_Expression/kallisto_tpm/out4/mmy_gene_tpm_table.tsv \
@@ -16,3 +15,5 @@ rsync -avh 'sfoltz@linus6.gsc.wustl.edu:/gscmnt/gc2737/ding/Analysis/RNA-seq/fus
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/00_combined_fusion_file/FilterDatabase/mmy_known.tsv \
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/00_combined_fusion_file/FilterDatabase/driver.tsv \
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/00_combined_fusion_file/FilterDatabase/kinase.tsv ' .
+
+#/gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/02_sv_annotation/Filtered_Fusions_100000_delly_20180219.txt \
