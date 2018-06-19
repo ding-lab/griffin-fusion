@@ -1,4 +1,4 @@
-rsync -avh /Users/sfoltz/Desktop/lab/resources/DEPO_final_20170206 DEPO_final_20170206.txt
+rsync -avh /Users/sfoltz/Desktop/lab/zzz_other/resources/DEPO_final_20170206 DEPO_final_20170206.txt
 rsync -avh 'sfoltz@linus6.gsc.wustl.edu:/gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/00_combined_fusion_file/Total_Fusions.tsv \
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/00_combined_fusion_file/Hard_Filtered_Fusions.tsv \
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/01_sample_set/sample_list.806.txt \
