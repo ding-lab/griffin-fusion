@@ -1,4 +1,4 @@
-regenerate_expr_file = False #warning: takes 3+ hours if regenerate_expr_file = True and test = False
+regenerate_expr_file = True #warning: takes 3+ hours if regenerate_expr_file = True and test = False
 test = False
 
 import sys
@@ -45,10 +45,12 @@ f.close()
 
 #read in sample list, assign primary secondary etc
 f = open("sample_list.with_file_names.txt","r")
+w = open("sample_list.primary.txt","w")
 sample_dict = {}
 srr_dict = {}
 for line in f:
-  mmrf, primary_srr, other_srr, sf, sf2, es, es2, i, i2, wgstn_srr, delly, manta, lumpy, cnv, tpm = line.strip().split()
+  mmrf, primary_srr, other_srr, sf, sf2, es, es2, i, i2, pd, pd2, fc, fc2, wgstn_srr, delly, manta, lumpy, cnv, tpm = line.strip().split()
+  w.write(mmrf+"\t"+primary_srr)
   sample_dict[mmrf] = [primary_srr]
   srr_dict[primary_srr] = 1
   if other_srr != "NA":
@@ -58,12 +60,12 @@ for line in f:
       sample_dict[mmrf].append(srr)
       srr_dict[srr] = count
 f.close()
-
+w.close()
 
 #read in Filtered_Fusions.tsv and create filtered_fusions_dict
 genes_with_fusions = {}
 fusion_recurrence = {}
-f = open("Filtered_Fusions.tsv","r")
+f = open("Hard_Filtered_Fusions.tsv","r")
 filtered_fusions_dict = {}
 f.readline()
 for line in f:
