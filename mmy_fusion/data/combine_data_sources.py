@@ -69,11 +69,12 @@ f = open("Hard_Filtered_Fusions.tsv","r")
 filtered_fusions_dict = {}
 f.readline()
 for line in f:
-  FusionName, LeftBreakpoint, RightBreakpoint, Cancer, Sample, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, CallerN, Callers = line.strip().split()
+  FusionName, LeftBreakpoint, RightBreakpoint, Cancer, Sample, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, Callers, CallerN = line.strip().split()
   chrA, posA, strandA = LeftBreakpoint.split(":")
   chrB, posB, strandB = RightBreakpoint.split(":")
   fusion_key = Cancer+":"+Sample+":"+FusionName
   geneA, geneB = FusionName.split("--")
+  called_by = [ str(int(x in Callers)) for x in ["E","F","I","P","S"] ] # determine what callers called this fusion Ericscript FusionCatcher Integrate Prada Star-Fusion
   if geneA not in genes_with_fusions:
     genes_with_fusions[geneA] = ''
   if geneB not in genes_with_fusions:
@@ -81,7 +82,7 @@ for line in f:
   if fusion_key in filtered_fusions_dict:
     sys.exit(fusion_key + " already in filtered_fusions_dict")
   else:
-    filtered_fusions_dict[fusion_key] = [fusion_key, FusionName, geneA, geneB, LeftBreakpoint, RightBreakpoint, chrA, posA, strandA, chrB, posB, strandB, Cancer, Sample, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, CallerN, Callers]
+    filtered_fusions_dict[fusion_key] = [fusion_key, FusionName, geneA, geneB, LeftBreakpoint, RightBreakpoint, chrA, posA, strandA, chrB, posB, strandB, Cancer, Sample, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, Callers, CallerN, called_by[0], called_by[1], called_by[2], called_by[3], called_by[4]]
     if FusionName in fusion_recurrence:
       fusion_recurrence[FusionName] += 1
     else:
@@ -121,16 +122,6 @@ for line in f:
 f.close()
 w.close()
 
-#read in Spectrum_seq.20180104.csv and create spectrum_dict
-f = open("Spectrum_seq.20180104.csv","r")
-spectrum_dict = {}
-f.readline()
-for line in f:
-  PUBLIC_ID, SPECTRUM_SEQ, VJ_INTERVAL, VISITDY, D_PT_deathdy, D_PT_lstalive, D_PT_pddy, TTPD, EFS, EFS_censor, PD_Sample = line.strip().split(",")
-  sample_key = SPECTRUM_SEQ
-  spectrum_dict[sample_key] = [sample_key, PUBLIC_ID, SPECTRUM_SEQ, VJ_INTERVAL, VISITDY, D_PT_deathdy, D_PT_lstalive, D_PT_pddy, TTPD, EFS, EFS_censor, PD_Sample]
-f.close()
-
 #read in clinical_data.20171201.csv and create clinical_dict 
 f = open("clinical_data.20171201.csv","r")
 w = open("clinical_df.tsv","w")
@@ -156,7 +147,7 @@ f = open("fusion_evidence_discordant_reads.100000.txt","r")
 discordant_dict = {}
 f.readline()
 for line in f:
-  FusionName, LeftBreakpoint, RightBreakpoint, Cancer, Sample, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, CallerN, Callers, Overlap, bpRangeA, bpRangeB, depthA, depthB, n_discordant, discordant_reads, wgs_bam = line.strip().split()
+  FusionName, LeftBreakpoint, RightBreakpoint, Cancer, Sample, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, Callers, CallerN, Overlap, bpRangeA, bpRangeB, depthA, depthB, n_discordant, discordant_reads, wgs_bam = line.strip().split()
   fusion_key = Cancer+":"+Sample+":"+FusionName
   if fusion_key in discordant_dict:
     sys.exit(fusion_key + " already in discordant_dict")
@@ -280,9 +271,8 @@ column_labels.extend(["srr"])
 column_labels.extend(["fusion"])
 column_labels.extend(["sample_number"])
 column_labels.extend(["has_secondary"])
-column_labels.extend(["geneA", "geneB", "LeftBreakpoint", "RightBreakpoint",  "chrA", "posA", "strandA", "chrB", "posB", "strandB", "JunctionReadCount", "SpanningFragCount", "FFPM", "PROT_FUSION_TYPE", "CallerN", "Callers"])
+column_labels.extend(["geneA", "geneB", "LeftBreakpoint", "RightBreakpoint",  "chrA", "posA", "strandA", "chrB", "posB", "strandB", "JunctionReadCount", "SpanningFragCount", "FFPM", "PROT_FUSION_TYPE", "Callers", "CallerN", "called_by_Eriscript", "called_by_FusionCatcher", "called_by_Integrate", "called_by_Prada", "called_by_StarFusion"])
 column_labels.extend(["seqfish_Study_Visit_ID", "seqfish_CN_del_13q14", "seqfish_CN_del_13q34", "seqfish_CN_del_17p13", "seqfish_CN_gain_1q21", "seqfish_Hyperdiploidy", "seqfish_Translocation_WHSC1_4_14", "seqfish_Translocation_CCND3_6_14", "seqfish_Translocation_MYC_8_14", "seqfish_Translocation_MAFA_8_14", "seqfish_Translocation_CCND1_11_14", "seqfish_Translocation_CCND2_12_14", "seqfish_Translocation_MAF_14_16", "seqfish_Translocation_MAFB_14_20"])
-#column_labels.extend(["SPECTRUM_SEQ", "spectrumseq_VJ_INTERVAL", "spectrumseq_VISITDY", "spectrumseq_D_PT_deathdy", "spectrumseq_D_PT_lstalive", "spectrumseq_D_PT_pddy", "spectrumseq_TTPD", "spectrumseq_EFS", "spectrumseq_EFS_censor", "spectrumseq_PD_Sample"])
 column_labels.extend(["Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plamacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"])
 column_labels.extend(["R-ISS"])
 column_labels.extend(["Overlap", "bpRangeA", "bpRangeB", "depthA", "depthB", "n_discordant", "discordant_reads","wgs_bam"])
@@ -306,18 +296,12 @@ for fusion_key in sorted(filtered_fusions_dict.keys()):
     print_list.append("1") #has secondary
   else:
     print_list.append("0")
-  print_list.extend([ filtered_fusions_dict[fusion_key][i] for i in [2,3,4,5,6,7,8,9,10,11,14,15,16,17,18,19] ]) #geneA, geneB, LeftBreakpoint, RightBreakpoint, chrA, posA, strandA, chrB, posB, strandB, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, CallerN, Callers
+  print_list.extend([ filtered_fusions_dict[fusion_key][i] for i in [2,3,4,5,6,7,8,9,10,11,14,15,16,17,18,19,20,21,22,23,24] ]) #geneA, geneB, LeftBreakpoint, RightBreakpoint, chrA, posA, strandA, chrB, posB, strandB, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, Callers, CallerN, called_by_X
   #seqfish
   if srr_dict[srr] == 1 and mmrf in seqfish_dict:
     print_list.extend( seqfish_dict[mmrf][0][1:] ) #Study_Visit_ID, CN_del_13q14, CN_del_13q34, CN_del_17p13, CN_gain_1q21, Hyperdiploidy, Translocation_WHSC1_4_14, Translocation_CCND3_6_14, Translocation_MYC_8_14, Translocation_MAFA_8_14, Translocation_CCND1_11_14, Translocation_CCND2_12_14, Translocation_MAF_14_16, Translocation_MAFB_14_20
   else: #Study_Visit_ID can end in PB or BM, both are cancer samples
     print_list.extend( ["NA"]*14 )
-  
-  #spectrum seq (get timing of sample collection)
-  #if mmrf+"_"+str(srr_dict[srr]) in spectrum_dict:
-  #  print_list.extend( spectrum_dict[mmrf+"_"+str(srr_dict[srr]) ][2:] ) #SPECTRUM_SEQ, VJ_INTERVAL, VISITDY, D_PT_deathdy, D_PT_lstalive, D_PT_pddy, TTPD, EFS, EFS_censor, PD_Sample
-  #else:
-  #  print_list.extend( ["NA"]*10 )
   
   #clinical
   print_list.extend( clinical_dict[mmrf][2:] ) #Age, age_ge_66, Female, Race_White, Race_Black, Race_Other, race, ECOG, BM_Plasma_Cell_Percent, ISS_Stage, LDH, Bone_lesions, Plamacytoma, D_PT_deathdy, D_PT_lstalive, D_PT_pddy, TTPD, EFS, EFS_censor
