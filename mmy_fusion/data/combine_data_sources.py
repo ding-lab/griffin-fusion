@@ -50,7 +50,7 @@ sample_dict = {}
 srr_dict = {}
 for line in f:
   mmrf, primary_srr, other_srr, sf, sf2, es, es2, i, i2, pd, pd2, fc, fc2, wgstn_srr, delly, manta, lumpy, cnv, tpm = line.strip().split()
-  w.write(mmrf+"\t"+primary_srr)
+  w.write(mmrf+"\t"+primary_srr+"\n")
   sample_dict[mmrf] = [primary_srr]
   srr_dict[primary_srr] = 1
   if other_srr != "NA":
