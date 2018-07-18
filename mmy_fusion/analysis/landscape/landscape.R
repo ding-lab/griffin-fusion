@@ -1,12 +1,14 @@
-library(ggplot2)
+#library(ggplot2)
 
-top_5_names <- names(sort(table(primary_df$fusion), decreasing=TRUE)[1:5])
-top_5_count <- as.vector(sort(table(primary_df$fusion), decreasing=TRUE)[1:5])
-top_5_rate <- vector()
-for(name in top_5_names){
+n <- 10 #number of top fusions to consider
+
+top_fusions_names <- names(sort(table(primary_df$fusion), decreasing=TRUE)[1:n])
+top_fusions_count <- as.vector(sort(table(primary_df$fusion), decreasing=TRUE)[1:n])
+top_fusions_rate <- vector()
+for(name in top_fusions_names){
   val <- subset(primary_df, fusion==name)$n_discordant
   rate <- mean(val >= 3 , na.rm=T)
-  top_5_rate <- c(top_5_rate, rate)
+  top_fusions_rate <- c(top_fusions_rate, rate)
 }
 
 top_callers <- names(sort(table(primary_df$Callers), decreasing=TRUE))
@@ -22,11 +24,11 @@ hyperdiploid_status <- unique(primary_df[,c("mmrf", "seqfish_Hyperdiploidy")])
 
 #plots
 
-##### top 5 #####
+##### top n fusions #####
 #update coverge to show N of samples with WGS
-plot_df <- data.frame(fusion=top_5_names, n_samples=top_5_count, validation_rate=format(top_5_rate,digits=1))
-plot_df$fusion <- factor(plot_df$fusion, levels = rev(top_5_names))
-ggplot(plot_df, aes(x=fusion, weight=n_samples, label=validation_rate)) + geom_bar() + coord_flip() + labs(x="Fusion name", y="Number of samples", title="Top 5 Recurrent Fusions") + theme_bw(base_size=20) + geom_text(aes(x = fusion, y = n_samples), hjust=1, color="white", size=5)
+plot_df <- data.frame(fusion=top_fusions_names, n_samples=top_fusions_count, validation_rate=format(top_fusions_rate,digits=1))
+plot_df$fusion <- factor(plot_df$fusion, levels = rev(top_fusions_names))
+ggplot(plot_df, aes(x=fusion, weight=n_samples, label=validation_rate)) + geom_bar() + coord_flip() + labs(x="Fusion name", y="Number of samples", title=paste0("Top ", n," Recurrent Fusions")) + theme_bw(base_size=20) + geom_text(aes(x = fusion, y = n_samples), hjust=1, color="white", size=5)
 
 ##### callers #####
 #update coverge to show N of samples with WGS
