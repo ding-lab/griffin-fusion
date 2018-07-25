@@ -184,10 +184,11 @@ if regenerate_expr_file:
   f.readline()
   for line in f:
     mmrf, srr, ensg, gene, tpm, log10tpm = line.strip().split()
-    if gene in gene_expr_dict:
-      gene_expr_dict[gene].append(float(tpm))
-    else:
-      gene_expr_dict[gene] = [float(tpm)]
+    if srr in srr_dict and srr_dict[srr] == 1:
+      if gene in gene_expr_dict:
+        gene_expr_dict[gene].append(float(tpm))
+      else:
+        gene_expr_dict[gene] = [float(tpm)]
   f.close()
 
   #re-read mmy_gene_tpm_table.tsv and calculate percentiles at fusion genes
