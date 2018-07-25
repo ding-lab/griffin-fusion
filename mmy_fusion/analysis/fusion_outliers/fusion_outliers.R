@@ -154,7 +154,9 @@ plotting <- function(df, this_gene, pdf_path, ymax_value, labels=TRUE, seed=10){
     p <- p + labs(x="Fusion Status", y="Gene Expression TPM (log10)", color="CNV Status", title=paste0("Fusion Gene Expression (", this_gene, ")"))
     p <- p + guides(fill=FALSE, alpha=FALSE)
     
-    dir.create(paste(rev(rev(strsplit(pdf_path, "/")[[1]])[-1]),collapse="/"))
+    if( !(dir.exists( dirname(pdf_path) )) ){
+      dir.create(dirname(pdf_path), showWarnings = FALSE, recursive = TRUE)
+    }
     pdf(pdf_path, 10, 10, useDingbats = FALSE)
     print(p)
     shh <- dev.off()
@@ -186,7 +188,9 @@ plotting_multiple <- function(df, gene_list, pdf_path, ymax_value, labels=TRUE, 
     p <- p + labs(x="Fusion Status", y="Gene Expression TPM (log10)", color="CNV Status", title="Fusion Gene Expression (Multiple Genes)")
     p <- p + guides(fill=FALSE, alpha=FALSE)
     
-    dir.create(paste(rev(rev(strsplit(pdf_path, "/")[[1]])[-1]),collapse="/"))
+    if( !(dir.exists( dirname(pdf_path) )) ){
+      dir.create(dirname(pdf_path), showWarnings = FALSE, recursive = TRUE)
+    }
     pdf(pdf_path, 10+2*length(gene_list), 10, useDingbats = FALSE)
     print(p)
     shh <- dev.off()
@@ -199,7 +203,7 @@ n_genes <- length(genes_with_fusions)
 
 significance_df <- NULL
 
-if(TRUE){ #warning, takes several hours for MMY dataset
+if(FALSE){ #warning, takes several hours for MMY dataset
   count_up <- 0
   for(this_gene in genes_with_fusions){
     significant <- significance(primary_df, this_gene)
@@ -217,7 +221,7 @@ if(TRUE){ #warning, takes several hours for MMY dataset
     
   }
   
-  write.table(significance_df[apply(significance_df, 1, function(x) !all(is.na(x))),], "fusion_outliers/significance.tsv", quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
+  write.table(significance_df[apply(significance_df, 1, function(x) !all(is.na(x))),], "analysis/fusion_outliers/significance.tsv", quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
 }
 
 sig_df <- read.table("analysis/fusion_outliers/significance.tsv", header=T)
