@@ -6,7 +6,11 @@ all_samples <- read.table("data/sample_list.806.txt", header=F, stringsAsFactors
 names(all_samples) <- c("MMRF","SRR")
 samples <- read.table("data/sample_list.primary.txt", header=F, stringsAsFactors=F)
 names(samples) <- c("MMRF","SRR")
+
 expr <- read.table("data/mmy_gene_expr_with_fusions.tsv", header=T, stringsAsFactors=F)
+expr <- subset(expr, srr %in% all_samples$SRR)
+primary_expr <- subset(expr, srr %in% samples$SRR)
+
 clinical_df <- read.table("data/clinical_df.tsv", header=T, stringsAsFactors=F)
 seqfish_df <- read.table("data/seqfish_df.tsv", header=T, stringsAsFactors=F)
 
