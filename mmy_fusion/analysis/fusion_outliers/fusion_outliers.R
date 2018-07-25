@@ -17,7 +17,7 @@ get_expr_df <- function(df, this_gene){
         gene_partners <- c(gene_partners, "")
       }
     
-      tn_cnv_ratio = exp(subset(this_gene_expr, srr == this_srr)$gene_avg_cnv)
+      tn_cnv_ratio = 2^(subset(this_gene_expr, srr == this_srr)$gene_avg_cnv) # gene_avg_cnv is average log2 CNV ratio
       if(is.na(tn_cnv_ratio)){
         this_cnv <- "No data"
       } else if(tn_cnv_ratio > 2){
@@ -62,7 +62,7 @@ get_expr_df_multiple <- function(df, gene_list){
           gene_partners <- c(gene_partners, "")
         }
         
-        tn_cnv_ratio = exp(subset(this_gene_expr, srr == this_srr)$gene_avg_cnv)
+        tn_cnv_ratio = 2^(subset(this_gene_expr, srr == this_srr)$gene_avg_cnv)
         if(is.na(tn_cnv_ratio)){
           this_cnv <- "No data"
         } else if(tn_cnv_ratio > 2){
@@ -137,8 +137,8 @@ plotting <- function(df, this_gene, pdf_path, ymax_value, labels=TRUE, seed=10){
   plot_df <- data.frame(this_gene_expr, fusion_status_j=jitter(as.numeric(this_gene_expr$fusion_status)))
   
   if( any(plot_df$fusion_status == "Fusion") ){
-    library(ggplot2)
-    library(ggrepel)
+    #library(ggplot2)
+    #library(ggrepel)
     
     p <- ggplot(plot_df, aes(x=fusion_status, y=log10tpm, color=cnv, fill=cnv))
     
@@ -154,6 +154,7 @@ plotting <- function(df, this_gene, pdf_path, ymax_value, labels=TRUE, seed=10){
     p <- p + labs(x="Fusion Status", y="Gene Expression TPM (log10)", color="CNV Status", title=paste0("Fusion Gene Expression (", this_gene, ")"))
     p <- p + guides(fill=FALSE, alpha=FALSE)
     
+    dir.create(paste(rev(rev(strsplit(pdf_path, "/")[[1]])[-1]),collapse="/"))
     pdf(pdf_path, 10, 10, useDingbats = FALSE)
     print(p)
     shh <- dev.off()
@@ -168,8 +169,8 @@ plotting_multiple <- function(df, gene_list, pdf_path, ymax_value, labels=TRUE, 
   plot_df <- data.frame(this_gene_expr, gene_x=droplevels(factor(this_gene_expr$gene, levels=gene_list)), fusion_status_j=jitter(as.numeric(droplevels(factor(this_gene_expr$gene, levels=gene_list)))))
   
   if( any(plot_df$fusion_status == "Fusion") ){
-    library(ggplot2)
-    library(ggrepel)
+    #library(ggplot2)
+    #library(ggrepel)
     
     p <- ggplot(plot_df, aes(x=gene_x, y=log10tpm, color=cnv, fill=cnv))
     
@@ -185,6 +186,7 @@ plotting_multiple <- function(df, gene_list, pdf_path, ymax_value, labels=TRUE, 
     p <- p + labs(x="Fusion Status", y="Gene Expression TPM (log10)", color="CNV Status", title="Fusion Gene Expression (Multiple Genes)")
     p <- p + guides(fill=FALSE, alpha=FALSE)
     
+    dir.create(paste(rev(rev(strsplit(pdf_path, "/")[[1]])[-1]),collapse="/"))
     pdf(pdf_path, 10+2*length(gene_list), 10, useDingbats = FALSE)
     print(p)
     shh <- dev.off()
@@ -210,15 +212,15 @@ if(TRUE){ #warning, takes several hours for MMY dataset
     significance_df <- rbind(significance_df, significant)
     
     #plot all genes
-    plotting(primary_df, this_gene, paste0("fusion_outliers/all_plots/",this_gene,".pdf"), ymax_value)
-    #plotting(primary_df, this_gene, paste0("fusion_outliers/all_plots_withoutlabel/",this_gene,".pdf"), ymax_value, label=FALSE)
+    plotting(primary_df, this_gene, paste0("analysis/fusion_outliers/all_plots/",this_gene,".pdf"), ymax_value)
+    #plotting(primary_df, this_gene, paste0("analysis/fusion_outliers/all_plots_withoutlabel/",this_gene,".pdf"), ymax_value, label=FALSE)
     
   }
   
   write.table(significance_df[apply(significance_df, 1, function(x) !all(is.na(x))),], "fusion_outliers/significance.tsv", quote=FALSE, sep="\t", row.names=FALSE, col.names=TRUE)
 }
 
-sig_df <- read.table("fusion_outliers/significance.tsv", header=T)
+sig_df <- read.table("analysis/fusion_outliers/significance.tsv", header=T)
 n_genes_recurrent_fusions <- nrow(subset(sig_df, n_samples_with_fusion > 1))
 genes_recurrent_fusions <- subset(sig_df, n_samples_with_fusion > 1)$gene
 pvalue_threshold <- 0.01
@@ -228,11 +230,12 @@ for(this_gene in genes_recurrent_fusions){
   significant <- subset(sig_df, gene == this_gene)
   if(significant$n_samples_with_fusion > 1 & significant$median_expr_pct > 0.50 & ( (!is.na(significant$ttest_over) & significant$ttest_over < pvalue_threshold) | (!is.na(significant$fisher_over) & significant$fisher_over < pvalue_threshold) )){
     print(paste0("Over: ",this_gene))
-    plotting(primary_df, this_gene, paste0("fusion_outliers/significant_plots_over/",this_gene,".pdf"), ymax_value)
-    plotting(primary_df, this_gene, paste0("fusion_outliers/significant_plots_over_withoutlabel/",this_gene,".pdf"), ymax_value, label=FALSE)
+    plotting(primary_df, this_gene, paste0("analysis/fusion_outliers/significant_plots_over/",this_gene,".pdf"), ymax_value)
+    plotting(primary_df, this_gene, paste0("analysis/fusion_outliers/significant_plots_over_withoutlabel/",this_gene,".pdf"), ymax_value, label=FALSE)
   } else if(significant$n_samples_with_fusion > 1 & significant$median_expr_pct < 0.50 & ( (!is.na(significant$ttest_under) & significant$ttest_under < pvalue_threshold) | (!is.na(significant$fisher_under) & significant$fisher_under < pvalue_threshold) )){
     print(paste0("Under: ",this_gene))
-    plotting(primary_df, this_gene, paste0("fusion_outliers/significant_plots_under/",this_gene,".pdf"), ymax_value)
-    plotting(primary_df, this_gene, paste0("fusion_outliers/significant_plots_under_withoutlabel/",this_gene,".pdf"), ymax_value, label=FALSE)
+    plotting(primary_df, this_gene, paste0("analysis/fusion_outliers/significant_plots_under/",this_gene,".pdf"), ymax_value)
+    plotting(primary_df, this_gene, paste0("analysis/fusion_outliers/significant_plots_under_withoutlabel/",this_gene,".pdf"), ymax_value, label=FALSE)
   }
 }
+
