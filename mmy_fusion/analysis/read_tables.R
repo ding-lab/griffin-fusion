@@ -21,3 +21,12 @@ readthrough_fusion_list <- names(sort(table(subset(fusion_df, chrA == chrB & str
 fosb_df <- subset(fusion_df, sample_number==1 & CallerN >= 2 & !( Callers %in% ericsript_twocallers) & geneA=="FOSB")
 readthrough_df <- subset(fusion_df, sample_number==1 & CallerN >= 2 & !( Callers %in% ericsript_twocallers) & !(geneA %in% bad_gene_list) & !(geneB %in% bad_gene_list) & (fusion %in% readthrough_fusion_list) )
 primary_df <- subset(fusion_df, sample_number==1 & CallerN >= 2 & !( Callers %in% ericsript_twocallers) & !(geneA %in% bad_gene_list) & !(geneB %in% bad_gene_list) & !(fusion %in% readthrough_fusion_list) )
+multiple_time_points_df <- subset(fusion_df, has_secondary & CallerN >= 2 & !( Callers %in% ericsript_twocallers) & !(geneA %in% bad_gene_list) & !(geneB %in% bad_gene_list) & !(fusion %in% readthrough_fusion_list) )
+
+primary_df <- subset(fusion_df, sample_number==1)
+
+
+mmrf=="MMRF_1462" & fusion=="IGH@--WHSC1"
+mmrf=="MMRF_1496" & fusion=="IGH@--TOP1MT"
+MMRF_1656
+MMRF_1686
