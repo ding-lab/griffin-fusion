@@ -109,8 +109,8 @@ for line in f:
 f.close()
 w.close()
 
-#read in clinical_data.20171201.csv and create clinical_dict 
-f = open("clinical_data.20171201.csv","r")
+#read in Clinical_data.20180813.csv and create clinical_dict 
+f = open("Clinical_data.20180813.csv","r")
 w = open("clinical_df.tsv","w")
 w.write("\t".join(["MMRF", "Clinical_category", "Clinical_value"])+"\n")
 clinical_dict = {}
