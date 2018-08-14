@@ -1,4 +1,4 @@
-regenerate_expr_file = False #warning: takes 3+ hours if regenerate_expr_file = True and test = False
+regenerate_expr_file = True #warning: takes 3+ hours if regenerate_expr_file = True and test = False
 test = False
 
 import sys
@@ -147,17 +147,25 @@ f = open("Filtered_Fusions_100000_delly_manta_20180813.txt","r")
 sv_dict = {}
 f.readline()
 for line in f:
+  # two patients (MMRF_1048, MMRF_1284) have no manta calls
   FusionName, LeftBreakpoint, RightBreakpoint, Cancer, Sample, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, GTEx, Callers, CallerNumber, sv_type, delly_support_level, delly_evidence, manta_support_level, manta_evidence = line.strip().split()
   fusion_key = Cancer+":"+Sample+":"+FusionName
-  # TODO need to fix multiple time point entries and change NAs to None
-  #if delly_evidence == "NA":
-  #  delly_evidence = "None"
-  #if manta_evidence == "NA":
-  #  manta_evidence == "None"
+  unchanged_sv_support_evidence = [delly_support_level, delly_evidence, manta_support_level, manta_evidence]
+  if sv_type in ["NA", "NO_WGS"]:
+    sv_type, delly_support_level, delly_evidence, manta_support_level, manta_evidence = [ "NA", "NA", "NA", "NA", "NA"]
+    any_delly_support_level, any_delly_evidence, any_manta_support_level, any_manta_evidence = [ "NA", "NA", "NA", "NA"]
+  else: # ensure that SV evidence comes only from primary time point
+    delly_support_level, delly_evidence, manta_support_level, manta_evidence = [ x.split("^")[0] for x in unchanged_sv_support_evidence]
+    # For samples without SV calls from a tool, NANA was reported. This only affects manta calls from MMRF_1048, MMRF_1284 (using Filtered_Fusions_100000_delly_manta_20180813.txt).
+    if delly_evidence == "NANA":
+      delly_evidence = "NA"
+    if manta_evidence == "NANA":
+      manta_evidence = "NA"
+    any_delly_support_level, any_delly_evidence, any_manta_support_level, any_manta_evidence = unchanged_sv_support_evidence
   if fusion_key in sv_dict:
     sys.exit(fusion_key + " already in sv_dict")
   else:
-    sv_dict[fusion_key] = [fusion_key, sv_type, delly_support_level, delly_evidence, manta_support_level, manta_evidence]
+    sv_dict[fusion_key] = [fusion_key, sv_type, delly_support_level, delly_evidence, manta_support_level, manta_evidence, any_delly_support_level, any_delly_evidence, any_manta_support_level, any_manta_evidence]
 f.close()
 
 if regenerate_expr_file:
@@ -266,7 +274,54 @@ for line in f:
   expr_dict[expr_key] = [expr_key, mmrf, srr, ensg, gene, tpm, log10tpm, pct, pct75_tpm, pct25_tpm, iqr_tpm, pct75_log10tpm, pct25_log10tpm, iqr_log10tpm, outlier_over_tpm, outlier_under_tpm, outlier_over_log10tpm, outlier_under_log10tpm, gene_avg_cnv]
 f.close()
 
-#write to files
+#Generate seq-FISH + clinical info table for testing associations with fusions
+if test:
+  w = open("seqfish_clinical.test.txt","w")
+else:
+  w = open("seqfish_clinical.txt","w")
+
+column_labels = ["mmrf"]
+column_labels.extend(["seqfish_Study_Visit_ID", "seqfish_CN_del_13q14", "seqfish_CN_del_13q34", "seqfish_CN_del_17p13", "seqfish_CN_gain_1q21", "seqfish_Hyperdiploidy", "seqfish_Translocation_WHSC1_4_14", "seqfish_Translocation_CCND3_6_14", "seqfish_Translocation_MYC_8_14", "seqfish_Translocation_MAFA_8_14", "seqfish_Translocation_CCND1_11_14", "seqfish_Translocation_CCND2_12_14", "seqfish_Translocation_MAF_14_16", "seqfish_Translocation_MAFB_14_20"])
+column_labels.extend(["Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plamacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"])
+column_labels.extend(["R-ISS"])
+w.write('\t'.join([str(x) for x in column_labels])+"\n")
+
+for mmrf in sample_dict.keys():
+  print_list = [mmrf]
+  #seqfish
+  if mmrf in seqfish_dict:
+    print_list.extend( seqfish_dict[mmrf][0][1:] ) #Study_Visit_ID, CN_del_13q14, CN_del_13q34, CN_del_17p13, CN_gain_1q21, Hyperdiploidy, Translocation_WHSC1_4_14, Translocation_CCND3_6_14, Translocation_MYC_8_14, Translocation_MAFA_8_14, Translocation_CCND1_11_14, Translocation_CCND2_12_14, Translocation_MAF_14_16, Translocation_MAFB_14_20
+  else: #Study_Visit_ID can end in PB or BM, both are cancer samples
+    print_list.extend( ["NA"]*14 )  
+  #clinical
+  print_list.extend( clinical_dict[mmrf][2:] ) #Age, age_ge_66, Female, Race_White, Race_Black, Race_Other, race, ECOG, BM_Plasma_Cell_Percent, ISS_Stage, LDH, Bone_lesions, Plamacytoma, D_PT_deathdy, D_PT_lstalive, D_PT_pddy, TTPD, EFS, EFS_censor
+  #R-ISS
+  if mmrf in seqfish_dict and mmrf in clinical_dict:
+    iss_stage = clinical_dict[mmrf][11]
+    if clinical_dict[mmrf][12] != "NA":
+      ldh = float(clinical_dict[mmrf][12])
+    else:
+      ldh = "NA"
+    del_17p = seqfish_dict[mmrf][0][4]
+    t414 = seqfish_dict[mmrf][0][7]
+    t1416 = seqfish_dict[mmrf][0][13]
+    # R-ISS Stage 1
+    if iss_stage == "NA" or ldh == "NA" or del_17p == "NA" or t414 == "NA" or t1416 == "NA":
+      riss = "NA"
+    elif iss_stage == "1" and ldh < 300 and del_17p == "0" and t414 == "0" and t1416 == "0":
+      riss = "1"
+    elif iss_stage == "3" and ( ldh > 300 or del_17p == "1" or t414 == "1" or t1416 == "1" ):
+      riss = "3"
+    else:
+      riss = "2"
+    print_list.extend([riss])
+  else:
+    print_list.extend(["NA"])
+
+  #write it out
+  w.write('\t'.join( [ str(x).replace(" ","_") if x else "NA" for x in print_list] )+"\n")
+
+#Write final fusion data frame with all added information
 if test:
   w = open("fusion_df.test.txt","w")
 else:
@@ -278,11 +333,11 @@ column_labels.extend(["fusion"])
 column_labels.extend(["sample_number"])
 column_labels.extend(["has_secondary"])
 column_labels.extend(["geneA", "geneB", "LeftBreakpoint", "RightBreakpoint",  "chrA", "posA", "strandA", "chrB", "posB", "strandB", "JunctionReadCount", "SpanningFragCount", "FFPM", "PROT_FUSION_TYPE", "Callers", "CallerN", "called_by_Eriscript", "called_by_FusionCatcher", "called_by_Integrate", "called_by_Prada", "called_by_StarFusion"])
-column_labels.extend(["seqfish_Study_Visit_ID", "seqfish_CN_del_13q14", "seqfish_CN_del_13q34", "seqfish_CN_del_17p13", "seqfish_CN_gain_1q21", "seqfish_Hyperdiploidy", "seqfish_Translocation_WHSC1_4_14", "seqfish_Translocation_CCND3_6_14", "seqfish_Translocation_MYC_8_14", "seqfish_Translocation_MAFA_8_14", "seqfish_Translocation_CCND1_11_14", "seqfish_Translocation_CCND2_12_14", "seqfish_Translocation_MAF_14_16", "seqfish_Translocation_MAFB_14_20"])
-column_labels.extend(["Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plamacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"])
-column_labels.extend(["R-ISS"])
+#column_labels.extend(["seqfish_Study_Visit_ID", "seqfish_CN_del_13q14", "seqfish_CN_del_13q34", "seqfish_CN_del_17p13", "seqfish_CN_gain_1q21", "seqfish_Hyperdiploidy", "seqfish_Translocation_WHSC1_4_14", "seqfish_Translocation_CCND3_6_14", "seqfish_Translocation_MYC_8_14", "seqfish_Translocation_MAFA_8_14", "seqfish_Translocation_CCND1_11_14", "seqfish_Translocation_CCND2_12_14", "seqfish_Translocation_MAF_14_16", "seqfish_Translocation_MAFB_14_20"])
+#column_labels.extend(["Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plamacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"])
+#column_labels.extend(["R-ISS"])
 column_labels.extend(["Overlap", "bpRangeA", "bpRangeB", "depthA", "depthB", "n_discordant", "discordant_reads","wgs_bam"])
-column_labels.extend(["sv_type", "delly_support_level", "delly_evidence", "manta_support_level", "manta_evidence"])
+column_labels.extend(["sv_type", "delly_support_level", "delly_evidence", "manta_support_level", "manta_evidence", "any_delly_support_level", "any_delly_evidence", "any_manta_support_level", "any_manta_evidence"])
 column_labels.extend(["geneA_tpm", "geneA_log10tpm", "geneA_pct", "geneA_pct75_tpm", "geneA_pct25_tpm", "geneA_iqr_tpm", "geneA_pct75_log10tpm", "geneA_pct25_log10tpm", "geneA_iqr_log10tpm", "geneA_outlier_over_tpm", "geneA_outlier_under_tpm", "geneA_outlier_over_log10tpm", "geneA_outlier_under_log10tpm", "geneA_log2ratio_cnv"])
 column_labels.extend(["geneB_tpm", "geneB_log10tpm", "geneB_pct", "geneB_pct75_tpm", "geneB_pct25_tpm", "geneB_iqr_tpm", "geneB_pct75_log10tpm", "geneB_pct25_log10tpm", "geneB_iqr_log10tpm", "geneB_outlier_over_tpm", "geneB_outlier_under_tpm", "geneB_outlier_over_log10tpm", "geneB_outlier_under_log10tpm", "geneB_log2ratio_cnv"])
 column_labels.extend(["geneA_oncogene", "geneA_tsg", "geneA_kinase", "geneA_mmy_known", "geneA_driver", "geneB_oncogene", "geneB_tsg", "geneB_kinase", "geneB_mmy_known", "geneB_driver", "fusion_recurrence"])
@@ -304,46 +359,48 @@ for fusion_key in sorted(filtered_fusions_dict.keys()):
   else:
     print_list.append("0")
   print_list.extend([ filtered_fusions_dict[fusion_key][i] for i in [2,3,4,5,6,7,8,9,10,11,14,15,16,17,18,19,20,21,22,23,24] ]) #geneA, geneB, LeftBreakpoint, RightBreakpoint, chrA, posA, strandA, chrB, posB, strandB, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, Callers, CallerN, called_by_X
-  #seqfish
-  if srr_dict[srr] == 1 and mmrf in seqfish_dict:
-    print_list.extend( seqfish_dict[mmrf][0][1:] ) #Study_Visit_ID, CN_del_13q14, CN_del_13q34, CN_del_17p13, CN_gain_1q21, Hyperdiploidy, Translocation_WHSC1_4_14, Translocation_CCND3_6_14, Translocation_MYC_8_14, Translocation_MAFA_8_14, Translocation_CCND1_11_14, Translocation_CCND2_12_14, Translocation_MAF_14_16, Translocation_MAFB_14_20
-  else: #Study_Visit_ID can end in PB or BM, both are cancer samples
-    print_list.extend( ["NA"]*14 )
-  
-  #clinical
-  print_list.extend( clinical_dict[mmrf][2:] ) #Age, age_ge_66, Female, Race_White, Race_Black, Race_Other, race, ECOG, BM_Plasma_Cell_Percent, ISS_Stage, LDH, Bone_lesions, Plamacytoma, D_PT_deathdy, D_PT_lstalive, D_PT_pddy, TTPD, EFS, EFS_censor
-  #R-ISS
-  if mmrf in seqfish_dict and mmrf in clinical_dict and srr_dict[srr] == 1: # only report for primary samples
-    iss_stage = clinical_dict[mmrf][11]
-    if clinical_dict[mmrf][12] != "NA":
-      ldh = float(clinical_dict[mmrf][12])
-    else:
-      ldh = "NA"
-    del_17p = seqfish_dict[mmrf][0][4]
-    t414 = seqfish_dict[mmrf][0][7]
-    t1416 = seqfish_dict[mmrf][0][13]
-    # R-ISS Stage 1
-    if iss_stage == "NA" or ldh == "NA" or del_17p == "NA" or t414 == "NA" or t1416 == "NA":
-      riss = "NA"
-    elif iss_stage == "1" and ldh < 300 and del_17p == "0" and t414 == "0" and t1416 == "0":
-      riss = "1"
-    elif iss_stage == "3" and ( ldh > 300 or del_17p == "1" or t414 == "1" or t1416 == "1" ):
-      riss = "3"
-    else:
-      riss = "2"
-    print_list.extend([riss])
-  else:
-    print_list.extend(["NA"])
+
+  # #seqfish
+  # if srr_dict[srr] == 1 and mmrf in seqfish_dict:
+  #   print_list.extend( seqfish_dict[mmrf][0][1:] ) #Study_Visit_ID, CN_del_13q14, CN_del_13q34, CN_del_17p13, CN_gain_1q21, Hyperdiploidy, Translocation_WHSC1_4_14, Translocation_CCND3_6_14, Translocation_MYC_8_14, Translocation_MAFA_8_14, Translocation_CCND1_11_14, Translocation_CCND2_12_14, Translocation_MAF_14_16, Translocation_MAFB_14_20
+  # else: #Study_Visit_ID can end in PB or BM, both are cancer samples
+  #   print_list.extend( ["NA"]*14 )  
+  # #clinical
+  # print_list.extend( clinical_dict[mmrf][2:] ) #Age, age_ge_66, Female, Race_White, Race_Black, Race_Other, race, ECOG, BM_Plasma_Cell_Percent, ISS_Stage, LDH, Bone_lesions, Plamacytoma, D_PT_deathdy, D_PT_lstalive, D_PT_pddy, TTPD, EFS, EFS_censor
+  # #R-ISS
+  # if mmrf in seqfish_dict and mmrf in clinical_dict and srr_dict[srr] == 1: # only report for primary samples
+  #   iss_stage = clinical_dict[mmrf][11]
+  #   if clinical_dict[mmrf][12] != "NA":
+  #     ldh = float(clinical_dict[mmrf][12])
+  #   else:
+  #     ldh = "NA"
+  #   del_17p = seqfish_dict[mmrf][0][4]
+  #   t414 = seqfish_dict[mmrf][0][7]
+  #   t1416 = seqfish_dict[mmrf][0][13]
+  #   # R-ISS Stage 1
+  #   if iss_stage == "NA" or ldh == "NA" or del_17p == "NA" or t414 == "NA" or t1416 == "NA":
+  #     riss = "NA"
+  #   elif iss_stage == "1" and ldh < 300 and del_17p == "0" and t414 == "0" and t1416 == "0":
+  #     riss = "1"
+  #   elif iss_stage == "3" and ( ldh > 300 or del_17p == "1" or t414 == "1" or t1416 == "1" ):
+  #     riss = "3"
+  #   else:
+  #     riss = "2"
+  #   print_list.extend([riss])
+  # else:
+  #   print_list.extend(["NA"])
+
   #discordant read validation
   if fusion_key in discordant_dict and srr_dict[srr] == 1: # only report for primary samples
     print_list.extend( discordant_dict[ fusion_key ][1:] ) #Overlap, bpRangeA, bpRangeB, depthA, depthB, n_discordant, discordant_reads, wgs_bam
   else:
     print_list.extend( ["NA"]*8 )
+
   # SV caller validation
   if fusion_key in sv_dict and srr_dict[srr] == 1: # only report for primary samples
-    print_list.extend( sv_dict[ fusion_key ][1:] ) # sv_type, delly_support_level, delly_evidence, manta_support_level, manta_evidence
+    print_list.extend( sv_dict[ fusion_key ][1:] ) # sv_type, delly_support_level, delly_evidence, manta_support_level, manta_evidence, any_delly_support_level, any_delly_evidence, any_manta_support_level, any_manta_evidence
   else:
-    print_list.extend( ["NA"]*5 )
+    print_list.extend( ["NA"]*9 )
   #expression geneA and geneB
   if mmrf+":"+srr+":"+geneA in expr_dict:
     print_list.extend( expr_dict[ mmrf+":"+srr+":"+geneA ][5:] ) #tpm, log10tpm, pct, pct75_tpm, pct25_tpm, iqr_tpm, pct75_log10tpm, pct25_log10tpm, iqr_log10tpm, outlier_over_tpm, outlier_under_tpm, outlier_over_log10tpm, outlier_under_log10tpm, gene_avg_cnv
