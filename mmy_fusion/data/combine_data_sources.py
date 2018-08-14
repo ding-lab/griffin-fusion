@@ -65,7 +65,7 @@ w.close()
 #read in Filtered_Fusions.tsv and create filtered_fusions_dict
 genes_with_fusions = {}
 fusion_recurrence = {}
-f = open("Filtered_Fusions_v2.tsv","r")
+f = open("Filtered_Fusions.tsv","r")
 filtered_fusions_dict = {}
 f.readline()
 for line in f:
@@ -99,7 +99,6 @@ for line in f:
   Study_Visit_ID, CN_del_13q14, CN_del_13q34, CN_del_17p13, CN_gain_1q21, Hyperdiploidy, Translocation_WHSC1_4_14, Translocation_CCND3_6_14, Translocation_MYC_8_14, Translocation_MAFA_8_14, Translocation_CCND1_11_14, Translocation_CCND2_12_14, Translocation_MAF_14_16, Translocation_MAFB_14_20 = line.strip().split(",")
   sample_key = Study_Visit_ID[0:9]
   if sample_key in seqfish_dict:
-    #seqfish_dict[sample_key].append([sample_key, Study_Visit_ID, CN_del_13q14, CN_del_13q34, CN_del_17p13, CN_gain_1q21, Hyperdiploidy, Translocation_WHSC1_4_14, Translocation_CCND3_6_14, Translocation_MYC_8_14, Translocation_MAFA_8_14, Translocation_CCND1_11_14, Translocation_CCND2_12_14, Translocation_MAF_14_16, Translocation_MAFB_14_20])
     seqfish_dict[sample_key].append([x if x else "NA" for x in [sample_key, Study_Visit_ID, CN_del_13q14, CN_del_13q34, CN_del_17p13, CN_gain_1q21, Hyperdiploidy, Translocation_WHSC1_4_14, Translocation_CCND3_6_14, Translocation_MYC_8_14, Translocation_MAFA_8_14, Translocation_CCND1_11_14, Translocation_CCND2_12_14, Translocation_MAF_14_16, Translocation_MAFB_14_20]])
   else:
     seqfish_dict[sample_key] = [ [x if x else "NA" for x in [sample_key, Study_Visit_ID, CN_del_13q14, CN_del_13q34, CN_del_17p13, CN_gain_1q21, Hyperdiploidy, Translocation_WHSC1_4_14, Translocation_CCND3_6_14, Translocation_MYC_8_14, Translocation_MAFA_8_14, Translocation_CCND1_11_14, Translocation_CCND2_12_14, Translocation_MAF_14_16, Translocation_MAFB_14_20]]]
@@ -184,7 +183,6 @@ if regenerate_expr_file:
       cnv_dict[mmrf] = {}
     if gene_bed not in cnv_dict[mmrf]:
       cnv_dict[mmrf][gene_bed] = []
-    print(mmrf, gene_bed)
     cnv_dict[mmrf][gene_bed].append([mmrf, chr_bed, start_bed, stop_bed, ensg_bed, gene_bed, chr_cnv, start_cnv, stop_cnv, log2ratio_cnv, bp_overlap])
   f.close()
 
@@ -220,7 +218,8 @@ if regenerate_expr_file:
     mmrf, srr, ensg, gene, tpm, log10tpm = line.strip().split()
     if gene in genes_with_fusions:
       count_up += 1
-      print(1.0*count_up/total_expr_lines)
+      if (count_up % 1e5) == 0: # print out progres
+        print(str(round(100.0*count_up/total_expr_lines, 3))+"%")
       expr_key = mmrf+":"+srr+":"+gene
       if expr_key in expr_dict:
         sys.exit(expr_key + " already in expr_dict")
@@ -258,7 +257,6 @@ if regenerate_expr_file:
           gene_avg_cnv = "NA"
         expr_dict[expr_key] = [expr_key, mmrf, srr, ensg, gene, tpm, log10tpm, pct, pct75_tpm, pct25_tpm, iqr_tpm, pct75_log10tpm, pct25_log10tpm, iqr_log10tpm, outlier_over_tpm, outlier_under_tpm, outlier_over_log10tpm, outlier_under_log10tpm, gene_avg_cnv]        
         w.write('\t'.join([str(x) for x in expr_dict[expr_key]])+"\n")
-
   w.close()
   f.close()
 
