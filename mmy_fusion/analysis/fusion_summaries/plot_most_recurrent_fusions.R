@@ -28,9 +28,12 @@ return_fusion_ig <- function(fusion_vector){
 plot_df <- fusions_primary %>% select(mmrf:fusion, geneA, geneB) %>% 
   mutate(fusion_ig = return_fusion_ig(fusion))
 
-n_fusions <- 10 # number of fusions to keep in plots
+# Make list of top genes for inclusion in overall plot
+n_fusions <- 10 # number of fusions to keep in plot
 topX_overall <- tail(names(sort(table(plot_df$fusion))), n = n_fusions)
-n_fusions_by_ig <- 5
+
+# Make list of top genes for inclusion in each IG sub-panel
+n_fusions_by_ig <- 5 # number of fusions to keep in each panel
 topX_by_ig <- NULL
 ig_categories <- unique(plot_df$fusion_ig)
 for (ig_cat in ig_categories) {
