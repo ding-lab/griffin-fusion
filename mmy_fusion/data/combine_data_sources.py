@@ -1,4 +1,4 @@
-regenerate_expr_file = True #warning: takes 3+ hours if regenerate_expr_file = True and test = False
+regenerate_expr_file = False #warning: takes 3+ hours if regenerate_expr_file = True and test = False
 test = False
 
 import sys
@@ -141,30 +141,30 @@ for line in f:
     discordant_dict[fusion_key] = [fusion_key, Overlap, bpRangeA, bpRangeB, depthA, depthB, n_discordant, discordant_reads, wgs_bam]
 f.close()
 
-#read in Filtered_Fusions_100000_delly_manta_20180813.txt and create sv_dict
-f = open("Filtered_Fusions_100000_delly_manta_20180813.txt","r")
+#read in Filtered_Fusions_100000_delly_manta_20180817.txt and create sv_dict
+f = open("Filtered_Fusions_100000_delly_manta_20180817.txt","r")
 sv_dict = {}
 f.readline()
 for line in f:
   # two patients (MMRF_1048, MMRF_1284) have no manta calls
-  FusionName, LeftBreakpoint, RightBreakpoint, Cancer, Sample, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, GTEx, Callers, CallerNumber, sv_type, delly_support_level, delly_evidence, manta_support_level, manta_evidence = line.strip().split()
+  FusionName, LeftBreakpoint, RightBreakpoint, Cancer, Sample, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, GTEx, Callers, CallerNumber, sv_type, delly_support_level, delly_evidence, manta_support_level, manta_evidence, cancer_srr, normal_srr = line.strip().split()
   fusion_key = Cancer+":"+Sample+":"+FusionName
-  unchanged_sv_support_evidence = [delly_support_level, delly_evidence, manta_support_level, manta_evidence]
+  unchanged_sv_support_evidence = [delly_support_level, delly_evidence, manta_support_level, manta_evidence, cancer_srr, normal_srr]
   if sv_type in ["NA", "NO_WGS"]:
-    sv_type, delly_support_level, delly_evidence, manta_support_level, manta_evidence = [ "NA", "NA", "NA", "NA", "NA"]
-    any_delly_support_level, any_delly_evidence, any_manta_support_level, any_manta_evidence = [ "NA", "NA", "NA", "NA"]
+    sv_type, delly_support_level, delly_evidence, manta_support_level, manta_evidence, cancer_srr, normal_srr = [ "NA", "NA", "NA", "NA", "NA", "NA", "NA"]
+    any_delly_support_level, any_delly_evidence, any_manta_support_level, any_manta_evidence, cancer_srr, normal_srr = [ "NA", "NA", "NA", "NA", "NA", "NA"]
   else: # ensure that SV evidence comes only from primary time point
-    delly_support_level, delly_evidence, manta_support_level, manta_evidence = [ x.split("^")[0] for x in unchanged_sv_support_evidence]
+    delly_support_level, delly_evidence, manta_support_level, manta_evidence, cancer_srr, normal_srr = [ x.split("^")[0] for x in unchanged_sv_support_evidence]
     # For samples without SV calls from a tool, NANA was reported. This only affects manta calls from MMRF_1048, MMRF_1284 (using Filtered_Fusions_100000_delly_manta_20180813.txt).
     if delly_evidence == "NANA":
       delly_evidence = "NA"
     if manta_evidence == "NANA":
       manta_evidence = "NA"
-    any_delly_support_level, any_delly_evidence, any_manta_support_level, any_manta_evidence = unchanged_sv_support_evidence
+    any_delly_support_level, any_delly_evidence, any_manta_support_level, any_manta_evidence, any_cancer_srr, any_normal_srr = unchanged_sv_support_evidence
   if fusion_key in sv_dict:
     sys.exit(fusion_key + " already in sv_dict")
   else:
-    sv_dict[fusion_key] = [fusion_key, sv_type, delly_support_level, delly_evidence, manta_support_level, manta_evidence, any_delly_support_level, any_delly_evidence, any_manta_support_level, any_manta_evidence]
+    sv_dict[fusion_key] = [fusion_key, sv_type, cancer_srr, normal_srr, delly_support_level, delly_evidence, manta_support_level, manta_evidence, any_cancer_srr, any_normal_srr, any_delly_support_level, any_delly_evidence, any_manta_support_level, any_manta_evidence]
 f.close()
 
 if regenerate_expr_file:
@@ -335,7 +335,7 @@ column_labels.extend(["geneA", "geneB", "LeftBreakpoint", "RightBreakpoint",  "c
 #column_labels.extend(["Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plamacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"])
 #column_labels.extend(["R-ISS"])
 column_labels.extend(["Overlap", "bpRangeA", "bpRangeB", "depthA", "depthB", "n_discordant", "discordant_reads","wgs_bam"])
-column_labels.extend(["sv_type", "delly_support_level", "delly_evidence", "manta_support_level", "manta_evidence", "any_delly_support_level", "any_delly_evidence", "any_manta_support_level", "any_manta_evidence"])
+column_labels.extend(["sv_type", "cancer_wgs_srr", "normal_wgs_srr", "delly_support_level", "delly_evidence", "manta_support_level", "manta_evidence", "any_cancer_wgs_srr", "any_normal_wgs_srr", "any_delly_support_level", "any_delly_evidence", "any_manta_support_level", "any_manta_evidence"])
 column_labels.extend(["geneA_tpm", "geneA_log10tpm", "geneA_pct", "geneA_pct75_tpm", "geneA_pct25_tpm", "geneA_iqr_tpm", "geneA_pct75_log10tpm", "geneA_pct25_log10tpm", "geneA_iqr_log10tpm", "geneA_outlier_over_tpm", "geneA_outlier_under_tpm", "geneA_outlier_over_log10tpm", "geneA_outlier_under_log10tpm", "geneA_log2ratio_cnv"])
 column_labels.extend(["geneB_tpm", "geneB_log10tpm", "geneB_pct", "geneB_pct75_tpm", "geneB_pct25_tpm", "geneB_iqr_tpm", "geneB_pct75_log10tpm", "geneB_pct25_log10tpm", "geneB_iqr_log10tpm", "geneB_outlier_over_tpm", "geneB_outlier_under_tpm", "geneB_outlier_over_log10tpm", "geneB_outlier_under_log10tpm", "geneB_log2ratio_cnv"])
 column_labels.extend(["geneA_oncogene", "geneA_tsg", "geneA_kinase", "geneA_mmy_known", "geneA_driver", "geneB_oncogene", "geneB_tsg", "geneB_kinase", "geneB_mmy_known", "geneB_driver", "fusion_recurrence"])
@@ -396,9 +396,9 @@ for fusion_key in sorted(filtered_fusions_dict.keys()):
 
   # SV caller validation
   if fusion_key in sv_dict and srr_dict[srr] == 1: # only report for primary samples
-    print_list.extend( sv_dict[ fusion_key ][1:] ) # sv_type, delly_support_level, delly_evidence, manta_support_level, manta_evidence, any_delly_support_level, any_delly_evidence, any_manta_support_level, any_manta_evidence
+    print_list.extend( sv_dict[ fusion_key ][1:] ) # sv_type, cancer_wgs_srr, normal_wgs_srr, delly_support_level, delly_evidence, manta_support_level, manta_evidence, any_cancer_wgs_srr, any_normal_wgs_srr, any_delly_support_level, any_delly_evidence, any_manta_support_level, any_manta_evidence
   else:
-    print_list.extend( ["NA"]*9 )
+    print_list.extend( ["NA"]*13 )
   #expression geneA and geneB
   if mmrf+":"+srr+":"+geneA in expr_dict:
     print_list.extend( expr_dict[ mmrf+":"+srr+":"+geneA ][5:] ) #tpm, log10tpm, pct, pct75_tpm, pct25_tpm, iqr_tpm, pct75_log10tpm, pct25_log10tpm, iqr_log10tpm, outlier_over_tpm, outlier_under_tpm, outlier_over_log10tpm, outlier_under_log10tpm, gene_avg_cnv
