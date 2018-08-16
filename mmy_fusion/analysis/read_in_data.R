@@ -4,9 +4,10 @@
 # ==============================================================================
 
 # ==============================================================================
-# Load all pacakges at beginning
+# Load all packages at beginning
 # ==============================================================================
 library(tidyverse)
+source("analysis/common_functions.R")
 
 # ==============================================================================
 # Sample lists (MMRF, SRR) of data related to samples in this analysis
