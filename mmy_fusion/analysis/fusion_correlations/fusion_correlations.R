@@ -4,21 +4,73 @@
 # ==============================================================================
 
 # ==============================================================================
-# Functions
+# General Functions
 # ==============================================================================
 
-# Return tbl of samples with a particular fusion, either SRRs or MMRFs
-get_srrs_with_gene <- function(this_gene, fusions_tbl){
-  fusions_tbl %>% filter(geneA == this_gene | geneB == this_gene) %>% 
-    select(srr) %>% unique()
+# Extract sample IDs with a certain fusion
+get_ids_with_fusion <- function(this_fusion, fusions_tbl){
+  fusions_tbl %>% filter(fusion == this_fusion ) %>% select(mmrf, srr) %>% unique()
 }
-get_mmrfs_with_fusion <- function(this_fusion, fusions_tbl){
-  fusions_tbl %>% filter(fusion == this_fusion ) %>% select(mmrf) %>% unique()
+get_ids_without_fusion <- function(this_fusion, fusions_tbl){
+  ids_with_fusion <- get_ids_with_fusion(this_fusion, fusions_tbl)
+  fusions_tbl %>% anti_join(ids_with_fusion, by = "srr") %>%
+    select(mmrf, srr) %>% unique()
 }
 
-# Test clinical correlations of gene involved in a gene fusion
-# Clinical testing includes seq-FISH plus other clinical measures
+# Extract sample IDs with a certain gene involved in a fusion
+get_ids_with_gene <- function(this_gene, fusions_tbl){
+  fusions_tbl %>% filter(geneA == this_gene | geneB == this_gene) %>% 
+    select(mmrf, srr) %>% unique()
+}
+get_ids_without_gene <- function(this_gene, fusions_tbl){
+  ids_with_gene <- get_ids_with_gene(this_gene, fusions_tbl)
+  fusions_tbl %>% anti_join(ids_with_gene, by = "srr") %>%
+    select(mmrf, srr) %>% unique()
+}
+
+# Extract sample IDs with a certain seqFISH feature
+get_ids_with_seqfish <- function(this_seqfish, seqfish_tbl, samples_tbl){
+  seqfish_clinical_info %>% filter( !is.na(seqfish_Study_Visit_ID) ) %>% 
+    filter( eval(parse(text = this_seqfish)) == 1 ) %>%
+    left_join(samples_tbl, by = "mmrf") %>% select(mmrf, srr) %>% unique()
+}
+get_ids_without_seqfish <- function(this_seqfish, seqfish_tbl, samples_tbl){
+  seqfish_clinical_info %>% filter( !is.na(seqfish_Study_Visit_ID) ) %>% 
+    filter( eval(parse(text = this_seqfish)) != 1 ) %>%
+    left_join(samples_tbl, by = "mmrf") %>% select(mmrf, srr) %>% unique()
+}
+
+# ==============================================================================
+# Clinical Functions
+# ==============================================================================
+
+# Test event status against binary clinical variable
+test_fusion_clinical_binary <- function(samples_with, samples_without,
+                                        clinical_tbl, clinical_feature){
+  # Fisher Exact test
+  
+}
+  
+# Test event status against categorical clinical variable
+test_fusion_clinical_categorical <- function(samples_with, samples_without,
+                                             clinical_tbl, clinical_feature){
+  # Chi-square test
+}
+  
+# Test event status against continuous clinical variable
+test_fusion_clinical_continuous <- function(samples_with, samples_without,
+                                            clinical_tbl, clinical_feature){
+  # T test or Mann-Whitney U test
+}
+
+# Fisher exact test of seqFISH translocation and fusion status
+# TODO need to re-write in context of samples_with, samples_without, etc.
+# Make fisher table creation explicit and not rely on assumed ordering of squares
+# Don't delete until other testing functions are written!
 test_fusion_seqfish <- function(this_fusion, fusions_tbl, clinical_tbl, seqfish){
+  # This test is problematic because you get a significant result when
+  # you test translocations and fusions that are unrelated (anticorrelated).
+  # Use only if there is a direct relationship between translocation and fusion
   samples_with_fusion <- get_mmrfs_with_fusion(this_fusion, fusions_tbl)
   fisher_table_counts <- clinical_tbl %>%
     mutate(has_fusion = mmrf %in% samples_with_fusion$mmrf) %>%
@@ -32,6 +84,13 @@ test_fusion_seqfish <- function(this_fusion, fusions_tbl, clinical_tbl, seqfish)
   fisher_test_result <- fisher.test(fisher_test_table)
   return(fisher_test_result)
 }
+
+test_seqfish_correlations <- function(seqfish_1, seqfish_2, clinical_tbl)
+test_fusion_correlations <- function(fusion_1, fusion_2, fusions_tbl)
+
+# ==============================================================================
+# Expression Functions
+# ==============================================================================
 
 # Test gene expression for both genes in a fusion pair
 test_fusion_expression <- function(this_fusion, fusions_tbl, expression_tbl){
@@ -77,6 +136,8 @@ test_gene_expression <- function(this_gene, fusions_tbl, expression_tbl){
   return( c(median_pct, t.test.pvalue, fisher.pvalue))
 }
 
+test_seqfish_expression <- function(this_seqfish, clinical_tbl, expression_tbl){}
+
 # ==============================================================================
 # Prepare lists of fusions and genes for testing (avoid testing rare events)
 # ==============================================================================
@@ -87,8 +148,8 @@ fusion_pairs_gt2 <- fusions_primary %>% group_by(fusion) %>%
 
 # Fusion genes seen in at least 3 samples
 fusion_genes_gt2 <- fusions_primary %>% gather(geneA, geneB, key = "geneAB", value = "fusion_gene") %>%
-  group_by(fusion_gene) %>% filter( !(fusion_gene %in% c("IGH@", "IGK@", "IGL@")) ) %>%
-  summarize(count = n()) %>% filter(count >= 3) %>% arrange(desc(count))
+  group_by(fusion_gene) %>% summarize(count = n()) %>% filter(count >= 3) %>% 
+  arrange(desc(count))
 
 # ==============================================================================
 # ==============================================================================
