@@ -11,10 +11,9 @@
 get_ids_with_fusion <- function(this_fusion, fusions_tbl){
   fusions_tbl %>% filter(fusion == this_fusion ) %>% select(mmrf, srr) %>% unique()
 }
-get_ids_without_fusion <- function(this_fusion, fusions_tbl){
+get_ids_without_fusion <- function(this_fusion, fusions_tbl, samples_tbl){
   ids_with_fusion <- get_ids_with_fusion(this_fusion, fusions_tbl)
-  fusions_tbl %>% anti_join(ids_with_fusion, by = "srr") %>%
-    select(mmrf, srr) %>% unique()
+  samples_tbl %>% anti_join(ids_with_fusion, by = "srr") %>% unique()
 }
 
 # Extract sample IDs with a certain gene involved in a fusion
@@ -22,10 +21,9 @@ get_ids_with_gene <- function(this_gene, fusions_tbl){
   fusions_tbl %>% filter(geneA == this_gene | geneB == this_gene) %>% 
     select(mmrf, srr) %>% unique()
 }
-get_ids_without_gene <- function(this_gene, fusions_tbl){
+get_ids_without_gene <- function(this_gene, fusions_tbl, samples_tbl){
   ids_with_gene <- get_ids_with_gene(this_gene, fusions_tbl)
-  fusions_tbl %>% anti_join(ids_with_gene, by = "srr") %>%
-    select(mmrf, srr) %>% unique()
+  samples_tbl %>% anti_join(ids_with_gene, by = "srr") %>% unique()
 }
 
 # Extract sample IDs with a certain seqFISH feature
@@ -48,7 +46,43 @@ get_ids_without_seqfish <- function(this_seqfish, seqfish_tbl, samples_tbl){
 test_fusion_clinical_binary <- function(samples_with, samples_without,
                                         clinical_tbl, clinical_feature){
   # Fisher Exact test
+  # Summary table
+  summary_table <- clinical_tbl %>% 
+    mutate(has_event = mmrf %in% samples_with$mmrf) %>%
+    select(mmrf, clinical_feature, has_event) %>% 
+    filter( !is.na(eval(parse(text = clinical_feature))) ) %>%
+    group_by(has_clinical = eval(parse(text = clinical_feature)), has_event) %>% 
+    summarize(count = n())
+
+  n_samples_with <- samples_with %>% nrow()
+  n_samples_without <- samples_without %>% nrow()
+  n_na <- clinical_tbl %>% 
+    filter( is.na(eval(parse(text = clinical_feature )))) %>% nrow()
   
+  event0_clinical0 <- summary_table %>% 
+    filter(!has_event, !has_clinical) %>% pull(count)
+  event0_clinical1 <- summary_table %>% 
+    filter(!has_event, has_clinical) %>% pull(count)
+  event1_clinical0 <- summary_table %>% 
+    filter(has_event, !has_clinical) %>% pull(count)
+  event1_clinical1 <- summary_table %>% 
+    filter(has_event, has_clinical) %>% pull(count)
+  
+  fisher_result <- matrix(c(event0_clinical0, event0_clinical1,
+                            event1_clinical0, event1_clinical1),
+                          nrow = 2, byrow = TRUE) %>% fisher.test()
+
+  return_value <- c(event0_clinical0,
+                    event0_clinical1,
+                    event1_clinical0,
+                    event1_clinical1,
+                    n_samples_with,
+                    n_samples_without,
+                    n_na,
+                    fisher_result$p.value
+                    )
+  
+  return(return_value)
 }
   
 # Test event status against categorical clinical variable
@@ -152,6 +186,12 @@ fusion_genes_gt2 <- fusions_primary %>% gather(geneA, geneB, key = "geneAB", val
   arrange(desc(count))
 
 # ==============================================================================
+# Assign seqFISH and clinical variables to approapiate lists
+# ==============================================================================
+
+
+# ==============================================================================
+# Business
 # ==============================================================================
 
 for (this_gene in fusion_genes_gt2$fusion_gene) {
