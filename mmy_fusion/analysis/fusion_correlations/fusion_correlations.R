@@ -42,85 +42,121 @@ get_ids_without_seqfish <- function(this_seqfish, seqfish_tbl, samples_tbl){
 # Clinical Functions
 # ==============================================================================
 
-# Test event status against binary clinical variable
-test_fusion_clinical_binary <- function(samples_with, samples_without,
-                                        clinical_tbl, clinical_feature){
+# Test event status against categorical clinical variables, including
+# seqFISH results, binary, and categorical variables with Fisher Exact test
+test_event_clinical_discrete <- function(samples_with, samples_without,
+                                         clinical_tbl, clinical_feature,
+                                         fisher_test = FALSE,
+                                         return_tibble = FALSE,
+                                         return_table = FALSE){
   # Fisher Exact test
-  # Summary table
-  summary_table <- clinical_tbl %>% 
+  if (fisher_test) {
+    fisher_test_tibble <- clinical_tbl %>%
     mutate(has_event = mmrf %in% samples_with$mmrf) %>%
-    select(mmrf, clinical_feature, has_event) %>% 
+    mutate_at(clinical_feature, factor) %>%
+    mutate_at("has_event", factor) %>%
     filter( !is.na(eval(parse(text = clinical_feature))) ) %>%
-    group_by(has_clinical = eval(parse(text = clinical_feature)), has_event) %>% 
-    summarize(count = n())
-
-  n_samples_with <- samples_with %>% nrow()
-  n_samples_without <- samples_without %>% nrow()
+    group_by( clinical_value = eval(parse(text = clinical_feature)), has_event) %>% 
+    summarize(count = n()) %>%
+    complete(has_event, fill = list(count = 0))
+  fisher_test_table <- fisher_test_tibble %>% pull(count) %>%
+    matrix(ncol = 2, byrow = TRUE)
+  fisher_test_result <- fisher.test(fisher_test_table)
   n_na <- clinical_tbl %>% 
-    filter( is.na(eval(parse(text = clinical_feature )))) %>% nrow()
+    filter( is.na(eval(parse(text = clinical_feature))) ) %>% nrow()
+  } else {
+    stop("Value of fisher_test is not TRUE. Although Fisher's Exact Test is
+         the only option, fisher_test must be made explicitly TRUE.")
+  }
+  # Return values
+  if (return_tibble & return_table) {
+    stop("Both return_tibble and return_table are TRUE. Only one may be TRUE.")
+  } else if (return_tibble) {
+    return(fisher_test_tibble)
+  } else if (return_table) {
+    return(fisher_test_table)
+  } else {
+    return(
+      data.frame( p.value = fisher_test_result$p.value, 
+                  n_missing = n_na)
+      )
+  }
   
-  event0_clinical0 <- summary_table %>% 
-    filter(!has_event, !has_clinical) %>% pull(count)
-  event0_clinical1 <- summary_table %>% 
-    filter(!has_event, has_clinical) %>% pull(count)
-  event1_clinical0 <- summary_table %>% 
-    filter(has_event, !has_clinical) %>% pull(count)
-  event1_clinical1 <- summary_table %>% 
-    filter(has_event, has_clinical) %>% pull(count)
-  
-  fisher_result <- matrix(c(event0_clinical0, event0_clinical1,
-                            event1_clinical0, event1_clinical1),
-                          nrow = 2, byrow = TRUE) %>% fisher.test()
-
-  return_value <- c(event0_clinical0,
-                    event0_clinical1,
-                    event1_clinical0,
-                    event1_clinical1,
-                    n_samples_with,
-                    n_samples_without,
-                    n_na,
-                    fisher_result$p.value
-                    )
-  
-  return(return_value)
-}
-  
-# Test event status against categorical clinical variable
-test_fusion_clinical_categorical <- function(samples_with, samples_without,
-                                             clinical_tbl, clinical_feature){
-  # Chi-square test
 }
   
 # Test event status against continuous clinical variable
-test_fusion_clinical_continuous <- function(samples_with, samples_without,
-                                            clinical_tbl, clinical_feature){
+test_event_clinical_continuous <- function(samples_with, samples_without,
+                                           clinical_tbl, clinical_feature,
+                                           t_test = FALSE,
+                                           mwu_test = FALSE,
+                                           return_tibble = FALSE){
   # T test or Mann-Whitney U test
+  with_tbl <- clinical_tbl %>% 
+    semi_join(samples_with, by = "mmrf") %>% 
+    filter( !is.na(eval(parse(text = clinical_feature))) ) %>%
+    select(mmrf, clinical_feature) %>%
+    mutate(has_event = 1)
+  with_values <- with_tbl %>% pull(clinical_feature)
+  
+  without_tbl <- clinical_tbl %>% 
+    anti_join(samples_with, by = "mmrf") %>% 
+    filter( !is.na(eval(parse(text = clinical_feature))) ) %>%
+    select(mmrf, clinical_feature) %>%
+    mutate(has_event = 0)
+  without_values <- without_tbl %>% pull(clinical_feature)
+  
+  combined_tbl <- bind_rows(with_tbl, without_tbl)
+  
+  n_na <- clinical_tbl %>% 
+    filter( is.na(eval(parse(text = clinical_feature))) ) %>% nrow()
+  
+  if (t_test & mwu_test) {
+    stop("Both t_test and mwu_test are TRUE. Only one may be TRUE.")
+  } else if (t_test) {
+    test_result <- t.test(with_values, without_values)
+  } else if (mwu_test) {
+    test_result <- wilcox.test(with_values, without_values)
+  } else {
+    stop("Neither t_test not mwu_test is TRUE. Either t_test xor mwu_test must be TRUE.")
+  }
+  
+  if (return_tibble) {
+    return(combined_tbl)
+  } else {
+    return(
+      data.frame( p.value = test_result$p.value, 
+                  n_missing = n_na)
+    )
+  }
 }
 
-# Fisher exact test of seqFISH translocation and fusion status
-# TODO need to re-write in context of samples_with, samples_without, etc.
-# Make fisher table creation explicit and not rely on assumed ordering of squares
-# Don't delete until other testing functions are written!
-test_fusion_seqfish <- function(this_fusion, fusions_tbl, clinical_tbl, seqfish){
-  # This test is problematic because you get a significant result when
-  # you test translocations and fusions that are unrelated (anticorrelated).
-  # Use only if there is a direct relationship between translocation and fusion
-  samples_with_fusion <- get_mmrfs_with_fusion(this_fusion, fusions_tbl)
-  fisher_table_counts <- clinical_tbl %>%
-    mutate(has_fusion = mmrf %in% samples_with_fusion$mmrf) %>%
-    mutate_at(seqfish, factor) %>%
-    mutate_at("has_fusion", factor) %>%
-    filter(!is.na(seqfish_Study_Visit_ID)) %>%
-    group_by(eval(parse(text = seqfish)), has_fusion) %>% 
-    summarize(count = n()) %>%
-    complete(has_fusion, fill = list(count = 0)) %>% pull(count)
-  fisher_test_table <- fisher_table_counts %>% matrix(nrow = 2)
-  fisher_test_result <- fisher.test(fisher_test_table)
-  return(fisher_test_result)
+# ==============================================================================
+# Event correlations
+# ==============================================================================
+test_gene_correlations <- function(gene_1, gene_2, fusions_tbl, 
+                                   return_tibble = FALSE){
+  
 }
 
-test_seqfish_correlations <- function(seqfish_1, seqfish_2, clinical_tbl)
-test_fusion_correlations <- function(fusion_1, fusion_2, fusions_tbl)
+test_fusion_correlations <- function(fusion_1, fusion_2, fusions_tbl,
+                                     return_tibble = FALSE){
+  
+}
+
+test_seqfish_correlations <- function(seqfish_1, seqfish_2, clinical_tbl,
+                                      return_tibble = FALSE) {
+  seqfish_tbl <- clinical_tbl %>% filter( !is.na(seqfish_Study_Visit_ID) ) %>%
+    select(mmrf, seqfish_1, seqfish_2)
+  seqfish_1_vector <- seqfish_tbl %>% pull(seqfish_1)
+  seqfish_2_vector <- seqfish_tbl %>% pull(seqfish_2)
+  seqfish_correlation <- cor.test(seqfish_1_vector, seqfish_2_vector)
+
+  if (return_tibble) {
+    return(seqfish_tbl)
+  } else {
+    return(seqfish_correlation)
+  }
+}
 
 # ==============================================================================
 # Expression Functions
