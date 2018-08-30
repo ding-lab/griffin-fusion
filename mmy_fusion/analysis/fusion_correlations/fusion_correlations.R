@@ -133,13 +133,59 @@ test_event_clinical_continuous <- function(samples_with, samples_without,
 # ==============================================================================
 # Event correlations
 # ==============================================================================
-test_gene_correlations <- function(gene_1, gene_2, fusions_tbl, 
+test_gene_correlations <- function(gene_1, gene_2, fusions_tbl, samples_tbl, 
                                    return_tibble = FALSE){
+  samples_with_gene_1 <- fusions_tbl %>%
+    filter(geneA == gene_1 | geneB == gene_1) %>% select(mmrf, srr) %>%
+    unique()
+  samples_with_gene_2 <- fusions_tbl %>%
+    filter(geneA == gene_2 | geneB == gene_2) %>% select(mmrf, srr) %>%
+    unique()
+  
+  has_gene_1 <- as.numeric(samples_tbl$srr %in% samples_with_gene_1$srr)
+  has_gene_2 <- as.numeric(samples_tbl$srr %in% samples_with_gene_2$srr)
+  
+  if ( any(has_gene_1 + has_gene_2  == 2) ) {
+    gene_correlation <- cor.test(has_gene_1, has_gene_2)
+  } else{
+    gene_correlation <- NA
+  }
+  
+  gene_tbl <- samples_tbl %>% 
+    mutate( gene_1 = has_gene_1, gene_2 = has_gene_2)
+  
+  if (return_tibble) {
+    return(gene_tbl)
+  } else {
+    return(gene_correlation)
+  }
   
 }
 
-test_fusion_correlations <- function(fusion_1, fusion_2, fusions_tbl,
+test_fusion_correlations <- function(fusion_1, fusion_2, fusions_tbl, samples_tbl, 
                                      return_tibble = FALSE){
+  samples_with_fusion_1 <- fusions_tbl %>%
+    filter(fusion == fusion_1) %>% select(mmrf, srr) %>% unique()
+  samples_with_fusion_2 <- fusions_tbl %>%
+    filter(fusion == fusion_2) %>% select(mmrf, srr) %>% unique()
+  
+  has_fusion_1 <- as.numeric(samples_tbl$srr %in% samples_with_fusion_1$srr)
+  has_fusion_2 <- as.numeric(samples_tbl$srr %in% samples_with_fusion_2$srr)
+  
+  if ( any(has_fusion_1 + has_fusion_2 == 2) ) {
+    fusion_correlation <- cor.test(has_fusion_1, has_fusion_2)
+  } else {
+    fusion_correlation <- NA
+  }
+  
+  fusion_tbl <- samples_tbl %>% 
+    mutate( fusion_1 = has_fusion_1, fusion_2 = has_fusion_2)
+  
+  if (return_tibble) {
+    return(fusion_tbl)
+  } else {
+    return(fusion_correlation)
+  }
   
 }
 
