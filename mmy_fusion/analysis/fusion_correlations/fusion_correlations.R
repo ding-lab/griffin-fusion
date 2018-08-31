@@ -46,6 +46,7 @@ get_ids_without_seqfish <- function(this_seqfish, seqfish_tbl, samples_tbl){
 # Test event status against categorical clinical variables, including
 # seqFISH results, binary, and categorical variables with Fisher Exact test
 test_event_clinical_discrete <- function(samples_with, samples_without,
+                                         event, event_type,
                                          clinical_tbl, clinical_feature,
                                          fisher_test = FALSE,
                                          return_tibble = FALSE,
@@ -69,7 +70,31 @@ test_event_clinical_discrete <- function(samples_with, samples_without,
     stop("Value of fisher_test is not TRUE. Although Fisher's Exact Test is
          the only option, fisher_test must be made explicitly TRUE.")
   }
+  
   # Return values
+  event1 <- event
+  event2 <- NA
+  event_type <- event_type
+  test_performed <- "Fisher's Exact Test"
+  n_samples_with <- samples_with %>% nrow()
+  n_samples_without <- samples_without %>% nrow()
+  n_samples_with_tested <- sum(fisher_test_table[,2])
+  n_samples_without_tested <- sum(fisher_test_table[,1])
+  n_samples_na_tested <- n_na
+  test_statistic <- fisher_test_result$estimate
+  p.value <- fisher_test_result$p.value
+  median_value <- NA
+  return_test_stats <- tribble(~event1, ~event2, ~event_type, ~test_performed,
+                               ~n_samples_with, ~n_samples_without,
+                               ~n_samples_with_tested, ~n_samples_without_tested,
+                               ~n_samples_na_tested, ~median_value, 
+                               ~test_statistic, ~p.value,
+                               event1,  event2,  event_type,  test_performed,
+                               n_samples_with,  n_samples_without,
+                               n_samples_with_tested,  n_samples_without_tested,
+                               n_samples_na_tested, median_value, 
+                               test_statistic,  p.value)
+  
   if (return_tibble & return_table) {
     stop("Both return_tibble and return_table are TRUE. Only one may be TRUE.")
   } else if (return_tibble) {
@@ -77,16 +102,13 @@ test_event_clinical_discrete <- function(samples_with, samples_without,
   } else if (return_table) {
     return(fisher_test_table)
   } else {
-    return(
-      data.frame( p.value = fisher_test_result$p.value, 
-                  n_missing = n_na)
-      )
+    return(return_test_stats)
   }
-  
 }
   
 # Test event status against continuous clinical variable
 test_event_clinical_continuous <- function(samples_with, samples_without,
+                                           event, event_type,
                                            clinical_tbl, clinical_feature,
                                            t_test = FALSE,
                                            mwu_test = FALSE,
@@ -121,21 +143,50 @@ test_event_clinical_continuous <- function(samples_with, samples_without,
     stop("Neither t_test not mwu_test is TRUE. Either t_test xor mwu_test must be TRUE.")
   }
   
+  # Return values
+  event1 <- event
+  event2 <- NA
+  event_type <- event_type
+  if (t_test) {
+    test_performed <- "Fisher's Exact Test"
+    test_statistic <- test_result$estimate
+    p.value <- test_result$p.value
+  } else{
+    test_performed <- "Mann-Whitney U Test"
+    test_statistic <- test_result$statistic
+    p.value <- test_result$p.value
+  }
+  n_samples_with <- samples_with %>% nrow()
+  n_samples_without <- samples_without %>% nrow()
+  n_samples_with_tested <- with_values %>% nrow()
+  n_samples_without_tested <- without_values %>% nrow()
+  n_samples_na_tested <- n_na
+  median_value <- NA
+  return_test_stats <- tribble(~event1, ~event2, ~event_type, ~test_performed,
+                               ~n_samples_with, ~n_samples_without,
+                               ~n_samples_with_tested, ~n_samples_without_tested,
+                               ~n_samples_na_tested, ~median_value, 
+                               ~test_statistic, ~p.value,
+                               event1,  event2,  event_type,  test_performed,
+                               n_samples_with,  n_samples_without,
+                               n_samples_with_tested,  n_samples_without_tested,
+                               n_samples_na_tested, median_value, 
+                               test_statistic,  p.value)
+  
   if (return_tibble) {
     return(combined_tbl)
   } else {
-    return(
-      data.frame( p.value = test_result$p.value, 
-                  n_missing = n_na)
-    )
+    return(return_test_stats)
   }
 }
 
 # ==============================================================================
 # Event correlations
 # ==============================================================================
-test_gene_correlations <- function(gene_1, gene_2, fusions_tbl, samples_tbl, 
+test_gene_correlations <- function(gene_1, gene_2, event_type,
+                                   fusions_tbl, samples_tbl, 
                                    return_tibble = FALSE){
+
   samples_with_gene_1 <- fusions_tbl %>%
     filter(geneA == gene_1 | geneB == gene_1) %>% select(mmrf, srr) %>%
     unique()
@@ -155,16 +206,40 @@ test_gene_correlations <- function(gene_1, gene_2, fusions_tbl, samples_tbl,
   gene_tbl <- samples_tbl %>% 
     mutate( gene_1 = has_gene_1, gene_2 = has_gene_2)
   
+  # Return values
+  event1 <- gene_1
+  event2 <- gene_2
+  event_type <- event_type
+  test_performed <- "Paired Sample Correlation"
+  n_samples_with <- NA
+  n_samples_without <- NA
+  n_samples_with_tested <- NA
+  n_samples_without_tested <- NA
+  n_samples_na_tested <- NA
+  test_statistic <- gene_correlation$statistic
+  p.value <- gene_correlation$p.value
+  median_value <- NA
+  return_test_stats <- tribble(~event1, ~event2, ~event_type, ~test_performed,
+                               ~n_samples_with, ~n_samples_without,
+                               ~n_samples_with_tested, ~n_samples_without_tested,
+                               ~n_samples_na_tested, ~median_value, 
+                               ~test_statistic, ~p.value,
+                               event1,  event2,  event_type,  test_performed,
+                               n_samples_with,  n_samples_without,
+                               n_samples_with_tested,  n_samples_without_tested,
+                               n_samples_na_tested, median_value, 
+                               test_statistic,  p.value)
+  
   if (return_tibble) {
     return(gene_tbl)
   } else {
-    return(gene_correlation)
+    return(return_test_stats)
   }
   
 }
 
-test_fusion_correlations <- function(fusion_1, fusion_2, fusions_tbl, 
-                                     samples_tbl, return_tibble = FALSE){
+test_fusion_correlations <- function(fusion_1, fusion_2, event_type,
+                                     fusions_tbl, samples_tbl, return_tibble = FALSE){
   samples_with_fusion_1 <- fusions_tbl %>%
     filter(fusion == fusion_1) %>% select(mmrf, srr) %>% unique()
   samples_with_fusion_2 <- fusions_tbl %>%
@@ -182,26 +257,74 @@ test_fusion_correlations <- function(fusion_1, fusion_2, fusions_tbl,
   fusion_tbl <- samples_tbl %>% 
     mutate( fusion_1 = has_fusion_1, fusion_2 = has_fusion_2)
   
+  # Return values
+  event1 <- fusion_1
+  event2 <- fusion_2
+  event_type <- event_type
+  test_performed <- "Paired Sample Correlation"
+  n_samples_with <- NA
+  n_samples_without <- NA
+  n_samples_with_tested <- NA
+  n_samples_without_tested <- NA
+  n_samples_na_tested <- NA
+  test_statistic <- fusion_correlation$statistic
+  p.value <- fusion_correlation$p.value
+  median_value <- NA
+  return_test_stats <- tribble(~event1, ~event2, ~event_type, ~test_performed,
+                               ~n_samples_with, ~n_samples_without,
+                               ~n_samples_with_tested, ~n_samples_without_tested,
+                               ~n_samples_na_tested, ~median_value, 
+                               ~test_statistic, ~p.value,
+                               event1,  event2,  event_type,  test_performed,
+                               n_samples_with,  n_samples_without,
+                               n_samples_with_tested,  n_samples_without_tested,
+                               n_samples_na_tested, median_value, 
+                               test_statistic,  p.value)
+  
   if (return_tibble) {
     return(fusion_tbl)
   } else {
-    return(fusion_correlation)
+    return(return_test_stats)
   }
   
 }
 
-test_seqfish_correlations <- function(seqfish_1, seqfish_2, clinical_tbl,
-                                      return_tibble = FALSE) {
+test_seqfish_correlations <- function(seqfish_1, seqfish_2, event_type,
+                                      clinical_tbl, return_tibble = FALSE) {
   seqfish_tbl <- clinical_tbl %>% filter( !is.na(seqfish_Study_Visit_ID) ) %>%
     select(mmrf, seqfish_1, seqfish_2)
   seqfish_1_vector <- seqfish_tbl %>% pull(seqfish_1)
   seqfish_2_vector <- seqfish_tbl %>% pull(seqfish_2)
   seqfish_correlation <- cor.test(seqfish_1_vector, seqfish_2_vector)
 
+  # Return values
+  event1 <- seqfish_1
+  event2 <- seqfish_2
+  event_type <- event_type
+  test_performed <- "Paired Sample Correlation"
+  n_samples_with <- NA
+  n_samples_without <- NA
+  n_samples_with_tested <- NA
+  n_samples_without_tested <- NA
+  n_samples_na_tested <- NA
+  test_statistic <- seqfish_correlation$statistic
+  p.value <- seqfish_correlation$p.value
+  median_value <- NA
+  return_test_stats <- tribble(~event1, ~event2, ~event_type, ~test_performed,
+                               ~n_samples_with, ~n_samples_without,
+                               ~n_samples_with_tested, ~n_samples_without_tested,
+                               ~n_samples_na_tested, ~median_value, 
+                               ~test_statistic, ~p.value,
+                               event1,  event2,  event_type,  test_performed,
+                               n_samples_with,  n_samples_without,
+                               n_samples_with_tested,  n_samples_without_tested,
+                               n_samples_na_tested, median_value, 
+                               test_statistic,  p.value)
+  
   if (return_tibble) {
     return(seqfish_tbl)
   } else {
-    return(seqfish_correlation)
+    return(return_test_stats)
   }
 }
 
@@ -209,57 +332,86 @@ test_seqfish_correlations <- function(seqfish_1, seqfish_2, clinical_tbl,
 # Expression Functions
 # ==============================================================================
 
-# Test gene expression for both genes in a fusion pair
-test_fusion_expression <- function(samples_with, samples_without, 
-                                   fusions_tbl, expression_tbl){
-  geneA = str_split(this_fusion, pattern = "--", simplify = TRUE)[1]
-  geneB = str_split(this_fusion, pattern = "--", simplify = TRUE)[2]
-  return(c(
-    test_event_expression(samples_with, samples_without, geneA, 
-                          fusions_tbl, expression_tbl),
-    test_event_expression(samples_with, samples_without, geneB, 
-                          fusions_tbl, expression_tbl)
-  ))
-}
-
 # Returns median expression percentile, t-test, and Fisher's Exact Test p-values
-test_event_expression <- function(samples_with, samples_without, this_gene,
-                                  fusions_tbl, expression_tbl){
-  # Given a gene, find out if expression differs between fusion / not fusion
-  expression_with_fusion <- expression_tbl  %>%
+test_event_expression <- function(samples_with, samples_without, 
+                                  this_gene, event_type, expression_tbl,
+                                  t_test = FALSE, outlier = FALSE){
+  # Given a gene, find out if expression differs between event / not event
+  expression_with_event <- expression_tbl  %>%
     filter(gene == this_gene) %>% semi_join(samples_with, by = "srr")
-  expression_without_fusion <- expression_tbl %>% 
+  expression_without_event <- expression_tbl %>% 
     filter(gene == this_gene) %>% anti_join(samples_with, by = "srr")
   
-  # median expression percentile of fusion samples
-  median_pct <- as.double(expression_with_fusion %>% summarize(median(pct)))
+  # Median expression percentile of event samples
+  median_pct <- as.double(expression_with_event %>% summarize(median(pct)))
   
-  # t-test
-  if ( median_pct >= 0.5 ) {
-    t.test.pvalue <- t.test(expression_with_fusion$log10tpm, 
-                            expression_without_fusion$log10tpm, 
-                            alternative = "greater")$p.value
-    over_table <- expression_primary %>% 
-      group_by(has_fusion = srr %in% samples_with$srr) %>%
-      filter(gene == this_gene) %>% select(has_fusion, outlier_over_tpm) %>%
-      summarize(outlier = sum(outlier_over_tpm == 1), 
-                not_outlier = sum(outlier_over_tpm == 0)) %>%
-      select(outlier, not_outlier)
-    fisher.pvalue <- fisher.test(over_table, alternative = "t")$p.value
-  } else{
-    t.test.pvalue <- t.test(expression_with_fusion$log10tpm, 
-                            expression_without_fusion$log10tpm, 
-                            alternative = "less")$p.value
-    under_table <- expression_primary %>% 
-      group_by(has_fusion = srr %in% samples_with$srr) %>%
-      filter(gene == this_gene) %>% select(has_fusion, outlier_under_tpm) %>%
-      summarize(outlier = sum(outlier_under_tpm == 1), 
-                not_outlier = sum(outlier_under_tpm == 0)) %>%
-      select(outlier, not_outlier)
-    fisher.pvalue <- fisher.test(under_table, alternative = "t")$p.value
+  # Testing
+  if ( t_test & outlier ) {
+    stop("Variables t_test and outlier are both TRUE. 
+         Either t_test xor outlier must be TRUE.")
+  } else if (t_test) {
+    test_performed <- "Student's t-Test"
+    if ( median_pct >= 0.5 ) {
+      test_result <- t.test(expression_with_event$log10tpm, 
+                              expression_without_event$log10tpm, 
+                              alternative = "greater")
+      
+    } else{
+      test_result <- t.test(expression_with_event$log10tpm, 
+                              expression_without_event$log10tpm, 
+                              alternative = "less")
+    }
+    test_statistic <- test_result$statistic
+    p.value <- test_result$p.value
     
+  } else if (outlier) {
+    test_performed <- "Fisher's Exact Test"
+    if ( median_pct >= 0.5 ) {
+      over_table <- expression_primary %>% 
+        group_by(has_event = srr %in% samples_with$srr) %>%
+        filter(gene == this_gene) %>% select(has_event, outlier_over_tpm) %>%
+        summarize(outlier = sum(outlier_over_tpm == 1),
+                  not_outlier = sum(outlier_over_tpm == 0)) %>%
+        select(outlier, not_outlier)
+      test_result <- fisher.test(over_table, alternative = "t")
+      } else{
+        under_table <- expression_primary %>%
+          group_by(has_event = srr %in% samples_with$srr) %>%
+          filter(gene == this_gene) %>% select(has_event, outlier_under_tpm) %>%
+          summarize(outlier = sum(outlier_under_tpm == 1), 
+                    not_outlier = sum(outlier_under_tpm == 0)) %>%
+          select(outlier, not_outlier)
+        test_result <- fisher.test(under_table, alternative = "t")$p.value
+      }
+    test_statistic <- test_result$estimate
+    p.value <- test_result$p.value
+    
+  } else{
+    stop("Variables t_test and outlier are both FALSE. 
+         Either t_test xor outlier must be TRUE.")
   }
-  return( c(median_pct, t.test.pvalue, fisher.pvalue))
+  
+  # Return value
+  event1 <- this_gene
+  event2 <- NA
+  event_type <- event_type
+  n_samples_with <- samples_with %>% nrow()
+  n_samples_without <- samples_without %>% nrow()
+  n_samples_with_tested <- NA
+  n_samples_without_tested <- NA
+  n_samples_na_tested <- NA
+  median_value <- median_pct
+  return_test_stats <- tribble(~event1, ~event2, ~event_type, ~test_performed,
+                               ~n_samples_with, ~n_samples_without,
+                               ~n_samples_with_tested, ~n_samples_without_tested,
+                               ~n_samples_na_tested, ~median_value, 
+                               ~test_statistic, ~p.value,
+                               event1,  event2,  event_type,  test_performed,
+                               n_samples_with,  n_samples_without,
+                               n_samples_with_tested,  n_samples_without_tested,
+                               n_samples_na_tested, median_value, 
+                               test_statistic,  p.value)
+  
 }
 
 # ==============================================================================
@@ -313,6 +465,11 @@ fusion_genes_gt2 <- fusions_primary %>%
 # Business
 # ==============================================================================
 
+fusion_correlations_tbl <- tribble(~event1, ~event2, ~event_type, ~test_performed,
+                      ~n_samples_with, ~n_samples_without,
+                      ~n_samples_with_tested, ~n_samples_without_tested,
+                      ~n_samples_na_tested, ~test_statistic, ~p.value)
+
 for (this_gene in fusion_genes_gt2$fusion_gene) {
   print(this_gene)
   if ( str_detect(this_gene, "@") ) {
@@ -322,6 +479,4 @@ for (this_gene in fusion_genes_gt2$fusion_gene) {
   }
 }
 
-for (this_fusion in fusion_pairs_gt2$fusion) {
-  fusions_primary %>% filter( fusion == this_fusion)
-}
+
