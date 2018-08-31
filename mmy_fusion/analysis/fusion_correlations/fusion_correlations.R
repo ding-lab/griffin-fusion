@@ -58,7 +58,8 @@ test_event_clinical_discrete <- function(samples_with, samples_without,
     mutate_at(clinical_feature, factor) %>%
     mutate_at("has_event", factor) %>%
     filter( !is.na(eval(parse(text = clinical_feature))) ) %>%
-    group_by( clinical_value = eval(parse(text = clinical_feature)), has_event) %>% 
+    group_by( clinical_value = eval(parse(text = clinical_feature)), 
+              has_event) %>% 
     summarize(count = n()) %>%
     complete(has_event, fill = list(count = 0))
   fisher_test_table <- fisher_test_tibble %>% pull(count) %>%
@@ -73,7 +74,7 @@ test_event_clinical_discrete <- function(samples_with, samples_without,
   
   # Return values
   event1 <- event
-  event2 <- NA
+  event2 <- clinical_feature
   event_type <- event_type
   test_performed <- "Fisher's Exact Test"
   n_samples_with <- samples_with %>% nrow()
@@ -81,16 +82,22 @@ test_event_clinical_discrete <- function(samples_with, samples_without,
   n_samples_with_tested <- sum(fisher_test_table[,2])
   n_samples_without_tested <- sum(fisher_test_table[,1])
   n_samples_na_tested <- n_na
-  test_statistic <- fisher_test_result$estimate
+  if ( dim(fisher_test_table)[1] == 2) {
+    test_statistic <- fisher_test_result$estimate
+  } else{
+    test_statistic <- NA
+  }
   p.value <- fisher_test_result$p.value
   median_value <- NA
   return_test_stats <- tribble(~event1, ~event2, ~event_type, ~test_performed,
                                ~n_samples_with, ~n_samples_without,
-                               ~n_samples_with_tested, ~n_samples_without_tested,
+                               ~n_samples_with_tested, 
+                               ~n_samples_without_tested,
                                ~n_samples_na_tested, ~median_value, 
                                ~test_statistic, ~p.value,
                                event1,  event2,  event_type,  test_performed,
-                               n_samples_with,  n_samples_without,
+                               n_samples_with,  
+                               n_samples_without,
                                n_samples_with_tested,  n_samples_without_tested,
                                n_samples_na_tested, median_value, 
                                test_statistic,  p.value)
@@ -127,57 +134,65 @@ test_event_clinical_continuous <- function(samples_with, samples_without,
     select(mmrf, clinical_feature) %>%
     mutate(has_event = 0)
   without_values <- without_tbl %>% pull(clinical_feature)
-  
-  combined_tbl <- bind_rows(with_tbl, without_tbl)
-  
+
   n_na <- clinical_tbl %>% 
     filter( is.na(eval(parse(text = clinical_feature))) ) %>% nrow()
   
-  if (t_test & mwu_test) {
-    stop("Both t_test and mwu_test are TRUE. Only one may be TRUE.")
-  } else if (t_test) {
-    test_result <- t.test(with_values, without_values)
-  } else if (mwu_test) {
-    test_result <- wilcox.test(with_values, without_values)
-  } else {
-    stop("Neither t_test not mwu_test is TRUE. Either t_test xor mwu_test must be TRUE.")
+  combined_tbl <- bind_rows(with_tbl, without_tbl)
+  
+  if (return_tibble) {
+    return(combined_tbl)
   }
   
-  # Return values
-  event1 <- event
-  event2 <- NA
-  event_type <- event_type
-  if (t_test) {
+  if (t_test & mwu_test) {
+    stop("Both t_test and mwu_test are TRUE. Only one may be TRUE.")
+  }
+  
+  if ( length(with_values) < 3 | length(without_values) < 3) {
+    test_result <- NA
+    test_performed <- NA
+    test_statistic <- NA
+    p.value <- NA
+  } else if (t_test) {
+    test_result <- t.test(with_values, without_values)
     test_performed <- "Fisher's Exact Test"
-    test_statistic <- test_result$estimate
+    test_statistic <- test_result$statistic
     p.value <- test_result$p.value
-  } else{
+  } else if (mwu_test) {
+    test_result <- wilcox.test(with_values, without_values)
     test_performed <- "Mann-Whitney U Test"
     test_statistic <- test_result$statistic
     p.value <- test_result$p.value
-  }
+  } else {
+    stop("Neither t_test not mwu_test is TRUE. 
+         Either t_test xor mwu_test must be TRUE.")
+  }    
+  
+  # Return values
+  event1 <- event
+  event2 <- clinical_feature
+  event_type <- event_type
   n_samples_with <- samples_with %>% nrow()
   n_samples_without <- samples_without %>% nrow()
-  n_samples_with_tested <- with_values %>% nrow()
-  n_samples_without_tested <- without_values %>% nrow()
+  n_samples_with_tested <- with_values %>% length()
+  n_samples_without_tested <- without_values %>% length()
   n_samples_na_tested <- n_na
   median_value <- NA
+  
   return_test_stats <- tribble(~event1, ~event2, ~event_type, ~test_performed,
                                ~n_samples_with, ~n_samples_without,
-                               ~n_samples_with_tested, ~n_samples_without_tested,
+                               ~n_samples_with_tested, 
+                               ~n_samples_without_tested,
                                ~n_samples_na_tested, ~median_value, 
                                ~test_statistic, ~p.value,
                                event1,  event2,  event_type,  test_performed,
                                n_samples_with,  n_samples_without,
-                               n_samples_with_tested,  n_samples_without_tested,
+                               n_samples_with_tested,
+                               n_samples_without_tested,
                                n_samples_na_tested, median_value, 
                                test_statistic,  p.value)
   
-  if (return_tibble) {
-    return(combined_tbl)
-  } else {
-    return(return_test_stats)
-  }
+  return(return_test_stats)
 }
 
 # ==============================================================================
@@ -199,8 +214,12 @@ test_gene_correlations <- function(gene_1, gene_2, event_type,
   
   if ( any(has_gene_1 + has_gene_2  == 2) ) {
     gene_correlation <- cor.test(has_gene_1, has_gene_2)
+    test_statistic <- gene_correlation$statistic
+    p.value <- gene_correlation$p.value
   } else{
     gene_correlation <- NA
+    test_statistic <- NA
+    p.value <- NA
   }
   
   gene_tbl <- samples_tbl %>% 
@@ -216,16 +235,16 @@ test_gene_correlations <- function(gene_1, gene_2, event_type,
   n_samples_with_tested <- NA
   n_samples_without_tested <- NA
   n_samples_na_tested <- NA
-  test_statistic <- gene_correlation$statistic
-  p.value <- gene_correlation$p.value
   median_value <- NA
   return_test_stats <- tribble(~event1, ~event2, ~event_type, ~test_performed,
                                ~n_samples_with, ~n_samples_without,
-                               ~n_samples_with_tested, ~n_samples_without_tested,
+                               ~n_samples_with_tested, 
+                               ~n_samples_without_tested,
                                ~n_samples_na_tested, ~median_value, 
                                ~test_statistic, ~p.value,
                                event1,  event2,  event_type,  test_performed,
-                               n_samples_with,  n_samples_without,
+                               n_samples_with,  
+                               n_samples_without,
                                n_samples_with_tested,  n_samples_without_tested,
                                n_samples_na_tested, median_value, 
                                test_statistic,  p.value)
@@ -239,7 +258,8 @@ test_gene_correlations <- function(gene_1, gene_2, event_type,
 }
 
 test_fusion_correlations <- function(fusion_1, fusion_2, event_type,
-                                     fusions_tbl, samples_tbl, return_tibble = FALSE){
+                                     fusions_tbl, samples_tbl, 
+                                     return_tibble = FALSE){
   samples_with_fusion_1 <- fusions_tbl %>%
     filter(fusion == fusion_1) %>% select(mmrf, srr) %>% unique()
   samples_with_fusion_2 <- fusions_tbl %>%
@@ -250,8 +270,12 @@ test_fusion_correlations <- function(fusion_1, fusion_2, event_type,
   
   if ( any(has_fusion_1 + has_fusion_2 == 2) ) {
     fusion_correlation <- cor.test(has_fusion_1, has_fusion_2)
+    test_statistic <- fusion_correlation$statistic
+    p.value <- fusion_correlation$p.value
   } else {
     fusion_correlation <- NA
+    test_statistic <- NA
+    p.value <- NA
   }
   
   fusion_tbl <- samples_tbl %>% 
@@ -267,16 +291,16 @@ test_fusion_correlations <- function(fusion_1, fusion_2, event_type,
   n_samples_with_tested <- NA
   n_samples_without_tested <- NA
   n_samples_na_tested <- NA
-  test_statistic <- fusion_correlation$statistic
-  p.value <- fusion_correlation$p.value
   median_value <- NA
   return_test_stats <- tribble(~event1, ~event2, ~event_type, ~test_performed,
                                ~n_samples_with, ~n_samples_without,
-                               ~n_samples_with_tested, ~n_samples_without_tested,
+                               ~n_samples_with_tested, 
+                               ~n_samples_without_tested,
                                ~n_samples_na_tested, ~median_value, 
                                ~test_statistic, ~p.value,
                                event1,  event2,  event_type,  test_performed,
-                               n_samples_with,  n_samples_without,
+                               n_samples_with,  
+                               n_samples_without,
                                n_samples_with_tested,  n_samples_without_tested,
                                n_samples_na_tested, median_value, 
                                test_statistic,  p.value)
@@ -290,13 +314,22 @@ test_fusion_correlations <- function(fusion_1, fusion_2, event_type,
 }
 
 test_seqfish_correlations <- function(seqfish_1, seqfish_2, event_type,
-                                      clinical_tbl, return_tibble = FALSE) {
+                                      clinical_tbl, return_tibble = FALSE){
   seqfish_tbl <- clinical_tbl %>% filter( !is.na(seqfish_Study_Visit_ID) ) %>%
     select(mmrf, seqfish_1, seqfish_2)
   seqfish_1_vector <- seqfish_tbl %>% pull(seqfish_1)
   seqfish_2_vector <- seqfish_tbl %>% pull(seqfish_2)
-  seqfish_correlation <- cor.test(seqfish_1_vector, seqfish_2_vector)
 
+  if ( any(seqfish_1_vector + seqfish_2_vector == 2) ) {
+    seqfish_correlation <- cor.test(seqfish_1_vector, seqfish_2_vector)
+    test_statistic <- seqfish_correlation$statistic
+    p.value <- seqfish_correlation$p.value
+  } else {
+    seqfish_correlation <- NA
+    test_statistic <- NA
+    p.value <- NA
+  }
+  
   # Return values
   event1 <- seqfish_1
   event2 <- seqfish_2
@@ -307,16 +340,16 @@ test_seqfish_correlations <- function(seqfish_1, seqfish_2, event_type,
   n_samples_with_tested <- NA
   n_samples_without_tested <- NA
   n_samples_na_tested <- NA
-  test_statistic <- seqfish_correlation$statistic
-  p.value <- seqfish_correlation$p.value
   median_value <- NA
   return_test_stats <- tribble(~event1, ~event2, ~event_type, ~test_performed,
                                ~n_samples_with, ~n_samples_without,
-                               ~n_samples_with_tested, ~n_samples_without_tested,
+                               ~n_samples_with_tested, 
+                               ~n_samples_without_tested,
                                ~n_samples_na_tested, ~median_value, 
                                ~test_statistic, ~p.value,
                                event1,  event2,  event_type,  test_performed,
-                               n_samples_with,  n_samples_without,
+                               n_samples_with,  
+                               n_samples_without,
                                n_samples_with_tested,  n_samples_without_tested,
                                n_samples_na_tested, median_value, 
                                test_statistic,  p.value)
@@ -381,7 +414,7 @@ test_event_expression <- function(samples_with, samples_without,
           summarize(outlier = sum(outlier_under_tpm == 1), 
                     not_outlier = sum(outlier_under_tpm == 0)) %>%
           select(outlier, not_outlier)
-        test_result <- fisher.test(under_table, alternative = "t")$p.value
+        test_result <- fisher.test(under_table, alternative = "t")
       }
     test_statistic <- test_result$estimate
     p.value <- test_result$p.value
@@ -403,11 +436,13 @@ test_event_expression <- function(samples_with, samples_without,
   median_value <- median_pct
   return_test_stats <- tribble(~event1, ~event2, ~event_type, ~test_performed,
                                ~n_samples_with, ~n_samples_without,
-                               ~n_samples_with_tested, ~n_samples_without_tested,
+                               ~n_samples_with_tested, 
+                               ~n_samples_without_tested,
                                ~n_samples_na_tested, ~median_value, 
                                ~test_statistic, ~p.value,
                                event1,  event2,  event_type,  test_performed,
-                               n_samples_with,  n_samples_without,
+                               n_samples_with,  
+                               n_samples_without,
                                n_samples_with_tested,  n_samples_without_tested,
                                n_samples_na_tested, median_value, 
                                test_statistic,  p.value)
@@ -455,28 +490,127 @@ continuous_clinical_variable_names <- c("Age",
 fusion_pairs_gt2 <- fusions_primary %>% group_by(fusion) %>% 
   summarize(count = n()) %>% filter(count >= 3) %>% arrange(desc(count))
 
+fusion_pairs_gt2_head <- fusion_pairs_gt2 %>% head()
+
+
 # Fusion genes seen in at least 3 samples
 fusion_genes_gt2 <- fusions_primary %>% 
   gather(geneA, geneB, key = "geneAB", value = "fusion_gene") %>%
   select(mmrf, srr, fusion_gene) %>% distinct() %>% group_by(fusion_gene) %>% 
   summarize(count = n()) %>% filter(count >= 3) %>% arrange(desc(count))
 
+fusion_genes_gt2_head <- fusion_genes_gt2 %>% head()
+
 # ==============================================================================
 # Business
 # ==============================================================================
 
-fusion_correlations_tbl <- tribble(~event1, ~event2, ~event_type, ~test_performed,
-                      ~n_samples_with, ~n_samples_without,
-                      ~n_samples_with_tested, ~n_samples_without_tested,
-                      ~n_samples_na_tested, ~test_statistic, ~p.value)
+testing_tbl <- tribble(~event1, ~event2, ~event_type, ~test_performed,
+                       ~n_samples_with, ~n_samples_without,
+                       ~n_samples_with_tested, ~n_samples_without_tested,
+                       ~n_samples_na_tested, ~median_value, 
+                       ~test_statistic, ~p.value)
 
-for (this_gene in fusion_genes_gt2$fusion_gene) {
-  print(this_gene)
-  if ( str_detect(this_gene, "@") ) {
+# Test expression of genes recurrently involved in fusions
+for (gene in fusion_genes_gt2$fusion_gene) {
+  if ( str_detect(gene, "@") ) {
     next
-  } else {
-    print(c(this_gene, test_event_expression(get_ids_with_gene(this_gene, fusions_primary), get_ids_without_gene(this_gene, fusions_primary, samples_primary), this_gene, fusions_primary, expression_primary)))
+  }
+  print(gene)
+  samples_with <- get_ids_with_gene(gene, fusions_primary)
+  samples_without <- get_ids_without_gene(gene, 
+                                          fusions_primary, samples_primary)
+  
+  new_ttest_row <- test_event_expression(
+    samples_with, samples_without, this_gene = gene, 
+    event_type = "Gene expression", expression_tbl = expression_primary,
+    t_test = TRUE, outlier = FALSE)
+  testing_tbl <- bind_rows(testing_tbl, new_ttest_row)
+  
+  new_outlier_row <- test_event_expression(
+    samples_with, samples_without, this_gene = gene, 
+    event_type = "Outlier expression", expression_tbl = expression_primary,
+    t_test = FALSE, outlier = TRUE)
+  testing_tbl <- bind_rows(testing_tbl, new_outlier_row)
+  
+  for (this_feature in seqfish_variable_names) {
+    new_seqfish_row <- test_event_clinical_discrete(
+      samples_with, samples_without, event = gene, 
+      event_type = "Gene vs. seqFISH", clinical_tbl = seqfish_clinical_info, 
+      clinical_feature = this_feature, fisher_test = TRUE, 
+      return_tibble = FALSE, return_table = FALSE)
+    testing_tbl <- bind_rows(testing_tbl, new_seqfish_row)
+  }
+  
+  for (this_feature in discrete_clinical_variable_names) {
+    new_discrete_row <- test_event_clinical_discrete(
+      samples_with, samples_without, event = gene, 
+      event_type = "Gene vs. discrete clinical", 
+      clinical_tbl = seqfish_clinical_info, clinical_feature = this_feature,
+      fisher_test = TRUE, return_tibble = FALSE, return_table = FALSE)
+    testing_tbl <- bind_rows(testing_tbl, new_discrete_row)
+  }
+  
+  for (this_feature in continuous_clinical_variable_names) {
+    new_continuous_row_ttest <- test_event_clinical_continuous(
+      samples_with, samples_without, event = gene, 
+      event_type = "Gene vs. continous clinical", 
+      clinical_tbl = seqfish_clinical_info, clinical_feature = this_feature,
+      t_test = TRUE, mwu_test = FALSE, return_tibble = FALSE)
+    testing_tbl <- bind_rows(testing_tbl, new_continuous_row_ttest)
+    
+    new_continuous_row_mwu <- test_event_clinical_continuous(
+      samples_with, samples_without, event = gene, 
+      event_type = "Gene vs. continous clinical", 
+      clinical_tbl = seqfish_clinical_info, clinical_feature = this_feature,
+      t_test = FALSE, mwu_test = TRUE, return_tibble = FALSE)
+    testing_tbl <- bind_rows(testing_tbl, new_continuous_row_mwu)
   }
 }
 
+for (gene1 in fusion_genes_gt2$fusion_gene) {
+  for (gene2 in fusion_genes_gt2$fusion_gene) {
+    if (gene1 == gene2) {
+      next
+    }
+    new_genegene_row <- test_gene_correlations(
+      gene_1 = gene1, gene_2 = gene2, event_type = "Gene-Gene Correlation",
+      fusions_tbl = fusions_primary, samples_tbl = samples_primary, 
+      return_tibble = FALSE)
+    testing_tbl <- bind_rows(testing_tbl, new_genegene_row)
+  }
+}
+
+for (fusion1 in fusion_pairs_gt2$fusion) {
+  for (fusion2 in fusion_pairs_gt2$fusion) {
+    if ( fusion1 == fusion2) {
+      next
+    }
+    new_fusionfusion_row <- test_fusion_correlations(
+      fusion_1 = fusion1, fusion_2 = fusion2, 
+      event_type = "Fusion-Fusion Correlation", fusions_tbl = fusions_primary,
+      samples_tbl = samples_primary, return_tibble = FALSE)
+    testing_tbl <- bind_rows(testing_tbl, new_fusionfusion_row)
+  }
+  
+}
+
+for (seqfish1 in seqfish_variable_names) {
+  for (seqfish2 in seqfish_variable_names) {
+    if (seqfish1 == seqfish2) {
+      next
+    }
+    new_seqfishseqfish_row <- test_seqfish_correlations(
+      seqfish_1 = seqfish1, seqfish_2 = seqfish2, 
+      event_type = "seqFISH-seqFISH Correlation",
+      clinical_tbl = seqfish_clinical_info, return_tibble = FALSE)
+    testing_tbl <- bind_rows(testing_tbl, new_seqfishseqfish_row)
+  }
+}
+
+testing_tbl_pvalue_adjusted <- testing_tbl %>% filter( !is.na(test_statistic) ) %>%
+  mutate(bonferroni = p.adjust(p.value, method = "bonferroni")) %>%
+  mutate(BH = p.adjust(p.value, method = "BH")) %>%
+  mutate(BY = p.adjust(p.value, method = "BY")) %>%
+  mutate(fdr = p.adjust(p.value, method = "fdr"))
 
