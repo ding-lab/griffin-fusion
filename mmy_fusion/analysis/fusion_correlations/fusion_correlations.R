@@ -9,7 +9,8 @@
 
 # Extract sample IDs with a certain fusion
 get_ids_with_fusion <- function(this_fusion, fusions_tbl){
-  fusions_tbl %>% filter(fusion == this_fusion ) %>% select(mmrf, srr) %>% unique()
+  fusions_tbl %>% filter(fusion == this_fusion) %>% 
+    select(mmrf, srr) %>% unique()
 }
 get_ids_without_fusion <- function(this_fusion, fusions_tbl, samples_tbl){
   ids_with_fusion <- get_ids_with_fusion(this_fusion, fusions_tbl)
@@ -162,8 +163,8 @@ test_gene_correlations <- function(gene_1, gene_2, fusions_tbl, samples_tbl,
   
 }
 
-test_fusion_correlations <- function(fusion_1, fusion_2, fusions_tbl, samples_tbl, 
-                                     return_tibble = FALSE){
+test_fusion_correlations <- function(fusion_1, fusion_2, fusions_tbl, 
+                                     samples_tbl, return_tibble = FALSE){
   samples_with_fusion_1 <- fusions_tbl %>%
     filter(fusion == fusion_1) %>% select(mmrf, srr) %>% unique()
   samples_with_fusion_2 <- fusions_tbl %>%
@@ -209,42 +210,51 @@ test_seqfish_correlations <- function(seqfish_1, seqfish_2, clinical_tbl,
 # ==============================================================================
 
 # Test gene expression for both genes in a fusion pair
-test_fusion_expression <- function(this_fusion, fusions_tbl, expression_tbl){
+test_fusion_expression <- function(samples_with, samples_without, 
+                                   fusions_tbl, expression_tbl){
   geneA = str_split(this_fusion, pattern = "--", simplify = TRUE)[1]
   geneB = str_split(this_fusion, pattern = "--", simplify = TRUE)[2]
   return(c(
-    test_gene_expression(geneA, fusions_tbl, expression_tbl),
-    test_gene_expression(geneA, fusions_tbl, expression_tbl)
+    test_event_expression(samples_with, samples_without, geneA, 
+                          fusions_tbl, expression_tbl),
+    test_event_expression(samples_with, samples_without, geneB, 
+                          fusions_tbl, expression_tbl)
   ))
 }
 
 # Returns median expression percentile, t-test, and Fisher's Exact Test p-values
-test_gene_expression <- function(this_gene, fusions_tbl, expression_tbl){
+test_event_expression <- function(samples_with, samples_without, this_gene,
+                                  fusions_tbl, expression_tbl){
   # Given a gene, find out if expression differs between fusion / not fusion
-  samples_with_fusion <- get_srrs_with_gene(this_gene, fusions_tbl)
-  expression_with_fusion <- expression_tbl %>% semi_join(samples_with_fusion, by = "srr") %>%
-    filter(gene == this_gene)
-  expression_without_fusion <- expression_tbl %>% anti_join(samples_with_fusion, by = "srr") %>%
-    filter(gene == this_gene)
+  expression_with_fusion <- expression_tbl  %>%
+    filter(gene == this_gene) %>% semi_join(samples_with, by = "srr")
+  expression_without_fusion <- expression_tbl %>% 
+    filter(gene == this_gene) %>% anti_join(samples_with, by = "srr")
   
   # median expression percentile of fusion samples
   median_pct <- as.double(expression_with_fusion %>% summarize(median(pct)))
   
   # t-test
   if ( median_pct >= 0.5 ) {
-    t.test.pvalue <- t.test(expression_with_fusion$log10tpm, expression_without_fusion$log10tpm, alternative = "greater")$p.value
+    t.test.pvalue <- t.test(expression_with_fusion$log10tpm, 
+                            expression_without_fusion$log10tpm, 
+                            alternative = "greater")$p.value
     over_table <- expression_primary %>% 
-      group_by(has_fusion = srr %in% samples_with_fusion$srr) %>%
+      group_by(has_fusion = srr %in% samples_with$srr) %>%
       filter(gene == this_gene) %>% select(has_fusion, outlier_over_tpm) %>%
-      summarize(outlier = sum(outlier_over_tpm == 1), not_outlier = sum(outlier_over_tpm == 0)) %>%
+      summarize(outlier = sum(outlier_over_tpm == 1), 
+                not_outlier = sum(outlier_over_tpm == 0)) %>%
       select(outlier, not_outlier)
     fisher.pvalue <- fisher.test(over_table, alternative = "t")$p.value
   } else{
-    t.test.pvalue <- t.test(expression_with_fusion$log10tpm, expression_without_fusion$log10tpm, alternative = "less")$p.value
+    t.test.pvalue <- t.test(expression_with_fusion$log10tpm, 
+                            expression_without_fusion$log10tpm, 
+                            alternative = "less")$p.value
     under_table <- expression_primary %>% 
-      group_by(has_fusion = srr %in% samples_with_fusion$srr) %>%
+      group_by(has_fusion = srr %in% samples_with$srr) %>%
       filter(gene == this_gene) %>% select(has_fusion, outlier_under_tpm) %>%
-      summarize(outlier = sum(outlier_under_tpm == 1), not_outlier = sum(outlier_under_tpm == 0)) %>%
+      summarize(outlier = sum(outlier_under_tpm == 1), 
+                not_outlier = sum(outlier_under_tpm == 0)) %>%
       select(outlier, not_outlier)
     fisher.pvalue <- fisher.test(under_table, alternative = "t")$p.value
     
@@ -252,7 +262,38 @@ test_gene_expression <- function(this_gene, fusions_tbl, expression_tbl){
   return( c(median_pct, t.test.pvalue, fisher.pvalue))
 }
 
-test_seqfish_expression <- function(this_seqfish, clinical_tbl, expression_tbl){}
+# ==============================================================================
+# Assign seqFISH and clinical variables to approapiate lists
+# ==============================================================================
+
+seqfish_variable_names <- c("seqfish_CN_del_13q14", 
+                            "seqfish_CN_del_13q34", 
+                            "seqfish_CN_del_17p13", 
+                            "seqfish_CN_gain_1q21", 
+                            "seqfish_Hyperdiploidy", 
+                            "seqfish_Translocation_WHSC1_4_14", 
+                            "seqfish_Translocation_CCND3_6_14", 
+                            "seqfish_Translocation_MYC_8_14", 
+                            "seqfish_Translocation_MAFA_8_14", 
+                            "seqfish_Translocation_CCND1_11_14", 
+                            "seqfish_Translocation_CCND2_12_14", 
+                            "seqfish_Translocation_MAF_14_16", 
+                            "seqfish_Translocation_MAFB_14_20")
+
+discrete_clinical_variable_names <- c("age_ge_66", 
+                                      "Female", 
+                                      "Race_White", 
+                                      "Race_Black", 
+                                      "Race_Other", 
+                                      "race", 
+                                      "ECOG", 
+                                      "ISS_Stage",
+                                      "Bone_lesions", 
+                                      "Plamacytoma")
+
+continuous_clinical_variable_names <- c("Age", 
+                                        "BM_Plasma_Cell_Percent", 
+                                        "LDH")
 
 # ==============================================================================
 # Prepare lists of fusions and genes for testing (avoid testing rare events)
@@ -263,14 +304,10 @@ fusion_pairs_gt2 <- fusions_primary %>% group_by(fusion) %>%
   summarize(count = n()) %>% filter(count >= 3) %>% arrange(desc(count))
 
 # Fusion genes seen in at least 3 samples
-fusion_genes_gt2 <- fusions_primary %>% gather(geneA, geneB, key = "geneAB", value = "fusion_gene") %>%
-  group_by(fusion_gene) %>% summarize(count = n()) %>% filter(count >= 3) %>% 
-  arrange(desc(count))
-
-# ==============================================================================
-# Assign seqFISH and clinical variables to approapiate lists
-# ==============================================================================
-
+fusion_genes_gt2 <- fusions_primary %>% 
+  gather(geneA, geneB, key = "geneAB", value = "fusion_gene") %>%
+  select(mmrf, srr, fusion_gene) %>% distinct() %>% group_by(fusion_gene) %>% 
+  summarize(count = n()) %>% filter(count >= 3) %>% arrange(desc(count))
 
 # ==============================================================================
 # Business
@@ -278,7 +315,11 @@ fusion_genes_gt2 <- fusions_primary %>% gather(geneA, geneB, key = "geneAB", val
 
 for (this_gene in fusion_genes_gt2$fusion_gene) {
   print(this_gene)
-  print(c(this_gene, test_gene_expression(this_gene, fusions_primary, expression_primary)))
+  if ( str_detect(this_gene, "@") ) {
+    next
+  } else {
+    print(c(this_gene, test_event_expression(get_ids_with_gene(this_gene, fusions_primary), get_ids_without_gene(this_gene, fusions_primary, samples_primary), this_gene, fusions_primary, expression_primary)))
+  }
 }
 
 for (this_fusion in fusion_pairs_gt2$fusion) {
