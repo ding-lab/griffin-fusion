@@ -489,8 +489,7 @@ continuous_clinical_variable_names <- c("Age",
 # Fusions pairs seen in at least 3 samples
 fusion_pairs_gt2 <- fusions_primary %>% group_by(fusion) %>% 
   summarize(count = n()) %>% filter(count >= 3) %>% arrange(desc(count))
-
-fusion_pairs_gt2_head <- fusion_pairs_gt2 %>% head()
+fusion_pairs_gt2_combinations <- combn(fusion_pairs_gt2$fusion, 2)
 
 
 # Fusion genes seen in at least 3 samples
@@ -498,8 +497,10 @@ fusion_genes_gt2 <- fusions_primary %>%
   gather(geneA, geneB, key = "geneAB", value = "fusion_gene") %>%
   select(mmrf, srr, fusion_gene) %>% distinct() %>% group_by(fusion_gene) %>% 
   summarize(count = n()) %>% filter(count >= 3) %>% arrange(desc(count))
+fusion_genes_gt2_combinations <- combn(fusion_genes_gt2$fusion_gene, 2)
 
-fusion_genes_gt2_head <- fusion_genes_gt2 %>% head()
+# Combination of seqFISH variable names
+seqfish_variable_names_combinations <- combn(seqfish_variable_names, 2)
 
 # ==============================================================================
 # Business
@@ -568,44 +569,43 @@ for (gene in fusion_genes_gt2$fusion_gene) {
   }
 }
 
-for (gene1 in fusion_genes_gt2$fusion_gene) {
-  for (gene2 in fusion_genes_gt2$fusion_gene) {
-    if (gene1 == gene2) {
-      next
-    }
-    new_genegene_row <- test_gene_correlations(
-      gene_1 = gene1, gene_2 = gene2, event_type = "Gene-Gene Correlation",
-      fusions_tbl = fusions_primary, samples_tbl = samples_primary, 
-      return_tibble = FALSE)
-    testing_tbl <- bind_rows(testing_tbl, new_genegene_row)
-  }
+#n_combinations <- ncol(fusion_genes_gt2_combinations)
+#for (i in 1:n_combinations) {
+#  gene1 <- fusion_genes_gt2_combinations[1,i]
+#  gene2 <- fusion_genes_gt2_combinations[2,i]
+#  print(str_c(gene1, gene2, sep = "//"))
+#  new_genegene_row <- test_gene_correlations(
+#    gene_1 = gene1, gene_2 = gene2, event_type = "Gene-Gene Correlation",
+#    fusions_tbl = fusions_primary, samples_tbl = samples_primary, 
+#    return_tibble = FALSE)
+#  testing_tbl <- bind_rows(testing_tbl, new_genegene_row)
+#}
+
+n_combinations <- ncol(fusion_pairs_gt2_combinations)
+for (i in 1:n_combinations) {
+  fusion1 = fusion_pairs_gt2_combinations[1,i]
+  fusion2 = fusion_pairs_gt2_combinations[2,i]
+  print(str_c(fusion1, fusion2, sep = "//"))
+  new_fusionfusion_row <- test_fusion_correlations(
+    fusion_1 = fusion1, fusion_2 = fusion2, 
+    event_type = "Fusion-Fusion Correlation", fusions_tbl = fusions_primary,
+    samples_tbl = samples_primary, return_tibble = FALSE)
+  testing_tbl <- bind_rows(testing_tbl, new_fusionfusion_row)
 }
 
-for (fusion1 in fusion_pairs_gt2$fusion) {
-  for (fusion2 in fusion_pairs_gt2$fusion) {
-    if ( fusion1 == fusion2) {
-      next
-    }
-    new_fusionfusion_row <- test_fusion_correlations(
-      fusion_1 = fusion1, fusion_2 = fusion2, 
-      event_type = "Fusion-Fusion Correlation", fusions_tbl = fusions_primary,
-      samples_tbl = samples_primary, return_tibble = FALSE)
-    testing_tbl <- bind_rows(testing_tbl, new_fusionfusion_row)
+n_combinations <- ncol(seqfish_variable_names_combinations)
+for (i in 1:n_combinations) {
+  seqfish1 <- seqfish_variable_names_combinations[1,i]
+  seqfish2 <- seqfish_variable_names_combinations[2,i]
+  if (seqfish1 == seqfish2) {
+    next
   }
-  
-}
-
-for (seqfish1 in seqfish_variable_names) {
-  for (seqfish2 in seqfish_variable_names) {
-    if (seqfish1 == seqfish2) {
-      next
-    }
-    new_seqfishseqfish_row <- test_seqfish_correlations(
-      seqfish_1 = seqfish1, seqfish_2 = seqfish2, 
-      event_type = "seqFISH-seqFISH Correlation",
-      clinical_tbl = seqfish_clinical_info, return_tibble = FALSE)
-    testing_tbl <- bind_rows(testing_tbl, new_seqfishseqfish_row)
-  }
+  print(str_c(seqfish1, seqfish2, sep = "//"))
+  new_seqfishseqfish_row <- test_seqfish_correlations(
+    seqfish_1 = seqfish1, seqfish_2 = seqfish2, 
+    event_type = "seqFISH-seqFISH Correlation",
+    clinical_tbl = seqfish_clinical_info, return_tibble = FALSE)
+  testing_tbl <- bind_rows(testing_tbl, new_seqfishseqfish_row)
 }
 
 testing_tbl_pvalue_adjusted <- testing_tbl %>% filter( !is.na(test_statistic) ) %>%
