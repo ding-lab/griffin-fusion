@@ -1,7 +1,7 @@
-*xlsx
+*csv
 *pdf
-data/*tsv
-data/*txt
-data/*xls
-data/*csv
+*tsv
+*txt
+*xls
+*xlsx
 mmy_fusion.Rproj
