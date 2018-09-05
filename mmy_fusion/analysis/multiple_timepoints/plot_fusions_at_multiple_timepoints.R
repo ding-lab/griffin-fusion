@@ -31,7 +31,7 @@ plot_fusions_at_multiple_timepoints <- function(fusions_tbl, this_mmrf,
       labs(x = str_c(this_mmrf, " Sample Number"), y = "Unique Fusion Number") +
       ggplot2_standard_additions()
     
-    ggsave(str_c(output_directory, "/", this_mmrf, "multiple_timepoints.pdf"), 
+    ggsave(str_c(output_directory, "/", this_mmrf, ".multiple_timepoints.pdf"), 
            device = "pdf", width = 10, height = 10)
   }
 }
@@ -49,5 +49,5 @@ samples_with_multiple_timepoints <-
 
 for (this_mmrf in samples_with_multiple_timepoints) {
   plot_fusions_at_multiple_timepoints(fusions_all, this_mmrf, 
-                  "analysis/multiple_timepoints/fusions_at_multiple_timepoints")
+              "analysis/multiple_timepoints/fusions_at_multiple_timepoints/all")
 }
