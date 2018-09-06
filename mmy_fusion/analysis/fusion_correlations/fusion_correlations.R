@@ -453,6 +453,9 @@ test_event_expression <- function(samples_with, samples_without,
 # Assign seqFISH and clinical variables to approapiate lists
 # ==============================================================================
 
+seqfish_gene_names <- c("WHSC1", "CCND3", "MYC", "MAFA", "CCND1", "CCND2", 
+                        "MAF", "MAFB")
+
 seqfish_variable_names <- c("seqfish_CN_del_13q14", 
                             "seqfish_CN_del_13q34", 
                             "seqfish_CN_del_17p13", 
@@ -491,11 +494,10 @@ fusion_pairs_gt2 <- fusions_primary %>% group_by(fusion) %>%
   summarize(count = n()) %>% filter(count >= 3) %>% arrange(desc(count))
 fusion_pairs_gt2_combinations <- combn(fusion_pairs_gt2$fusion, 2)
 
-
 # Fusion genes seen in at least 3 samples
 fusion_genes_gt2 <- fusions_primary %>% 
   gather(geneA, geneB, key = "geneAB", value = "fusion_gene") %>%
-  select(mmrf, srr, fusion_gene) %>% distinct() %>% group_by(fusion_gene) %>% 
+  dplyr::select(mmrf, srr, fusion_gene) %>% distinct() %>% group_by(fusion_gene) %>% 
   summarize(count = n()) %>% filter(count >= 3) %>% arrange(desc(count))
 fusion_genes_gt2_combinations <- combn(fusion_genes_gt2$fusion_gene, 2)
 
@@ -506,7 +508,7 @@ seqfish_variable_names_combinations <- combn(seqfish_variable_names, 2)
 # Business
 # ==============================================================================
 
-recreate_testing_tbl <- TRUE
+recreate_testing_tbl <- FALSE
 if (recreate_testing_tbl) {
   testing_tbl <- tribble(~event1, ~event2, ~event_type, ~test_performed,
                          ~n_samples_with, ~n_samples_without,
@@ -557,14 +559,14 @@ if (recreate_testing_tbl) {
     for (this_feature in continuous_clinical_variable_names) {
       new_continuous_row_ttest <- test_event_clinical_continuous(
         samples_with, samples_without, event = gene, 
-        event_type = "Gene vs. continous clinical", 
+        event_type = "Gene vs. continuous clinical", 
         clinical_tbl = seqfish_clinical_info, clinical_feature = this_feature,
         t_test = TRUE, mwu_test = FALSE, return_tibble = FALSE)
       testing_tbl <- bind_rows(testing_tbl, new_continuous_row_ttest)
       
       new_continuous_row_mwu <- test_event_clinical_continuous(
         samples_with, samples_without, event = gene, 
-        event_type = "Gene vs. continous clinical", 
+        event_type = "Gene vs. continuous clinical", 
         clinical_tbl = seqfish_clinical_info, clinical_feature = this_feature,
         t_test = FALSE, mwu_test = TRUE, return_tibble = FALSE)
       testing_tbl <- bind_rows(testing_tbl, new_continuous_row_mwu)
