@@ -35,3 +35,9 @@ expression_all <- read_tsv("data/mmy_gene_expr_with_fusions.tsv") %>%
   filter(srr %in% samples_all$srr)
 # keep primary samples only
 expression_primary <- expression_all %>% filter(srr %in% samples_primary$srr)
+
+# ==============================================================================
+# ENSG gene names
+# ==============================================================================
+# read in list of ENSGs and gene names used in this study
+ensg_gene_list <- read_tsv("data/ensg_gene_list.tsv")
