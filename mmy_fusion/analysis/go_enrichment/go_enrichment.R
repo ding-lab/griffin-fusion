@@ -43,9 +43,25 @@ all <- interesting_ensg_genes %>% pull(interesting) %>% factor()
 names(all) <- interesting_ensg_genes %>% pull(ensg)
   
 # GO enrichment using genes with value 1
-GOdata <- new("topGOdata", ontology = "CC", allGenes = all, 
+# ontology can be "BP" (biological process), "MF" (molecular function),
+# or "CC" (cellular component)
+GOdata <- new("topGOdata", ontology = "BP", allGenes = all, 
               geneSel = function(p) p == 1,
               description = "Genes in MMRF Fusions",
               annot = annFUN.org, mapping = "org.Hs.eg.db", ID = "Ensembl")
 
+# Genes significant in this analysis
+sigGenes(GOdata)
 
+# Result of Fisher Exact testing
+# algorithm = "classic" GO hierarchy isn't taken into account
+# algorithm = "weight01" takes GO hierarchy into account
+resultFisher <- runTest(GOdata, algorithm = "weight01", statistic = "fisher")
+GO_Table <- GenTable(GOdata, classicFisher = resultFisher, 
+                     orderBy = "resultFisher", ranksOf = "classicFisher", 
+                     topNodes = 10)
+
+ensg_gene_list %>% 
+  mutate(yes = ensg %in% genesInTerm(GOdata, c("GO:0006614"))[[1]]) %>% 
+  filter(yes) %>% View()
+# For top genes, what significant pathways are they involved in
