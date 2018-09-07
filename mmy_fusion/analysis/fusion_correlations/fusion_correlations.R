@@ -3,6 +3,8 @@
 # Steven Foltz (smfoltz@wustl.edu), August 2018
 # ==============================================================================
 
+recreate_testing_tbl <- TRUE
+
 # ==============================================================================
 # General Functions
 # ==============================================================================
@@ -453,8 +455,14 @@ test_event_expression <- function(samples_with, samples_without,
 # Assign seqFISH and clinical variables to approapiate lists
 # ==============================================================================
 
-seqfish_gene_names <- c("WHSC1", "CCND3", "MYC", "MAFA", "CCND1", "CCND2", 
-                        "MAF", "MAFB")
+seqfish_gene_names <- c("seqfish_Translocation_WHSC1_4_14", 
+                        "seqfish_Translocation_CCND3_6_14", 
+                        "seqfish_Translocation_MYC_8_14", 
+                        "seqfish_Translocation_MAFA_8_14", 
+                        "seqfish_Translocation_CCND1_11_14", 
+                        "seqfish_Translocation_CCND2_12_14", 
+                        "seqfish_Translocation_MAF_14_16", 
+                        "seqfish_Translocation_MAFB_14_20")
 
 seqfish_variable_names <- c("seqfish_CN_del_13q14", 
                             "seqfish_CN_del_13q34", 
@@ -508,13 +516,41 @@ seqfish_variable_names_combinations <- combn(seqfish_variable_names, 2)
 # Business
 # ==============================================================================
 
-recreate_testing_tbl <- FALSE
 if (recreate_testing_tbl) {
   testing_tbl <- tribble(~event1, ~event2, ~event_type, ~test_performed,
                          ~n_samples_with, ~n_samples_without,
                          ~n_samples_with_tested, ~n_samples_without_tested,
                          ~n_samples_na_tested, ~median_value, 
                          ~test_statistic, ~p.value)
+  
+  # Test expression of genes involved in seqFISH translocations
+  for (full_seqfish_name in seqfish_gene_names) {
+    print(full_seqfish_name)
+    gene <- str_split(full_seqfish_name, "_", simplify = TRUE)[3]
+    print(gene)
+    samples_with <- get_ids_with_seqfish(full_seqfish_name, 
+                                         seqfish_tbl = seqfish_clinical_info, 
+                                         samples_tbl = samples_primary)
+    samples_without <- get_ids_with_seqfish(full_seqfish_name, 
+                                            seqfish_tbl = seqfish_clinical_info, 
+                                            samples_tbl = samples_primary)
+    
+    new_ttest_row <- test_event_expression(
+      samples_with, samples_without, this_gene = gene, 
+      event_type = "seqFISH gene expression", 
+      expression_tbl = expression_primary,
+      t_test = TRUE, outlier = FALSE)
+    testing_tbl <- bind_rows(testing_tbl, new_ttest_row)
+    
+    new_outlier_row <- test_event_expression(
+      samples_with, samples_without, this_gene = gene, 
+      event_type = "seqFISH outlier expression", 
+      expression_tbl = expression_primary,
+      t_test = FALSE, outlier = TRUE)
+    testing_tbl <- bind_rows(testing_tbl, new_outlier_row)
+  }
+  
+  stop()
   
   # Test expression of genes recurrently involved in fusions
   for (gene in fusion_genes_gt2$fusion_gene) {
