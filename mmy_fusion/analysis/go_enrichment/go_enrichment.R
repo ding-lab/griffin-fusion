@@ -26,23 +26,26 @@ library(topGO)
 # ==============================================================================
 
 # Obtain the mart
-mart <- useDataset("hsapiens_gene_ensembl", mart=useMart("ensembl"))
+mart <- useDataset("hsapiens_gene_ensembl", mart = useMart("ensembl"))
 
 # Get Ensembl gene IDs
 all_ensembl_gene_ids <- getBM(attributes = "ensembl_gene_id", 
                              values = "*", mart = mart)
+names(all_ensembl_gene_ids) <- c("ensg")
+
+# Give interesting genes value 1, rest get 0
+interesting_ensg_genes <- ensg_gene_list %>% 
+  left_join(all_ensembl_gene_ids, by = "ensg") %>%
+  mutate(interesting = as.numeric(gene %in% fusion_genes_gt2$fusion_gene))
 
 # Give interesting genes value 1. The rest get value 0.
-all <- factor(as.integer(all_hgnc_symbol_gene_ids[,1] %in% 
-                           fusion_genes_gt2$fusion_gene))
-names(all) <- all_hgnc_symbol_gene_ids[,1]
-
-"WHSC1" %in% names(all)
+all <- interesting_ensg_genes %>% pull(interesting) %>% factor()
+names(all) <- interesting_ensg_genes %>% pull(ensg)
   
-# GO enrichment using genes with value 1.
+# GO enrichment using genes with value 1
 GOdata <- new("topGOdata", ontology = "CC", allGenes = all, 
-              geneSel=function(p) p == 1,
+              geneSel = function(p) p == 1,
               description = "Genes in MMRF Fusions",
-              annot=annFUN.org, mapping="org.Hs.eg.db", ID="Ensembl")
+              annot = annFUN.org, mapping = "org.Hs.eg.db", ID = "Ensembl")
 
 
