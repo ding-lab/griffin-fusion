@@ -45,6 +45,9 @@ names(all) <- interesting_ensg_genes %>% pull(ensg)
 # GO enrichment using genes with value 1
 # ontology can be "BP" (biological process), "MF" (molecular function),
 # or "CC" (cellular component)
+# Helpful reading from: 
+# http://avrilomics.blogspot.com/2015/07/using-topgo-to-test-for-go-term.html
+
 GOdata <- new("topGOdata", ontology = "BP", allGenes = all, 
               geneSel = function(p) p == 1,
               description = "Genes in MMRF Fusions",
