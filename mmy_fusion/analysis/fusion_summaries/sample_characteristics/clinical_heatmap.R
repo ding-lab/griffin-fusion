@@ -72,7 +72,42 @@ plot_seqfish_heatmap <- function(input_tibble, output_filename){
 }
 
 # ==============================================================================
-# Plot two different heatmaps: hyperdiploid, non-hyperdiploid
+# Function to plot seqFISH as UpSetR
+# ==============================================================================
+
+plot_seqfish_upsetr <- function(plot_tibble, output_filename){
+  upsetr_df <- plot_tibble %>% 
+    select(seqfish_Hyperdiploidy, seqfish_CN_del_13q14, seqfish_CN_del_13q34, 
+           seqfish_CN_del_17p13, seqfish_CN_gain_1q21, 
+           seqfish_Translocation_WHSC1_4_14, seqfish_Translocation_CCND3_6_14, 
+           seqfish_Translocation_MYC_8_14, seqfish_Translocation_MAFA_8_14, 
+           seqfish_Translocation_CCND1_11_14, 
+           seqfish_Translocation_CCND2_12_14, seqfish_Translocation_MAF_14_16, 
+           seqfish_Translocation_MAFB_14_20) %>% 
+    mutate(seqfish_Nonhyperdiploidy = !as.logical(seqfish_Hyperdiploidy)) %>%
+    rowwise() %>% mutate(none = as.numeric(
+      sum(seqfish_Hyperdiploidy, seqfish_CN_del_13q14, seqfish_CN_del_13q34, 
+          seqfish_CN_del_17p13, seqfish_CN_gain_1q21, 
+          seqfish_Translocation_WHSC1_4_14, seqfish_Translocation_CCND3_6_14, 
+          seqfish_Translocation_MYC_8_14, seqfish_Translocation_MAFA_8_14, 
+          seqfish_Translocation_CCND1_11_14, seqfish_Translocation_CCND2_12_14, 
+          seqfish_Translocation_MAF_14_16, seqfish_Translocation_MAFB_14_20) 
+      == 0)) %>% as.data.frame()
+  names(upsetr_df) <- c("Hyperdiploidy", "CNV del(13q14)", "CNV del(13q34)", 
+                        "CNV_del(17p13)", "CNV gain(1q21)", "Translocation t(4;14) (WHSC1)",
+                        "Translocation t(6;14) (CCND3)", "Translocation t(8;14) (MYC)", 
+                        "Translocation t(8;14) (MAFA)", "Translocation t(11;14) (CCND1)", 
+                        "Translocation t(12;14) (CCND2)", "Translocation t(14;16) (MAF)", 
+                        "Translocation t(14;20) (MAFB)", "No seqFISH events")
+  
+  pdf(file = output_filename, width = 40, height = 20)
+  upset(upsetr_df, nsets = ncol(upsetr_df), nintersects = NA, order.by = "freq",
+        text.scale = 2, point.size = 3, line.size = 1)
+  dev.off()
+}
+
+# ==============================================================================
+# Plot two different heatmaps and upsetrs: hyperdiploid, non-hyperdiploid
 # ==============================================================================
 
 hyperdiploid_status <- c(1, 0)
@@ -84,37 +119,30 @@ for (i in 1:2) {
   plot_seqfish_heatmap(plot_tibble, 
               str_c("analysis/fusion_summaries/sample_characteristics/heatmap.", 
                    h_string, ".pdf"))
+  plot_seqfish_upsetr(plot_tibble, 
+              str_c("analysis/fusion_summaries/sample_characteristics/upsetr.", 
+                   h_string, ".pdf")) 
+  
 }
 
 # ==============================================================================
-# Plot seqFISH as UpSetR
+# Plot one upsetr for all samples
 # ==============================================================================
+plot_tibble <- seqfish_clinical_info %>% filter(!is.na(seqfish_Hyperdiploidy))
+plot_seqfish_upsetr(plot_tibble, 
+             "analysis/fusion_summaries/sample_characteristics/upsetr.both.pdf")
 
-upsetr_df <- seqfish_clinical_info %>% 
-  filter(!is.na(seqfish_Study_Visit_ID)) %>%
-  select(seqfish_Hyperdiploidy, seqfish_CN_del_13q14, seqfish_CN_del_13q34, 
-         seqfish_CN_del_17p13, seqfish_CN_gain_1q21, 
-         seqfish_Translocation_WHSC1_4_14, seqfish_Translocation_CCND3_6_14, 
-         seqfish_Translocation_MYC_8_14, seqfish_Translocation_MAFA_8_14, 
-         seqfish_Translocation_CCND1_11_14, 
-         seqfish_Translocation_CCND2_12_14, seqfish_Translocation_MAF_14_16, 
-         seqfish_Translocation_MAFB_14_20) %>% 
-  rowwise() %>% mutate(none = as.numeric(
-    sum(seqfish_Hyperdiploidy, seqfish_CN_del_13q14, seqfish_CN_del_13q34, 
-        seqfish_CN_del_17p13, seqfish_CN_gain_1q21, 
-        seqfish_Translocation_WHSC1_4_14, seqfish_Translocation_CCND3_6_14, 
-        seqfish_Translocation_MYC_8_14, seqfish_Translocation_MAFA_8_14, 
-        seqfish_Translocation_CCND1_11_14, seqfish_Translocation_CCND2_12_14, 
-        seqfish_Translocation_MAF_14_16, seqfish_Translocation_MAFB_14_20) 
-    == 0)) %>% as.data.frame()
-names(upsetr_df) <- c("Hyperdiploidy", "CNV del(13q14)", "CNV del(13q34)", 
-    "CNV_del(17p13)", "CNV gain(1q21)", "Translocation t(4;14) (WHSC1)",
-    "Translocation t(6;14) (CCND3)", "Translocation t(8;14) (MYC)", 
-    "Translocation t(8;14) (MAFA)", "Translocation t(11;14) (CCND1)", 
-    "Translocation t(12;14) (CCND2)", "Translocation t(14;16) (MAF)", 
-    "Translocation t(14;20) (MAFB)", "No seqFISH events")
+# ==============================================================================
+# Number of non/hyperdiploid samples
+# ==============================================================================
+n_hyperdiploid_samples <- seqfish_clinical_info %>% 
+  filter(seqfish_Hyperdiploidy == 1) %>% nrow()
+n_nonhyperdiploid_samples <- seqfish_clinical_info %>% 
+  filter(seqfish_Hyperdiploidy == 0) %>% nrow()
+n_na_hyperdiploid_samples <- seqfish_clinical_info %>% 
+  filter(is.na(seqfish_Hyperdiploidy)) %>% nrow()
 
-pdf(file = "analysis/fusion_summaries/sample_characteristics/upsetr.seqfish.pdf", 
-    width = 20, height = 10)
-upset(upsetr_df, nsets = ncol(upsetr_df), order.by = "freq")
-dev.off()
+# ==============================================================================
+# Important clinical features
+# ==============================================================================
+age_summary <- seqfish_clinical_info %>% select(Age) %>% summary()
