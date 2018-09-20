@@ -146,3 +146,50 @@ n_na_hyperdiploid_samples <- seqfish_clinical_info %>%
 # Important clinical features
 # ==============================================================================
 age_summary <- seqfish_clinical_info %>% select(Age) %>% summary()
+sex_summary <- seqfish_clinical_info %>% 
+  mutate(sex = factor(Female, labels = c("Male", "Female"))) %>% 
+  select(sex) %>% summary()
+race_summary <- seqfish_clinical_info %>% 
+  mutate(race_name = factor(race, labels = c("White", "Black", "Other"))) %>% 
+  select(race_name) %>% summary()
+ecog_summary <- seqfish_clinical_info %>% mutate_at("ECOG", factor) %>%
+  select(ECOG) %>% summary()
+plasma_summary <- seqfish_clinical_info %>% 
+  select(BM_Plasma_Cell_Percent) %>% summary()
+stage_summary <- seqfish_clinical_info %>% mutate_at("ISS_Stage", factor) %>% 
+  select(ISS_Stage) %>% summary() 
+ldh_summary <- seqfish_clinical_info %>% 
+  select(LDH) %>% summary()
+bone_summary <- seqfish_clinical_info %>% mutate_at("Bone_lesions", factor) %>% 
+  select(Bone_lesions) %>% summary()
+plasmacytoma_summary <- seqfish_clinical_info %>% select(Plamacytoma) %>% 
+  summary()
+
+# ==============================================================================
+# Plot continuous clinical variables
+# ==============================================================================
+pdf("analysis/fusion_summaries/sample_characteristics/clinical_variables.pdf", 
+    height = 10, width = 15)
+
+n_missing <- seqfish_clinical_info %>% filter(is.na(Age)) %>% nrow()
+seqfish_clinical_info %>% 
+  ggplot(aes(x = Age)) + geom_histogram() + 
+  labs(x = "Age at onset (years)", y = "Number of patients", 
+       caption = str_c("Number missing = ", n_missing)) +
+  ggplot2_standard_additions()
+
+n_missing <- seqfish_clinical_info %>% 
+  filter(is.na(BM_Plasma_Cell_Percent)) %>% nrow()
+seqfish_clinical_info %>% 
+  ggplot(aes(x = BM_Plasma_Cell_Percent)) + geom_histogram() + 
+  labs(x = "Bone marrow plasma cell (%)", y = "Number of patients",
+       caption = str_c("Number missing = ", n_missing)) +
+  ggplot2_standard_additions()
+
+n_missing <- seqfish_clinical_info %>% filter(is.na(LDH)) %>% nrow()
+seqfish_clinical_info %>% 
+  ggplot(aes(x = LDH)) + geom_histogram() + 
+  labs(x = "Lactate dehydrogenase (LDH) (U/L)", y = "Number of patients",
+       caption = str_c("Number missing = ", n_missing)) +
+  ggplot2_standard_additions()
+dev.off()
