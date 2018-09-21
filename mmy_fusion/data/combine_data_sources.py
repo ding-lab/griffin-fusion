@@ -119,13 +119,13 @@ clinical_dict = {}
 f.readline()
 for line in f:
   if line.strip(): #necessary to deal with empty line at end of input file
-    PUBLIC_ID, Age, age_ge_66, Female, Race_White, Race_Black, Race_Other, race, ECOG, BM_Plasma_Cell_Percent, ISS_Stage, LDH, Bone_lesions, Plamacytoma, D_PT_deathdy, D_PT_lstalive, D_PT_pddy, TTPD, EFS, EFS_censor = line.strip().split(",")
+    PUBLIC_ID, Age, age_ge_66, Female, Race_White, Race_Black, Race_Other, race, ECOG, BM_Plasma_Cell_Percent, ISS_Stage, LDH, Bone_lesions, Plasmacytoma, D_PT_deathdy, D_PT_lstalive, D_PT_pddy, TTPD, EFS, EFS_censor = line.strip().split(",")
     sample_key = PUBLIC_ID
     if sample_key in clinical_dict:
       sys.exit(sample_key + " already in clinical_dict")
     else:
-      clinical_dict[sample_key] = [ str(x).replace(" ","_") if x else "NA" for x in [sample_key, PUBLIC_ID, Age, age_ge_66, Female, Race_White, Race_Black, Race_Other, race, ECOG, BM_Plasma_Cell_Percent, ISS_Stage, LDH, Bone_lesions, Plamacytoma, D_PT_deathdy, D_PT_lstalive, D_PT_pddy, TTPD, EFS, EFS_censor] ]
-    list_of_indicators = ["sample_key", "PUBLIC_ID", "Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plamacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"]
+      clinical_dict[sample_key] = [ str(x).replace(" ","_") if x else "NA" for x in [sample_key, PUBLIC_ID, Age, age_ge_66, Female, Race_White, Race_Black, Race_Other, race, ECOG, BM_Plasma_Cell_Percent, ISS_Stage, LDH, Bone_lesions, Plasmacytoma, D_PT_deathdy, D_PT_lstalive, D_PT_pddy, TTPD, EFS, EFS_censor] ]
+    list_of_indicators = ["sample_key", "PUBLIC_ID", "Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plasmacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"]
     for c in range(2, len(list_of_indicators)):
       w.write("\t".join([sample_key, list_of_indicators[c], clinical_dict[sample_key][c] ])+"\n")
 f.close()
@@ -283,7 +283,7 @@ else:
 
 column_labels = ["mmrf"]
 column_labels.extend(["seqfish_Study_Visit_ID", "seqfish_CN_del_13q14", "seqfish_CN_del_13q34", "seqfish_CN_del_17p13", "seqfish_CN_gain_1q21", "seqfish_Hyperdiploidy", "seqfish_Translocation_WHSC1_4_14", "seqfish_Translocation_CCND3_6_14", "seqfish_Translocation_MYC_8_14", "seqfish_Translocation_MAFA_8_14", "seqfish_Translocation_CCND1_11_14", "seqfish_Translocation_CCND2_12_14", "seqfish_Translocation_MAF_14_16", "seqfish_Translocation_MAFB_14_20"])
-column_labels.extend(["Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plamacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"])
+column_labels.extend(["Age", "age_ge_66", "Female", "Race_White", "Race_Black", "Race_Other", "race", "ECOG", "BM_Plasma_Cell_Percent", "ISS_Stage", "LDH", "Bone_lesions", "Plasmacytoma", "D_PT_deathdy", "D_PT_lstalive", "D_PT_pddy", "TTPD", "EFS", "EFS_censor"])
 column_labels.extend(["R-ISS"])
 w.write('\t'.join([str(x) for x in column_labels])+"\n")
 
@@ -295,7 +295,7 @@ for mmrf in sample_dict.keys():
   else: #Study_Visit_ID can end in PB or BM, both are cancer samples
     print_list.extend( ["NA"]*14 )  
   #clinical
-  print_list.extend( clinical_dict[mmrf][2:] ) #Age, age_ge_66, Female, Race_White, Race_Black, Race_Other, race, ECOG, BM_Plasma_Cell_Percent, ISS_Stage, LDH, Bone_lesions, Plamacytoma, D_PT_deathdy, D_PT_lstalive, D_PT_pddy, TTPD, EFS, EFS_censor
+  print_list.extend( clinical_dict[mmrf][2:] ) #Age, age_ge_66, Female, Race_White, Race_Black, Race_Other, race, ECOG, BM_Plasma_Cell_Percent, ISS_Stage, LDH, Bone_lesions, Plasmacytoma, D_PT_deathdy, D_PT_lstalive, D_PT_pddy, TTPD, EFS, EFS_censor
   #R-ISS
   if mmrf in seqfish_dict and mmrf in clinical_dict:
     iss_stage = clinical_dict[mmrf][11]
