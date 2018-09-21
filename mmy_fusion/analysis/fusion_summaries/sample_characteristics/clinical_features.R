@@ -177,7 +177,8 @@ bone_na <- seqfish_clinical_info %>% filter(is.na(Bone_lesions)) %>% nrow()
 plasmacytoma_summary <- seqfish_clinical_info %>% 
   mutate_at("Plasmacytoma", factor) %>% 
   select(Plasmacytoma) %>% summary()
-plasmacytoma_na <- seqfish_clinical_info %>% filter(is.na(Plasmacytoma)) %>% nrow()
+plasmacytoma_na <- seqfish_clinical_info %>% 
+  filter(is.na(Plasmacytoma)) %>% nrow()
 
 # ==============================================================================
 # Plot continuous clinical variables
@@ -487,4 +488,3 @@ summary_tibble <- summary_tibble %>% arrange(Category, Subcategory)
 write_tsv(summary_tibble, 
           "analysis/fusion_summaries/sample_characteristics/summary_table.txt", 
           na = "NA", append = FALSE, col_names = TRUE)
-
