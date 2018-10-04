@@ -4,6 +4,7 @@
 # ==============================================================================
 
 plot_dir = "analysis/fusion_summaries/pipeline_and_filtering/"
+
 # ==============================================================================
 # Functions
 # ==============================================================================
@@ -36,7 +37,7 @@ ggsave(str_c(plot_dir, "tool_overlap.bar_chart.pdf"), device = "pdf",
 # ==============================================================================
 library(UpSetR)
 
-upsetr_df <- fusions_primary %>% select(starts_with("called_by")) %>% data.frame()
+upsetr_df <- data.frame(fusions_primary %>% select(starts_with("called_by")))
 names(upsetr_df) <- c("EricScript", "FusionCatcher", "INTEGRATE", 
 "PRADA", "STAR-Fusion")
 pdf(file = str_c(plot_dir, "tool_overlap.upsetr.pdf"), 
@@ -44,3 +45,81 @@ pdf(file = str_c(plot_dir, "tool_overlap.upsetr.pdf"),
 upset(upsetr_df, nsets = ncol(upsetr_df), nintersects = NA, order.by = "freq",
       text.scale = 2, point.size = 3, line.size = 1)
 dev.off()
+
+# ==============================================================================
+# Plot n_fusions before and after soft filtering
+# ==============================================================================
+
+kept_fusions_per_srr_primary <- fusions_primary %>% group_by(srr) %>% count()
+plot_df <- fusions_hard_primary %>% group_by(Sample) %>% count() %>% 
+  rename(srr = Sample) %>% 
+  left_join(kept_fusions_per_srr_primary, by = "srr") %>% 
+  replace_na(list(n.y = 0)) %>% 
+  rename(n_fusions_hard = n.x, n_fusions_soft = n.y) %>%
+  mutate(difference = n_fusions_hard - n_fusions_soft)
+max_n_fusions <- plot_df %>% pull(n_fusions_hard) %>% max() %>% round(-1)
+
+# Scatter plot comparing number of variants after hard and soft filtering
+library(hexbin)
+plot_df %>% ggplot(aes(x = n_fusions_hard, y = n_fusions_soft)) +
+  geom_hex() +
+  geom_abline(slope = 1, intercept = 0, linetype = 2) +
+  labs(x = "Number of Fusions After Hard Filtering",
+       y = "Number of Fusions After Hard + Soft Filtering",
+       fill = "Samples") +
+  scale_fill_gradient(low = "lightblue", high = "red",
+                      breaks = seq(0, 70, 10)) +
+  ggplot2_standard_additions()
+ggsave(str_c(plot_dir, "hard_soft_filtering.hex.pdf"), 
+       width = 15, height = 10)
+
+# Histogram of number of variants after hard filtering
+median_value <- plot_df %>% pull(n_fusions_hard) %>% median()
+plot_df %>% ggplot(aes(x = n_fusions_hard)) +
+  geom_histogram(binwidth = 5, center = 2.5) + 
+  xlim(0, max_n_fusions) +
+  geom_vline(xintercept = median_value, color = "white", linetype = 2, size = 1) +
+  annotate("text", x = median_value + 1, y = 0 + 1, angle = 90, color = "white",
+           hjust = 0, vjust = 1, label = str_c("median = ", median_value), size = 5) +
+  labs(x = "Number of Fusions After Hard Filtering", y = "Number of Samples") +
+  ggplot2_standard_additions()
+ggsave(str_c(plot_dir, "hard_filtering.bar.pdf"),
+       width = 15, height = 10)
+
+# Histogram of number of variants after soft filtering
+median_value <- plot_df %>% pull(n_fusions_soft) %>% median()
+plot_df %>% ggplot(aes(x = n_fusions_soft)) +
+  geom_histogram(binwidth = 1, center = 0) + 
+  xlim(0, max_n_fusions) +
+  geom_vline(xintercept = median_value, color = "white", linetype = 2, size = 1) +
+  annotate("text", x = median_value + 1, y = 0 + 1, angle = 90, color = "white",
+           hjust = 0, vjust = 1, label = str_c("median = ", median_value), size = 5) +
+  labs(x = "Number of Fusions After Hard + Soft Filtering", y = "Number of Samples") +
+  ggplot2_standard_additions()
+ggsave(str_c(plot_dir, "soft_filtering.bar.pdf"),
+       width = 15, height = 10)
+
+median_value <- plot_df %>% pull(n_fusions_soft) %>% median()
+plot_df %>% ggplot(aes(x = n_fusions_soft)) +
+  geom_histogram(binwidth = 1, center = 0) + 
+  geom_vline(xintercept = median_value, color = "white", linetype = 2, size = 1) +
+  annotate("text", x = median_value + 1, y = 0 + 1, angle = 90, color = "white",
+           hjust = 0, vjust = 1, label = str_c("median = ", median_value), size = 5) +
+  labs(x = "Number of Fusions After Hard + Soft Filtering", y = "Number of Samples") +
+  ggplot2_standard_additions()
+ggsave(str_c(plot_dir, "soft_filtering.bar2.pdf"),
+       width = 15, height = 10)
+
+# Histogram of difference in number of variants after hard and soft filtering
+median_value <- plot_df %>% pull(difference) %>% median()
+plot_df %>% ggplot(aes(x = difference)) +
+  geom_histogram(binwidth = 5, center = 2.5) + 
+  xlim(0, max_n_fusions) +
+  geom_vline(xintercept = median_value, color = "white", linetype = 2, size = 1) +
+  annotate("text", x = median_value + 1, y = 0 + 1, angle = 90, color = "white",
+           hjust = 0, vjust = 1, label = str_c("median = ", median_value), size = 5) +
+  labs(x = "Difference in Number of Fusions After Hard and Soft Filtering", 
+       y = "Number of Samples") +
+  ggplot2_standard_additions()
+ggsave(str_c(plot_dir, "difference.bar.pdf"),
+       width = 15, height = 10)
