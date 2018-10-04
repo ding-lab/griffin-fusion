@@ -3,6 +3,8 @@
 # Steven Foltz (smfoltz@wustl.edu), September 2018
 # ==============================================================================
 
+plot_dir = "analysis/fusion_summaries/sample_characteristics/"
+
 # ==============================================================================
 # Load necessary libraries
 # ==============================================================================
@@ -120,11 +122,9 @@ for (i in 1:2) {
   plot_tibble <- seqfish_clinical_info %>% 
     filter(seqfish_Hyperdiploidy == h_status)
   plot_seqfish_heatmap(plot_tibble, 
-              str_c("analysis/fusion_summaries/sample_characteristics/heatmap.", 
-                   h_string, ".pdf"))
+                       str_c(plot_dir, "heatmap.", h_string, ".pdf"))
   plot_seqfish_upsetr(plot_tibble, 
-              str_c("analysis/fusion_summaries/sample_characteristics/upsetr.", 
-                   h_string, ".pdf")) 
+                      str_c(plot_dir, "upsetr.", h_string, ".pdf")) 
   
 }
 
@@ -132,8 +132,7 @@ for (i in 1:2) {
 # Plot one upsetr for all samples
 # ==============================================================================
 plot_tibble <- seqfish_clinical_info %>% filter(!is.na(seqfish_Hyperdiploidy))
-plot_seqfish_upsetr(plot_tibble, 
-             "analysis/fusion_summaries/sample_characteristics/upsetr.both.pdf")
+plot_seqfish_upsetr(plot_tibble, str_c(plot_dir, "upsetr.both.pdf"))
 
 # ==============================================================================
 # Number of non/hyperdiploid samples
@@ -183,9 +182,7 @@ plasmacytoma_na <- seqfish_clinical_info %>%
 # ==============================================================================
 # Plot continuous clinical variables
 # ==============================================================================
-pdf("analysis/fusion_summaries/sample_characteristics/clinical_variables.pdf", 
-    height = 10, width = 15, onefile = TRUE)
-
+pdf(str_c(plot_dir, "clinical_variables.age.pdf"), height = 10, width = 15)
 n_missing <- seqfish_clinical_info %>% filter(is.na(Age)) %>% nrow()
 p <- seqfish_clinical_info %>% 
   ggplot(aes(x = Age)) + geom_histogram() + 
@@ -193,7 +190,9 @@ p <- seqfish_clinical_info %>%
        caption = str_c("Number missing = ", n_missing)) +
   ggplot2_standard_additions()
 print(p)
+dev.off()
 
+pdf(str_c(plot_dir, "clinical_variables.bm_pct.pdf"), height = 10, width = 15)
 n_missing <- seqfish_clinical_info %>% 
   filter(is.na(BM_Plasma_Cell_Percent)) %>% nrow()
 p <- seqfish_clinical_info %>% 
@@ -202,7 +201,9 @@ p <- seqfish_clinical_info %>%
        caption = str_c("Number missing = ", n_missing)) +
   ggplot2_standard_additions()
 print(p)
+dev.off()
 
+pdf(str_c(plot_dir, "clinical_variables.ldh.pdf"), height = 10, width = 15)
 n_missing <- seqfish_clinical_info %>% filter(is.na(LDH)) %>% nrow()
 p <- seqfish_clinical_info %>% 
   ggplot(aes(x = LDH)) + geom_histogram() +
@@ -210,7 +211,6 @@ p <- seqfish_clinical_info %>%
        caption = str_c("Number missing = ", n_missing)) +
   ggplot2_standard_additions()
 print(p)
-
 dev.off()
 
 # ==============================================================================
