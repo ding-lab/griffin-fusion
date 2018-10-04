@@ -22,6 +22,10 @@ samples_primary <- read_tsv("data/sample_list.primary.txt",
 fusions_all <- read_tsv("data/fusion_df.txt")
 fusions_primary <- fusions_all %>% filter(srr %in% samples_primary$srr)
 
+fusions_hard_all <- read_tsv("data/Hard_Filtered_Fusions.tsv")
+fusions_hard_primary <- fusions_hard_all %>% 
+  filter(Sample %in% samples_primary$srr)
+
 # ==============================================================================
 # seqFISH and clinical information
 # ==============================================================================
