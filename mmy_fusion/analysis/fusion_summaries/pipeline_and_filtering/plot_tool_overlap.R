@@ -60,17 +60,25 @@ plot_df <- fusions_hard_primary %>% group_by(Sample) %>% count() %>%
 max_n_fusions <- plot_df %>% pull(n_fusions_hard) %>% max() %>% round(-1)
 
 # Scatter plot comparing number of variants after hard and soft filtering
-library(hexbin)
-plot_df %>% ggplot(aes(x = n_fusions_hard, y = n_fusions_soft)) +
-  geom_hex() +
+plot_df %>% ungroup() %>% 
+  mutate(hard_round = plyr::round_any(n_fusions_hard, 5, floor), 
+         soft_round = plyr::round_any(n_fusions_soft, 5, floor)) %>% 
+  group_by(hard_round, soft_round) %>% count() %>% 
+  ggplot(aes(x = hard_round, y = soft_round, 
+             fill = factor(plyr::round_any(n,10, floor)))) + 
+  geom_tile(color = "black") + 
+  geom_text(aes(label = n, color = n >= 40)) +
+  scale_color_manual(values = c("black", "white")) +
+  scale_fill_brewer() + 
+  coord_equal() +
   geom_abline(slope = 1, intercept = 0, linetype = 2) +
   labs(x = "Number of Fusions After Hard Filtering",
-       y = "Number of Fusions After Hard + Soft Filtering",
+       y = "Number of Fusions After Soft Filtering",
+       title = "Number of Fusions During Filtering Process",
        fill = "Samples") +
-  scale_fill_gradient(low = "lightblue", high = "red",
-                      breaks = seq(0, 70, 10)) +
+  guides(color = FALSE) +
   ggplot2_standard_additions()
-ggsave(str_c(plot_dir, "hard_soft_filtering.hex.pdf"), 
+ggsave(str_c(plot_dir, "hard_soft_filtering.tile.pdf"), 
        width = 15, height = 10)
 
 # Histogram of number of variants after hard filtering
@@ -94,7 +102,7 @@ plot_df %>% ggplot(aes(x = n_fusions_soft)) +
   geom_vline(xintercept = median_value, color = "white", linetype = 2, size = 1) +
   annotate("text", x = median_value + 1, y = 0 + 1, angle = 90, color = "white",
            hjust = 0, vjust = 1, label = str_c("median = ", median_value), size = 5) +
-  labs(x = "Number of Fusions After Hard + Soft Filtering", y = "Number of Samples") +
+  labs(x = "Number of Fusions After Soft Filtering", y = "Number of Samples") +
   ggplot2_standard_additions()
 ggsave(str_c(plot_dir, "soft_filtering.bar.pdf"),
        width = 15, height = 10)
@@ -105,7 +113,7 @@ plot_df %>% ggplot(aes(x = n_fusions_soft)) +
   geom_vline(xintercept = median_value, color = "white", linetype = 2, size = 1) +
   annotate("text", x = median_value + 1, y = 0 + 1, angle = 90, color = "white",
            hjust = 0, vjust = 1, label = str_c("median = ", median_value), size = 5) +
-  labs(x = "Number of Fusions After Hard + Soft Filtering", y = "Number of Samples") +
+  labs(x = "Number of Fusions After Soft Filtering", y = "Number of Samples") +
   ggplot2_standard_additions()
 ggsave(str_c(plot_dir, "soft_filtering.bar2.pdf"),
        width = 15, height = 10)
