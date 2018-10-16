@@ -6,14 +6,6 @@
 plot_dir = "analysis/landscape/fusions_per_sample/"
 
 # ==============================================================================
-# Function to obtain number of fusions per sample
-# ==============================================================================
-n_fusions_per_sample <- function(fusions_df){
-  tibble( mmrf = names(table(fusions_df$mmrf)), 
-          n_fusions = as.integer(unname(table(fusions_df$mmrf))) )
-}
-
-# ==============================================================================
 # Create data frame for plotting
 # ==============================================================================
 n_hdp <- seqfish_clinical_info %>% 
@@ -29,8 +21,10 @@ hpd_key <- tribble(~seqfish_Hyperdiploidy, ~hyperdiploid_categories, ~count,
 )
 
 plot_df <- seqfish_clinical_info %>% select(mmrf, seqfish_Hyperdiploidy) %>% 
-  left_join(n_fusions_per_sample(fusions_primary), by = "mmrf") %>%
-  mutate_at(3, funs(replace(., is.na(.), 0))) %>%
+  left_join(fusions_primary, by = "mmrf") %>%
+  group_by(mmrf, seqfish_Hyperdiploidy, srr) %>% 
+  summarize(n = n()) %>% ungroup() %>%
+  mutate(n_fusions = n - is.na(srr)) %>%
   left_join(hpd_key, by = "seqfish_Hyperdiploidy")
 
 # ==============================================================================
