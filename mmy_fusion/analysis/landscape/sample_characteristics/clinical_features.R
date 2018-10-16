@@ -3,7 +3,7 @@
 # Steven Foltz (smfoltz@wustl.edu), September 2018
 # ==============================================================================
 
-plot_dir = "analysis/fusion_summaries/sample_characteristics/"
+plot_dir = "analysis/landscape/sample_characteristics/"
 
 # ==============================================================================
 # Load necessary libraries
@@ -485,6 +485,5 @@ summary_tibble <- tribble(
   )
 
 summary_tibble <- summary_tibble %>% arrange(Category, Subcategory)
-write_tsv(summary_tibble, 
-          "analysis/fusion_summaries/sample_characteristics/summary_table.txt", 
+write_tsv(summary_tibble, str_c(plot_dir, "summary_table.txt"), 
           na = "NA", append = FALSE, col_names = TRUE)
