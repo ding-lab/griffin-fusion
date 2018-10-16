@@ -3,7 +3,7 @@
 # Steven Foltz (smfoltz@wustl.edu), September 2018
 # ==============================================================================
 
-plot_dir = "analysis/fusion_summaries/pipeline_and_filtering/"
+plot_dir = "analysis/landscape/pipeline_and_filtering/"
 
 # ==============================================================================
 # Plot n_fusions before and after soft filtering
