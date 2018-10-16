@@ -3,11 +3,14 @@
 # Steven Foltz (smfoltz@wustl.edu), September 2018
 # ==============================================================================
 
+plot_dir = "analysis/landscape/sample_characteristics/"
+
 # ==============================================================================
 # Load necessary libraries
 # ==============================================================================
 
 library(survival)
+library(survminer)
 
 # ==============================================================================
 # Create EFS survival object
@@ -21,8 +24,7 @@ EFS_fit <- survfit(Surv(EFS, EFS_censor == 0) ~ ISS_Stage,
                    data = EFS_tibble)
 
 # Plot survival curve stratified by Stage
-pdf("analysis/fusion_summaries/sample_characteristics/event_free_survival.pdf",
-    width = 20, height = 15)
+pdf(str_c(plot_dir, "event_free_survival.pdf"), width = 20, height = 15)
 ggsurvplot(EFS_fit, data = EFS_tibble,  conf.int = TRUE,
            surv.median.line = "hv", pval = TRUE, 
            legend.labs = c("ISS Stage I", "ISS Stage II", "ISS Stage III"),
@@ -55,8 +57,7 @@ death_fit <- survfit(Surv(time_on_trial, death) ~ ISS_Stage,
                    data = death_tibble)
 
 # Plot survival curve stratified by Stage
-pdf("analysis/fusion_summaries/sample_characteristics/overall_survival.pdf",
-    width = 20, height = 15)
+pdf(str_c(plot_dir, "overall_survival.pdf"), width = 20, height = 15)
 ggsurvplot(death_fit, data = death_tibble,  conf.int = TRUE,
            surv.median.line = "hv", pval = TRUE, 
            legend.labs = c("ISS Stage I", "ISS Stage II", "ISS Stage III"),
