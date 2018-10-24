@@ -4,6 +4,8 @@
 # ==============================================================================
 
 recreate_testing_tbl <- TRUE
+output_dir <- "analysis/fusion_correlations/event_associations/"
+dir.create(output_dir)
 
 # ==============================================================================
 # General Functions
@@ -487,7 +489,7 @@ discrete_clinical_variable_names <- c("age_ge_66",
                                       "ECOG", 
                                       "ISS_Stage",
                                       "Bone_lesions", 
-                                      "Plamacytoma")
+                                      "Plasmacytoma")
 
 continuous_clinical_variable_names <- c("Age", 
                                         "BM_Plasma_Cell_Percent", 
@@ -500,17 +502,20 @@ continuous_clinical_variable_names <- c("Age",
 # Fusions pairs seen in at least 3 samples
 fusion_pairs_gt2 <- fusions_primary %>% group_by(fusion) %>% 
   summarize(count = n()) %>% filter(count >= 3) %>% arrange(desc(count))
-fusion_pairs_gt2_combinations <- combn(fusion_pairs_gt2$fusion, 2)
+
+#fusion_pairs_gt2_combinations <- combn(fusion_pairs_gt2$fusion, 2)
 
 # Fusion genes seen in at least 3 samples
 fusion_genes_gt2 <- fusions_primary %>% 
   gather(geneA, geneB, key = "geneAB", value = "fusion_gene") %>%
-  dplyr::select(mmrf, srr, fusion_gene) %>% distinct() %>% group_by(fusion_gene) %>% 
+  select(mmrf, srr, fusion_gene) %>% 
+  distinct() %>% group_by(fusion_gene) %>% 
   summarize(count = n()) %>% filter(count >= 3) %>% arrange(desc(count))
-fusion_genes_gt2_combinations <- combn(fusion_genes_gt2$fusion_gene, 2)
+
+#fusion_genes_gt2_combinations <- combn(fusion_genes_gt2$fusion_gene, 2)
 
 # Combination of seqFISH variable names
-seqfish_variable_names_combinations <- combn(seqfish_variable_names, 2)
+#seqfish_variable_names_combinations <- combn(seqfish_variable_names, 2)
 
 # ==============================================================================
 # Business
@@ -531,26 +536,24 @@ if (recreate_testing_tbl) {
     samples_with <- get_ids_with_seqfish(full_seqfish_name, 
                                          seqfish_tbl = seqfish_clinical_info, 
                                          samples_tbl = samples_primary)
-    samples_without <- get_ids_with_seqfish(full_seqfish_name, 
+    samples_without <- get_ids_without_seqfish(full_seqfish_name, 
                                             seqfish_tbl = seqfish_clinical_info, 
                                             samples_tbl = samples_primary)
     
     new_ttest_row <- test_event_expression(
       samples_with, samples_without, this_gene = gene, 
-      event_type = "seqFISH gene expression", 
+      event_type = "seqFISH Expression", 
       expression_tbl = expression_primary,
       t_test = TRUE, outlier = FALSE)
     testing_tbl <- bind_rows(testing_tbl, new_ttest_row)
     
     new_outlier_row <- test_event_expression(
       samples_with, samples_without, this_gene = gene, 
-      event_type = "seqFISH outlier expression", 
+      event_type = "seqFISH Expression Outlier", 
       expression_tbl = expression_primary,
       t_test = FALSE, outlier = TRUE)
     testing_tbl <- bind_rows(testing_tbl, new_outlier_row)
   }
-  
-  stop()
   
   # Test expression of genes recurrently involved in fusions
   for (gene in fusion_genes_gt2$fusion_gene) {
@@ -559,25 +562,28 @@ if (recreate_testing_tbl) {
     }
     print(gene)
     samples_with <- get_ids_with_gene(gene, fusions_primary)
-    samples_without <- get_ids_without_gene(gene, 
-                                            fusions_primary, samples_primary)
+    samples_without <- get_ids_without_gene(gene, fusions_primary, 
+                                            samples_primary)
     
     new_ttest_row <- test_event_expression(
       samples_with, samples_without, this_gene = gene, 
-      event_type = "Gene expression", expression_tbl = expression_primary,
+      event_type = "Fusion Expression", 
+      expression_tbl = expression_primary,
       t_test = TRUE, outlier = FALSE)
     testing_tbl <- bind_rows(testing_tbl, new_ttest_row)
     
     new_outlier_row <- test_event_expression(
       samples_with, samples_without, this_gene = gene, 
-      event_type = "Outlier expression", expression_tbl = expression_primary,
+      event_type = "Fusion Expression Outlier", 
+      expression_tbl = expression_primary,
       t_test = FALSE, outlier = TRUE)
     testing_tbl <- bind_rows(testing_tbl, new_outlier_row)
     
     for (this_feature in seqfish_variable_names) {
       new_seqfish_row <- test_event_clinical_discrete(
         samples_with, samples_without, event = gene, 
-        event_type = "Gene vs. seqFISH", clinical_tbl = seqfish_clinical_info, 
+        event_type = "Fusion seqFISH", 
+        clinical_tbl = seqfish_clinical_info, 
         clinical_feature = this_feature, fisher_test = TRUE, 
         return_tibble = FALSE, return_table = FALSE)
       testing_tbl <- bind_rows(testing_tbl, new_seqfish_row)
@@ -586,78 +592,84 @@ if (recreate_testing_tbl) {
     for (this_feature in discrete_clinical_variable_names) {
       new_discrete_row <- test_event_clinical_discrete(
         samples_with, samples_without, event = gene, 
-        event_type = "Gene vs. discrete clinical", 
-        clinical_tbl = seqfish_clinical_info, clinical_feature = this_feature,
-        fisher_test = TRUE, return_tibble = FALSE, return_table = FALSE)
+        event_type = "Fusion Clinical", 
+        clinical_tbl = seqfish_clinical_info, 
+        clinical_feature = this_feature, fisher_test = TRUE, 
+        return_tibble = FALSE, return_table = FALSE)
       testing_tbl <- bind_rows(testing_tbl, new_discrete_row)
     }
     
     for (this_feature in continuous_clinical_variable_names) {
       new_continuous_row_ttest <- test_event_clinical_continuous(
         samples_with, samples_without, event = gene, 
-        event_type = "Gene vs. continuous clinical", 
-        clinical_tbl = seqfish_clinical_info, clinical_feature = this_feature,
-        t_test = TRUE, mwu_test = FALSE, return_tibble = FALSE)
+        event_type = "Fusion Clinical", 
+        clinical_tbl = seqfish_clinical_info, 
+        clinical_feature = this_feature, t_test = TRUE, mwu_test = FALSE, 
+        return_tibble = FALSE)
       testing_tbl <- bind_rows(testing_tbl, new_continuous_row_ttest)
       
       new_continuous_row_mwu <- test_event_clinical_continuous(
         samples_with, samples_without, event = gene, 
-        event_type = "Gene vs. continuous clinical", 
-        clinical_tbl = seqfish_clinical_info, clinical_feature = this_feature,
-        t_test = FALSE, mwu_test = TRUE, return_tibble = FALSE)
+        event_type = "Fusion Clinical", 
+        clinical_tbl = seqfish_clinical_info, 
+        clinical_feature = this_feature, t_test = FALSE, mwu_test = TRUE, 
+        return_tibble = FALSE)
       testing_tbl <- bind_rows(testing_tbl, new_continuous_row_mwu)
     }
   }
   
-  #n_combinations <- ncol(fusion_genes_gt2_combinations)
-  #for (i in 1:n_combinations) {
-  #  gene1 <- fusion_genes_gt2_combinations[1,i]
-  #  gene2 <- fusion_genes_gt2_combinations[2,i]
-  #  print(str_c(gene1, gene2, sep = "//"))
-  #  new_genegene_row <- test_gene_correlations(
-  #    gene_1 = gene1, gene_2 = gene2, event_type = "Gene-Gene Correlation",
-  #    fusions_tbl = fusions_primary, samples_tbl = samples_primary, 
-  #    return_tibble = FALSE)
-  #  testing_tbl <- bind_rows(testing_tbl, new_genegene_row)
-  #}
+  # n_combinations <- ncol(fusion_genes_gt2_combinations)
+  # for (i in 1:n_combinations) {
+  #   gene1 <- fusion_genes_gt2_combinations[1,i]
+  #   gene2 <- fusion_genes_gt2_combinations[2,i]
+  #   print(str_c(gene1, gene2, sep = "//"))
+  #   new_genegene_row <- test_gene_correlations(
+  #     gene_1 = gene1, gene_2 = gene2, event_type = "Gene-Gene Correlation",
+  #     fusions_tbl = fusions_primary, samples_tbl = samples_primary, 
+  #     return_tibble = FALSE)
+  #   testing_tbl <- bind_rows(testing_tbl, new_genegene_row)
+  # }
+  # 
+  # n_combinations <- ncol(fusion_pairs_gt2_combinations)
+  # for (i in 1:n_combinations) {
+  #   fusion1 = fusion_pairs_gt2_combinations[1,i]
+  #   fusion2 = fusion_pairs_gt2_combinations[2,i]
+  #   print(str_c(fusion1, fusion2, sep = "//"))
+  #   new_fusionfusion_row <- test_fusion_correlations(
+  #     fusion_1 = fusion1, fusion_2 = fusion2, 
+  #     event_type = "Fusion-Fusion Correlation", fusions_tbl = fusions_primary,
+  #     samples_tbl = samples_primary, return_tibble = FALSE)
+  #   testing_tbl <- bind_rows(testing_tbl, new_fusionfusion_row)
+  # }
+  # 
+  # n_combinations <- ncol(seqfish_variable_names_combinations)
+  # for (i in 1:n_combinations) {
+  #   seqfish1 <- seqfish_variable_names_combinations[1,i]
+  #   seqfish2 <- seqfish_variable_names_combinations[2,i]
+  #   if (seqfish1 == seqfish2) {
+  #     next
+  #   }
+  #   print(str_c(seqfish1, seqfish2, sep = "//"))
+  #   new_seqfishseqfish_row <- test_seqfish_correlations(
+  #     seqfish_1 = seqfish1, seqfish_2 = seqfish2, 
+  #     event_type = "seqFISH-seqFISH Correlation",
+  #     clinical_tbl = seqfish_clinical_info, return_tibble = FALSE)
+  #   testing_tbl <- bind_rows(testing_tbl, new_seqfishseqfish_row)
+  # }
   
-  n_combinations <- ncol(fusion_pairs_gt2_combinations)
-  for (i in 1:n_combinations) {
-    fusion1 = fusion_pairs_gt2_combinations[1,i]
-    fusion2 = fusion_pairs_gt2_combinations[2,i]
-    print(str_c(fusion1, fusion2, sep = "//"))
-    new_fusionfusion_row <- test_fusion_correlations(
-      fusion_1 = fusion1, fusion_2 = fusion2, 
-      event_type = "Fusion-Fusion Correlation", fusions_tbl = fusions_primary,
-      samples_tbl = samples_primary, return_tibble = FALSE)
-    testing_tbl <- bind_rows(testing_tbl, new_fusionfusion_row)
-  }
-  
-  n_combinations <- ncol(seqfish_variable_names_combinations)
-  for (i in 1:n_combinations) {
-    seqfish1 <- seqfish_variable_names_combinations[1,i]
-    seqfish2 <- seqfish_variable_names_combinations[2,i]
-    if (seqfish1 == seqfish2) {
-      next
-    }
-    print(str_c(seqfish1, seqfish2, sep = "//"))
-    new_seqfishseqfish_row <- test_seqfish_correlations(
-      seqfish_1 = seqfish1, seqfish_2 = seqfish2, 
-      event_type = "seqFISH-seqFISH Correlation",
-      clinical_tbl = seqfish_clinical_info, return_tibble = FALSE)
-    testing_tbl <- bind_rows(testing_tbl, new_seqfishseqfish_row)
-  }
-  
-  testing_tbl_pvalue_adjusted <- testing_tbl %>% filter( !is.na(test_statistic) ) %>%
+  testing_tbl_pvalue_adjusted <- testing_tbl %>% 
+    filter( !is.na(test_statistic) ) %>%
     mutate(bonferroni = p.adjust(p.value, method = "bonferroni")) %>%
     mutate(BH = p.adjust(p.value, method = "BH")) %>%
     mutate(BY = p.adjust(p.value, method = "BY")) %>%
     mutate(fdr = p.adjust(p.value, method = "fdr"))
   
-  write_tsv(testing_tbl, "analysis/fusion_correlations/testing_tbl.tsv")
-  write_tsv(testing_tbl_pvalue_adjusted, "analysis/fusion_correlations/testing_tbl_pvalue_adjusted.tsv")
+  write_tsv(testing_tbl, str_c(output_dir, "testing_tbl.tsv"))
+  write_tsv(testing_tbl_pvalue_adjusted, 
+            str_c(output_dir, "testing_tbl_pvalue_adjusted.tsv"))
   
 } else {
-  testing_tbl <- read_tsv("analysis/fusion_correlations/testing_tbl.tsv")
-  testing_tbl_pvalue_adjusted <- read_tsv("analysis/fusion_correlations/testing_tbl_pvalue_adjusted.tsv")
+  testing_tbl <- read_tsv(str_c(output_dir, "testing_tbl.tsv"))
+  testing_tbl_pvalue_adjusted <- read_tsv(
+    str_c(output_dir, "testing_tbl_pvalue_adjusted.tsv"))
 }
