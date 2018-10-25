@@ -3,6 +3,7 @@
 # Steven Foltz (smfoltz@wustl.edu), October 2018
 # ==============================================================================
 
+recreate_plot_df <- FALSE
 recreate_all_plots <- TRUE
 
 input_dir <- "analysis/fusion_correlations/event_associations/"
@@ -602,30 +603,34 @@ plotting_multiple <- function(df, gene_list, pdf_path, ymax_value, labels=TRUE, 
 # Create plot data frame
 # ==============================================================================
 
-return_fusions <- function(fusion_df, this_srr, gene){
-  return_value <- fusion_df %>% filter(srr == this_srr, geneA == gene | geneB == gene) %>%
-    pull(fusion) %>% str_c(collapse = "\n")
-  if (identical(return_value, character(0))) {
-    return_value <- NA
+if (recreate_plot_df) {
+  return_fusions <- function(fusion_df, this_srr, gene){
+    return_value <- fusion_df %>% filter(srr == this_srr, geneA == gene | geneB == gene) %>%
+      pull(fusion) %>% str_c(collapse = "\n")
+    if (identical(return_value, character(0))) {
+      return_value <- NA
+    }
+    return(return_value)
   }
-  return(return_value)
+  
+  categorical_cnv <- function(vec) {
+    sd_factor <- sd(vec, na.rm = TRUE)
+    b = c(2 + sd_factor*c(-Inf, -3, -1, 1, 3, Inf))
+    cnv_categories <- vec %>% cut(breaks = b)
+    return(cnv_categories)
+  }
+  
+  plot_df <- expression_primary %>% 
+    filter(gene %in% fusion_genes_gt2$fusion_gene) %>% 
+    mutate(categorical_cnv = categorical_cnv(2*2^gene_avg_cnv)) %>% 
+    rowwise() %>% 
+    mutate(fusion_label = return_fusions(fusions_primary, srr, gene)) %>% 
+    left_join(seqfish_clinical_info, by = "mmrf")
+  
+  write_tsv(plot_df, str_c(output_dir, "expression_plot_tibble.tsv"))
+} else {
+  plot_df <- read_tsv(str_c(output_dir, "expression_plot_tibble.tsv"))
 }
-
-categorical_cnv <- function(vec) {
-  sd_factor <- sd(vec, na.rm = TRUE)
-  b = c(2 + sd_factor*c(-Inf, -3, -1, 1, 3, Inf))
-  cnv_categories <- vec %>% cut(breaks = b)
-  return(cnv_categories)
-}
-
-plot_df <- expression_primary %>% 
-  filter(gene %in% fusion_genes_gt2$fusion_gene) %>% 
-  mutate(categorical_cnv = categorical_cnv(2*2^gene_avg_cnv)) %>% 
-  rowwise() %>% 
-  mutate(fusion_label = return_fusions(fusions_primary, srr, gene)) %>% 
-  left_join(seqfish_clinical_info, by = "mmrf")
-
-write_tsv(plot_df, str_c(output_dir, "expression_plot_tibble.tsv"))
 
 # ==============================================================================
 # Business
