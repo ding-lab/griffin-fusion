@@ -1,10 +1,10 @@
 # ==============================================================================
-# Measure associations between fusion status and expression and clinical info
+# Plot expression of samples with and without fusion or seqFISH events
 # Steven Foltz (smfoltz@wustl.edu), October 2018
 # ==============================================================================
 
 recreate_plot_df <- FALSE
-recreate_all_plots <- TRUE
+recreate_all_plots <- FALSE
 
 input_dir <- "analysis/fusion_correlations/event_associations/"
 output_dir <- "analysis/fusion_correlations/plot_expression/"
@@ -138,32 +138,39 @@ plot_expression_1d <- function(plot_df,
   plot_df <- plot_df %>% filter(gene %in% gene_list) %>%
     mutate(fusion_status = !is.na(fusion_label))
   
-  p <- ggplot(plot_df, aes(x = gene, y = log10tpm, 
-                           label = label_feature,
-                           color = color_feature, 
-                           fill = fill_feature,
-                           shape = shape_feature))
-    
-  p <- p + geom_violin(aes(fill = NULL), 
-                       color = "black", draw_quantiles = c(0.5))
+  p <- ggplot(plot_df, aes_string(x = quote(fill_feature),
+                                  y = quote(log10tpm),
+                                  label = label_feature,
+                                  color = color_feature,
+                                  fill = fill_feature,
+                                  shape = shape_feature))
   
-  p <- p + geom_point(aes(x = fusion_jitter), 
-                      position = position_jitterdodge(),
+  p <- p + facet_wrap(~ gene)
+  
+  p <- p + geom_violin(color = "black",
+                       alpha = 0,
+                       draw_quantiles = 0.5) #,
+                       #position = position_dodge())
+  
+  # simultaneously jitter and dodge
+  # https://ggplot2.tidyverse.org/reference/position_jitterdodge.html
+  p <- p + geom_point(aes_string(color = fill_feature, fill = fill_feature),
+                      position = position_jitterdodge(jitter.width = 0.5),
+                      shape = 16,
                       alpha = 0.75)
   
-  if (labels) {
-    p <- p + geom_label_repel(data = subset(plot_df, fusion_status == TRUE), 
-                              aes(x = fusion_jitter,
-                                  y = log10tpm), 
-                              label.size = NA, 
-                              #color = c('white','black')[as.numeric(subset(plot_df, fusion_status=="Fusion")$cnv=="No data")+1], 
-                              box.padding = 0.35, 
-                              point.padding = 0.5, 
-                              segment.color = "grey50")
-  }
+  # if (labels) {
+  #   p <- p + geom_label_repel(data = subset(plot_df, fusion_status == TRUE), 
+  #                             aes(x = fusion_jitter,
+  #                                 y = log10tpm), 
+  #                             label.size = NA, 
+  #                             #color = c('white','black')[as.numeric(subset(plot_df, fusion_status=="Fusion")$cnv=="No data")+1], 
+  #                             box.padding = 0.35, 
+  #                             point.padding = 0.5, 
+  #                             segment.color = "grey50")
+  # }
   
   p <- p + ylim(0, ymax_value)
-  p <- p + ggplot2_standard_additions()
   p <- p + scale_color_brewer(palette = "Set1", drop = FALSE)
   p <- p + scale_fill_brewer(palette = "Set1", drop = FALSE)
   p <- p + guides(alpha = FALSE)
@@ -171,9 +178,9 @@ plot_expression_1d <- function(plot_df,
                 y = "Gene Expression TPM (log10)", 
                 color = color_label,
                 shape = shape_label,
-                fill = fill_label
+                fill = fill_label)
                 #title = paste0("Fusion Gene Expression (", this_gene, ")"))
-  )
+  p <- p + ggplot2_standard_additions()
     
   pdf(pdf_path, 10, 10, useDingbats = FALSE)
   print(p)
@@ -265,10 +272,6 @@ if (recreate_all_plots) {
     samples_without <- get_ids_without_gene(gene, fusions_primary, 
                                             samples_primary)
     
-    plot_expression_1d(gene_name = gene,
-                       
-                       
-                       )
 
   }
   
