@@ -11,6 +11,7 @@ output_dir <- "analysis/fusion_correlations/plot_expression/"
 dir.create(output_dir)
 dir.create(str_c(output_dir, "all_plots"))
 dir.create(str_c(output_dir, "significant_plots"))
+dir.create(str_c(output_dir, "seqFISH"))
 
 testing_tbl <- read_tsv(str_c(input_dir, "testing_tbl.tsv"))
 testing_tbl_pvalue_adjusted <- read_tsv(
@@ -69,6 +70,10 @@ seqfish_gene_names <- c("seqfish_Translocation_WHSC1_4_14",
                         "seqfish_Translocation_MAF_14_16", 
                         "seqfish_Translocation_MAFB_14_20")
 
+seqfish_genes <- c("WHSC1", "CCND3", "MYC", "MAFA", 
+                   "CCND1", "CCND2", "MAF", "MAFB")
+
+
 seqfish_variable_names <- c("seqfish_CN_del_13q14", 
                             "seqfish_CN_del_13q34", 
                             "seqfish_CN_del_17p13", 
@@ -119,16 +124,18 @@ fusion_genes_gt2 <- fusions_primary %>%
 
 plot_expression_1d <- function(plot_df,
                                gene_list, 
-                               labels = TRUE,
+                               labels = FALSE,
                                label_feature = NULL,
                                color_feature = NULL,
-                               fill_feature = NULL,
-                               shape_feature = NULL,
                                color_label = NULL,
+                               fill_feature = NULL,
                                fill_label = NULL,
+                               shape_feature = NULL,
                                shape_label = NULL,
+                               ymax_value,
                                pdf_path,
-                               ymax_value, 
+                               pdf_width = 10,
+                               pdf_height = 10,
                                seed = 10){
   
   library(ggplot2)
@@ -136,53 +143,51 @@ plot_expression_1d <- function(plot_df,
   set.seed(seed)
   
   plot_df <- plot_df %>% filter(gene %in% gene_list) %>%
-    mutate(fusion_status = !is.na(fusion_label))
+    mutate(fusion_status = !is.na(fusion_label)) %>%
+    mutate(fusion_indicator = as.numeric(fusion_status)) %>%
+    mutate(fusion_jitter = jitter(as.numeric(fusion_status)))
   
-  p <- ggplot(plot_df, aes_string(x = quote(fill_feature),
+  p <- ggplot(plot_df, aes_string(x = quote(fusion_indicator),
                                   y = quote(log10tpm),
                                   label = label_feature,
                                   color = color_feature,
                                   fill = fill_feature,
                                   shape = shape_feature))
   
-  p <- p + facet_wrap(~ gene)
+  p <- p + facet_wrap(~ gene, nrow = 1)
   
   p <- p + geom_violin(color = "black",
-                       alpha = 0,
-                       draw_quantiles = 0.5) #,
-                       #position = position_dodge())
+                       draw_quantiles = 0.5)
   
-  # simultaneously jitter and dodge
-  # https://ggplot2.tidyverse.org/reference/position_jitterdodge.html
-  p <- p + geom_point(aes_string(color = fill_feature, fill = fill_feature),
-                      position = position_jitterdodge(jitter.width = 0.5),
-                      shape = 16,
-                      alpha = 0.75)
+  p <- p + geom_point(aes(x = fusion_jitter)) #, shape = shape_factor)) #,
+                      #shape = 16)
   
-  # if (labels) {
-  #   p <- p + geom_label_repel(data = subset(plot_df, fusion_status == TRUE), 
-  #                             aes(x = fusion_jitter,
-  #                                 y = log10tpm), 
-  #                             label.size = NA, 
-  #                             #color = c('white','black')[as.numeric(subset(plot_df, fusion_status=="Fusion")$cnv=="No data")+1], 
-  #                             box.padding = 0.35, 
-  #                             point.padding = 0.5, 
-  #                             segment.color = "grey50")
-  # }
+  p <- p + scale_x_continuous(breaks = c(0, 1), 
+                              labels = c("No fusion", "Fusion"))
   
   p <- p + ylim(0, ymax_value)
-  p <- p + scale_color_brewer(palette = "Set1", drop = FALSE)
-  p <- p + scale_fill_brewer(palette = "Set1", drop = FALSE)
-  p <- p + guides(alpha = FALSE)
-  p <- p + labs(x = "Fusion Status", 
+  
+  color_scale <- c("#1f78b4", "#a6cee3", # deletions
+                   "#b2df8a", # neutral 
+                   "#fb9a99", "#e31a1c", # amplifications
+                   "#cab2d6") #missing
+  p <- p + scale_color_manual(values = color_scale, drop = FALSE)
+  
+  p <- p + scale_fill_manual(values = c("#ffffff", "#ffffff")) # both white
+  
+  p <- p + scale_shape_manual(values = c(16, 4))
+  
+  p <- p + guides(alpha = FALSE, fill = FALSE)
+  
+  p <- p + labs(x = NULL,
                 y = "Gene Expression TPM (log10)", 
                 color = color_label,
                 shape = shape_label,
                 fill = fill_label)
-                #title = paste0("Fusion Gene Expression (", this_gene, ")"))
+  
   p <- p + ggplot2_standard_additions()
     
-  pdf(pdf_path, 10, 10, useDingbats = FALSE)
+  pdf(pdf_path, width = pdf_width, height = pdf_height, useDingbats = FALSE)
   print(p)
   shh <- dev.off()
   
@@ -228,6 +233,14 @@ if (recreate_plot_df) {
   plot_df <- expression_primary %>% 
     filter(gene %in% fusion_genes_gt2$fusion_gene) %>% 
     mutate(categorical_cnv = categorical_cnv(2*2^gene_avg_cnv)) %>% 
+    mutate(cnv_factor = factor(categorical_cnv, 
+                               labels = c("DELETION",
+                                          "Deletion",
+                                          "Neutral",
+                                          "Amplification",
+                                          "AMPLIFICATION",
+                                          "Missing"), 
+                               exclude = NULL)) %>%
     rowwise() %>% 
     mutate(fusion_label = return_fusions(fusions_primary, srr, gene)) %>%
     left_join(seqfish_clinical_info, by = "mmrf")
@@ -244,35 +257,118 @@ if (recreate_plot_df) {
 if (recreate_all_plots) {
   
   # Plot expression of genes involved in seqFISH translocations
-  for (full_seqfish_name in seqfish_gene_names) {
-    print(full_seqfish_name)
-    gene <- str_split(full_seqfish_name, "_", simplify = TRUE)[3]
-    print(gene)
-    samples_with <- get_ids_with_seqfish(full_seqfish_name, 
-                                         seqfish_tbl = seqfish_clinical_info, 
-                                         samples_tbl = samples_primary)
-    samples_without <- get_ids_without_seqfish(full_seqfish_name, 
-                                            seqfish_tbl = seqfish_clinical_info, 
-                                            samples_tbl = samples_primary)
-    plot_expression_1d(gene_name = gene,
-                       expr_file = expression_primary,
-                       with_mmrf = samples_with,
-                       without_mmrf = samples_without,
-                       output_dir = str_c(output_dir, "all_plots/",
-                                          gene, ".seqFISH.pdf"))
+  for (this_gene in seqfish_genes) {
+    print(this_gene)
+    n_samples_with_fusion <- plot_df %>% 
+      filter(gene == this_gene, !is.na(fusion_label)) %>% nrow()
+    if (n_samples_with_fusion > 2) {
+      plot_expression_1d(plot_df,
+                         this_gene, 
+                         labels = FALSE,
+                         label_feature = NULL,
+                         color_feature = "cnv_factor",
+                         color_label = NULL,
+                         fill_feature = "fusion_status",
+                         fill_label = NULL,
+                         shape_feature = NULL,
+                         shape_label = NULL,
+                         ymax_value = ymax_expression_value,
+                         pdf_path = str_c(output_dir, "seqFISH/",
+                                          this_gene, ".pdf"),
+                         pdf_width = 10,
+                         pdf_height = 10,
+                         seed = 10)  
+    }
   }
   
+  plot_expression_1d(plot_df,
+                     seqfish_genes,
+                     labels = FALSE,
+                     label_feature = NULL,
+                     color_feature = "cnv_factor",
+                     color_label = NULL,
+                     fill_feature = "fusion_status",
+                     fill_label = NULL,
+                     shape_feature = NULL,
+                     shape_label = NULL,
+                     ymax_value = ymax_expression_value,
+                     pdf_path = str_c(output_dir, "seqFISH/", 
+                                      "all.pdf"),
+                     pdf_width = 4*length(seqfish_gene_names),
+                     pdf_height = 10,
+                     seed = 10)  
+  
   # Plot expression of genes recurrently involved in fusions
-  for (gene in fusion_genes_gt2$fusion_gene) {
-    if ( str_detect(gene, "@") ) {
+  for (this_gene in fusion_genes_gt2$fusion_gene) {
+    if ( str_detect(this_gene, "@") ) {
       next
     }
-    print(gene)
-    samples_with <- get_ids_with_gene(gene, fusions_primary)
-    samples_without <- get_ids_without_gene(gene, fusions_primary, 
-                                            samples_primary)
+    print(this_gene)
+    plot_expression_1d(plot_df,
+                       this_gene,
+                       labels = FALSE,
+                       label_feature = NULL,
+                       color_feature = "cnv_factor",
+                       color_label = NULL,
+                       fill_feature = "fusion_status",
+                       fill_label = NULL,
+                       shape_feature = NULL,
+                       shape_label = NULL,
+                       ymax_value = ymax_expression_value,
+                       pdf_path = str_c(output_dir, "all_plots/", 
+                                        this_gene, ".pdf"),
+                       pdf_width = 10,
+                       pdf_height = 10,
+                       seed = 10)  
     
 
   }
+  
+  significant_fusion_expresion_genes <- testing_tbl_pvalue_adjusted %>% 
+    filter(fdr < 0.05, 
+           event_type %in% c("Fusion Expression", 
+                             "Fusion Expression Outlier")) %>% 
+    pull(event1) %>% unique()
+  
+  for (this_gene in significant_fusion_expresion_genes) {
+    print(this_gene)
+    n_samples_with_fusion <- plot_df %>% 
+      filter(gene == this_gene, !is.na(fusion_label)) %>% nrow()
+    if (n_samples_with_fusion > 2) {
+      plot_expression_1d(plot_df,
+                         this_gene, 
+                         labels = FALSE,
+                         label_feature = NULL,
+                         color_feature = "cnv_factor",
+                         color_label = NULL,
+                         fill_feature = "fusion_status",
+                         fill_label = NULL,
+                         shape_feature = NULL,
+                         shape_label = NULL,
+                         ymax_value = ymax_expression_value,
+                         pdf_path = str_c(output_dir, "significant_plots/",
+                                          this_gene, ".pdf"),
+                         pdf_width = 10,
+                         pdf_height = 10,
+                         seed = 10)  
+    }
+  }
+  
+  plot_expression_1d(plot_df,
+                     significant_fusion_expresion_genes,
+                     labels = FALSE,
+                     label_feature = NULL,
+                     color_feature = "cnv_factor",
+                     color_label = NULL,
+                     fill_feature = "fusion_status",
+                     fill_label = NULL,
+                     shape_feature = NULL,
+                     shape_label = NULL,
+                     ymax_value = ymax_expression_value,
+                     pdf_path = str_c(output_dir, "significant_plots/", 
+                                      "all.pdf"),
+                     pdf_width = 4*length(significant_fusion_expresion_genes),
+                     pdf_height = 10,
+                     seed = 10)  
   
 }
