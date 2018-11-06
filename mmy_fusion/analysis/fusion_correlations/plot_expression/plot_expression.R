@@ -3,15 +3,24 @@
 # Steven Foltz (smfoltz@wustl.edu), October 2018
 # ==============================================================================
 
+################################################################################
+# Set seed for reproducibility
+################################################################################
+set.seed(10)
+
+################################################################################
+# Set seed for reproducibility
+################################################################################
+
 recreate_plot_df <- FALSE
 recreate_all_plots <- FALSE
 
 input_dir <- "analysis/fusion_correlations/event_associations/"
 output_dir <- "analysis/fusion_correlations/plot_expression/"
-dir.create(output_dir)
-dir.create(str_c(output_dir, "all_plots"))
-dir.create(str_c(output_dir, "significant_plots"))
-dir.create(str_c(output_dir, "seqFISH"))
+dir.create(output_dir, showWarnings = FALSE)
+dir.create(str_c(output_dir, "all_plots"), showWarnings = FALSE)
+dir.create(str_c(output_dir, "significant_plots"), showWarnings = FALSE)
+dir.create(str_c(output_dir, "seqFISH"), showWarnings = FALSE)
 
 testing_tbl <- read_tsv(str_c(input_dir, "testing_tbl.tsv"))
 testing_tbl_pvalue_adjusted <- read_tsv(
@@ -122,45 +131,44 @@ fusion_genes_gt2 <- fusions_primary %>%
 # Plotting functions
 # ==============================================================================
 
-plot_expression_1d <- function(plot_df,
-                               gene_list, 
-                               labels = FALSE,
-                               label_feature = NULL,
-                               color_feature = NULL,
-                               color_label = NULL,
-                               fill_feature = NULL,
-                               fill_label = NULL,
-                               shape_feature = NULL,
-                               shape_label = NULL,
-                               ymax_value,
-                               pdf_path,
-                               pdf_width = 10,
-                               pdf_height = 10,
-                               seed = 10){
+plot_fusion_expression_1d <- function(plot_df,
+                                      gene_list,
+                                      labels = FALSE,
+                                      ymax_value,
+                                      pdf_path,
+                                      pdf_width = 10,
+                                      pdf_height = 10,
+                                      seed = 10){
   
   library(ggplot2)
   library(ggrepel)
   set.seed(seed)
   
-  plot_df <- plot_df %>% filter(gene %in% gene_list) %>%
-    mutate(fusion_status = !is.na(fusion_label)) %>%
-    mutate(fusion_indicator = as.numeric(fusion_status)) %>%
-    mutate(fusion_jitter = jitter(as.numeric(fusion_status)))
+  plot_df <- plot_df %>% filter(gene %in% gene_list)
   
-  p <- ggplot(plot_df, aes_string(x = quote(fusion_indicator),
-                                  y = quote(log10tpm),
-                                  label = label_feature,
-                                  color = color_feature,
-                                  fill = fill_feature,
-                                  shape = shape_feature))
+  p <- ggplot(plot_df)
   
   p <- p + facet_wrap(~ gene, nrow = 1)
   
-  p <- p + geom_violin(color = "black",
+  p <- p + geom_violin(aes(x = fusion_indicator,
+                           y = log10tpm,
+                           fill = fusion_status),
+                       color = "black",
                        draw_quantiles = 0.5)
   
-  p <- p + geom_point(aes(x = fusion_jitter)) #, shape = shape_factor)) #,
-                      #shape = 16)
+  p <- p + geom_point(aes(x = fusion_jitter,
+                          y = log10tpm,
+                          color = cnv_factor),
+                      shape = 16)
+  
+  if (labels) {
+    p <- p + geom_label_repel(aes(x = fusion_jitter,
+                                  y = log10tpm,
+                                  label = fusion_label,
+                                  color = cnv_factor),
+                              point.padding = 0.5,
+                              show.legend = FALSE)
+  }
   
   p <- p + scale_x_continuous(breaks = c(0, 1), 
                               labels = c("No fusion", "Fusion"))
@@ -175,15 +183,11 @@ plot_expression_1d <- function(plot_df,
   
   p <- p + scale_fill_manual(values = c("#ffffff", "#ffffff")) # both white
   
-  p <- p + scale_shape_manual(values = c(16, 4))
-  
   p <- p + guides(alpha = FALSE, fill = FALSE)
   
   p <- p + labs(x = NULL,
                 y = "Gene Expression TPM (log10)", 
-                color = color_label,
-                shape = shape_label,
-                fill = fill_label)
+                color = "Copy Number")
   
   p <- p + ggplot2_standard_additions()
     
@@ -243,11 +247,23 @@ if (recreate_plot_df) {
                                exclude = NULL)) %>%
     rowwise() %>% 
     mutate(fusion_label = return_fusions(fusions_primary, srr, gene)) %>%
+    ungroup() %>%
+    mutate(fusion_status = !is.na(fusion_label)) %>%
+    mutate(fusion_indicator = as.numeric(fusion_status)) %>%
+    mutate(fusion_jitter = jitter(fusion_indicator)) %>%
     left_join(seqfish_clinical_info, by = "mmrf")
   
   write_tsv(plot_df, str_c(output_dir, "expression_plot_tibble.tsv"))
 } else {
   plot_df <- read_tsv(str_c(output_dir, "expression_plot_tibble.tsv"))
+  plot_df <- plot_df %>% mutate(cnv_factor = factor(categorical_cnv,
+                                                    labels = c("DELETION",
+                                                               "Deletion",
+                                                               "Neutral",
+                                                               "Amplification",
+                                                               "AMPLIFICATION",
+                                                               "Missing"), 
+                                                    exclude = NULL))
 }
 
 # ==============================================================================
