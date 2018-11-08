@@ -228,7 +228,6 @@ plot_translocation_expression_1d <- function(plot_df,
                                              labels = FALSE,
                                              ymax_value,
                                              pdf_path,
-                                             pdf_width = 10,
                                              pdf_height = 10,
                                              seed = 10){
   
@@ -284,25 +283,91 @@ plot_translocation_expression_1d <- function(plot_df,
   
   p <- p + ggplot2_standard_additions()
   
-  pdf(pdf_path, width = pdf_width, height = pdf_height, useDingbats = FALSE)
+  pdf(pdf_path, height = pdf_height, useDingbats = FALSE)
   print(p)
   shh <- dev.off()
   
 }
 
 plot_expression_2d <- function(plot_df,
-                               gene_list, 
-                               labels = TRUE,
-                               label_feature = NULL,
-                               color_feature = NULL,
-                               fill_feature = NULL,
-                               shape_feature = NULL,
-                               color_label = NULL,
-                               fill_label = NULL,
-                               shape_label = NULL,
+                               gene_list,
+                               fusion1 = NULL,
+                               fusion2 = NULL,
+                               translocation = NULL,
+                               translocation_formatted = NULL,
+                               ymax_value,
                                pdf_path,
-                               ymax_value, 
+                               pdf_width = 10,
+                               pdf_height = 10,
                                seed = 10){
+  
+  library(ggplot2)
+  library(ggrepel)
+  set.seed(seed)
+  
+  if (length(gene_list) != 2) {
+    stop("Gene list can only have two genes for 2D plot.")
+  }
+  
+  plot_df <- plot_df %>% filter(gene %in% gene_list)
+  shape_vector <- plot_df %>% pull(translocation) %>% 
+    factor(labels = c("Not detected", "Detected", "Missing"), exclude = NULL)
+  plot_df <- plot_df %>% mutate(shape_factor = shape_vector)
+  
+  fusion1_reverse <- str_c(rev(
+    str_split(fusion1, pattern = "--", simplify = TRUE)), collapse = "--")
+  gene1 <- plot_df %>% filter(gene == gene_list[1]) %>%
+    select(mmrf, srr, gene, log10tpm, fusion_label, shape_factor) %>%
+    mutate(has_fusion1 = str_detect(fusion_label, pattern = fusion1) | 
+                     str_detect(fusion_label, pattern = fusion1_reverse))
+  
+  fusion2_reverse <- str_c(rev(
+    str_split(fusion2, pattern = "--", simplify = TRUE)), collapse = "--")
+  gene2 <- plot_df %>% filter(gene == gene_list[2]) %>%
+    select(mmrf, srr, gene, log10tpm, fusion_label, shape_factor) %>%
+    mutate(has_fusion2 = str_detect(fusion_label, pattern = fusion2) | 
+             str_detect(fusion_label, pattern = fusion2_reverse))
+  
+  plot_df <- left_join(gene1, gene2, by = c("mmrf", "srr", "shape_factor")) %>%
+    replace_na(list(has_fusion1 = FALSE, has_fusion2 = FALSE)) %>%
+    mutate(fusion_category = has_fusion1 + 2*has_fusion2) %>%
+    mutate(fusion_category = factor(fusion_category,
+                                    levels = c(0,1,2,3),
+                                    labels = c("None reported",
+                                               fusion1,
+                                               fusion2,
+                                               "Both reported")
+                                    
+                                    )
+           )
+  
+  p <- ggplot(plot_df)
+  
+  p <- p + geom_point(aes(x = log10tpm.x,
+                          y = log10tpm.y,
+                          color = fusion_category,
+                          shape = shape_factor))
+  
+  p <- p + xlim(0, ymax_value)
+  
+  p <- p + ylim(0, ymax_value)
+  
+  p <- p + scale_shape_manual(values = c(16, 17, 4))
+  
+  p <- p + guides(alpha = FALSE, fill = FALSE)
+  
+  p <- p + labs(x = str_c(gene_list[1], " Expression TPM (log10)"),
+                y = str_c(gene_list[2], " Expression TPM (log10)"), 
+                color = "Fusion status",
+                shape = translocation_formatted)
+  
+  p <- p + ggplot2_standard_additions()
+  
+  p <- p + coord_fixed(ratio = 1)
+  
+  pdf(pdf_path, width = pdf_width, height = pdf_height, useDingbats = FALSE)
+  print(p)
+  shh <- dev.off()
   
 }
 
