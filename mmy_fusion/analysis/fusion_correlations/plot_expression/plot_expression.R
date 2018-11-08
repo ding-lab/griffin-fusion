@@ -88,6 +88,15 @@ seqfish_gene_names_formatted <- c("Translocation t(4;14) WHSC1",
                                   "Translocation t(14;16) MAF", 
                                   "Translocation t(14;20) MAFB")
 
+seqfish_gene_names_formatted_short <- c("t(4;14) WHSC1", 
+                                        "t(6;14) CCND3", 
+                                        "t(8;14) MYC", 
+                                        "t(8;14) MAFA", 
+                                        "t(11;14) CCND1", 
+                                        "t(12;14) CCND2", 
+                                        "t(14;16) MAF", 
+                                        "t(14;20) MAFB")
+
 seqfish_genes <- c("WHSC1", "CCND3", "MYC", "MAFA", 
                    "CCND1", "CCND2", "MAF", "MAFB")
 
@@ -143,6 +152,8 @@ fusion_genes_gt2 <- fusions_primary %>%
 plot_fusion_expression_1d <- function(plot_df,
                                       gene_list,
                                       labels = FALSE,
+                                      translocation = NULL,
+                                      translocation_formatted = NULL,
                                       ymax_value,
                                       pdf_path,
                                       pdf_width = 10,
@@ -154,6 +165,9 @@ plot_fusion_expression_1d <- function(plot_df,
   set.seed(seed)
   
   plot_df <- plot_df %>% filter(gene %in% gene_list)
+  shape_vector <- plot_df %>% pull(translocation) %>% 
+    factor(labels = c("Not detected", "Detected", "Missing"), exclude = NULL)
+  plot_df <- plot_df %>% mutate(shape_factor = shape_vector)
   
   p <- ggplot(plot_df)
   
@@ -167,10 +181,10 @@ plot_fusion_expression_1d <- function(plot_df,
   
   p <- p + geom_point(aes(x = fusion_jitter,
                           y = log10tpm,
-                          color = cnv_factor),
-                      shape = 16)
+                          color = cnv_factor,
+                          shape = shape_factor))
   
-  if (labels) {
+  if (labels & length(gene_list) == 1) {
     p <- p + geom_label_repel(aes(x = fusion_jitter,
                                   y = log10tpm,
                                   label = fusion_label,
@@ -192,11 +206,14 @@ plot_fusion_expression_1d <- function(plot_df,
   
   p <- p + scale_fill_manual(values = c("#ffffff", "#ffffff")) # both white
   
+  p <- p + scale_shape_manual(values = c(16, 17, 4))
+  
   p <- p + guides(alpha = FALSE, fill = FALSE)
   
   p <- p + labs(x = NULL,
                 y = "Gene Expression TPM (log10)", 
-                color = "Copy Number")
+                color = "Copy Number",
+                shape = translocation_formatted)
   
   p <- p + ggplot2_standard_additions()
     
@@ -237,8 +254,8 @@ plot_translocation_expression_1d <- function(plot_df,
                           color = cnv_factor),
                       shape = 16)
   
-  if (labels) {
-    p <- p + geom_label_repel(aes(x = fusion_jitter,
+  if (labels & length(gene_list) == 1) {
+    p <- p + geom_label_repel(aes(x = translocation_jitter,
                                   y = log10tpm,
                                   label = fusion_label,
                                   color = cnv_factor),
@@ -295,8 +312,8 @@ plot_expression_2d <- function(plot_df,
 
 if (recreate_plot_df) {
   return_fusions <- function(fusions_df, this_srr, gene){
-    return_value <- fusions_df %>% filter(srr == this_srr, 
-                                       geneA == gene | geneB == gene) %>%
+    return_value <- fusions_df %>% filter(srr == this_srr,
+                                          geneA == gene | geneB == gene) %>%
       pull(fusion) %>% str_c(collapse = "\n")
     if (identical(return_value, character(0))) {
       return_value <- NA
