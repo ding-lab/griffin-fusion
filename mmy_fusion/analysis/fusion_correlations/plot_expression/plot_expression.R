@@ -12,7 +12,7 @@ set.seed(10)
 # Set seed for reproducibility
 ################################################################################
 
-recreate_plot_df <- FALSE
+recreate_plot_df <- TRUE
 recreate_all_plots <- FALSE
 
 input_dir <- "analysis/fusion_correlations/event_associations/"
@@ -78,6 +78,15 @@ seqfish_gene_names <- c("seqfish_Translocation_WHSC1_4_14",
                         "seqfish_Translocation_CCND2_12_14", 
                         "seqfish_Translocation_MAF_14_16", 
                         "seqfish_Translocation_MAFB_14_20")
+
+seqfish_gene_names_formatted <- c("Translocation t(4;14) WHSC1", 
+                                  "Translocation t(6;14) CCND3", 
+                                  "Translocation t(8;14) MYC", 
+                                  "Translocation t(8;14) MAFA", 
+                                  "Translocation t(11;14) CCND1", 
+                                  "Translocation t(12;14) CCND2", 
+                                  "Translocation t(14;16) MAF", 
+                                  "Translocation t(14;20) MAFB")
 
 seqfish_genes <- c("WHSC1", "CCND3", "MYC", "MAFA", 
                    "CCND1", "CCND2", "MAF", "MAFB")
@@ -197,6 +206,73 @@ plot_fusion_expression_1d <- function(plot_df,
   
 }
 
+plot_translocation_expression_1d <- function(plot_df,
+                                             gene_list,
+                                             labels = FALSE,
+                                             ymax_value,
+                                             pdf_path,
+                                             pdf_width = 10,
+                                             pdf_height = 10,
+                                             seed = 10){
+  
+  library(ggplot2)
+  library(ggrepel)
+  set.seed(seed)
+  
+  plot_df <- plot_df %>% filter(gene %in% gene_list, 
+                                !is.na(translocation_indicator))
+  
+  p <- ggplot(plot_df)
+  
+  p <- p + facet_wrap(~ seqfish_gene_names_formatted, nrow = 1)
+  
+  p <- p + geom_violin(aes(x = translocation_indicator,
+                           y = log10tpm,
+                           fill = factor(translocation_indicator)),
+                       color = "black",
+                       draw_quantiles = 0.5)
+  
+  p <- p + geom_point(aes(x = translocation_jitter,
+                          y = log10tpm,
+                          color = cnv_factor),
+                      shape = 16)
+  
+  if (labels) {
+    p <- p + geom_label_repel(aes(x = fusion_jitter,
+                                  y = log10tpm,
+                                  label = fusion_label,
+                                  color = cnv_factor),
+                              point.padding = 0.5,
+                              show.legend = FALSE)
+  }
+  
+  p <- p + scale_x_continuous(breaks = c(0, 1), 
+                              labels = c("No translocation", "Translocation"))
+  
+  p <- p + ylim(0, ymax_value)
+  
+  color_scale <- c("#1f78b4", "#a6cee3", # deletions
+                   "#b2df8a", # neutral 
+                   "#fb9a99", "#e31a1c", # amplifications
+                   "#cab2d6") #missing
+  p <- p + scale_color_manual(values = color_scale, drop = FALSE)
+  
+  p <- p + scale_fill_manual(values = c("#ffffff", "#ffffff")) # both white
+  
+  p <- p + guides(alpha = FALSE, fill = FALSE)
+  
+  p <- p + labs(x = NULL,
+                y = "Gene Expression TPM (log10)", 
+                color = "Copy Number")
+  
+  p <- p + ggplot2_standard_additions()
+  
+  pdf(pdf_path, width = pdf_width, height = pdf_height, useDingbats = FALSE)
+  print(p)
+  shh <- dev.off()
+  
+}
+
 plot_expression_2d <- function(plot_df,
                                gene_list, 
                                labels = TRUE,
@@ -218,11 +294,33 @@ plot_expression_2d <- function(plot_df,
 # ==============================================================================
 
 if (recreate_plot_df) {
-  return_fusions <- function(fusion_df, this_srr, gene){
-    return_value <- fusion_df %>% filter(srr == this_srr, geneA == gene | geneB == gene) %>%
+  return_fusions <- function(fusions_df, this_srr, gene){
+    return_value <- fusions_df %>% filter(srr == this_srr, 
+                                       geneA == gene | geneB == gene) %>%
       pull(fusion) %>% str_c(collapse = "\n")
     if (identical(return_value, character(0))) {
       return_value <- NA
+    }
+    return(return_value)
+  }
+  
+  return_translocations <- function(seqfish_df, this_mmrf, gene, 
+                                    seqfish_gene_names, seqfish_genes){
+    if (gene %in% seqfish_genes) {
+      return_value <- seqfish_df %>% filter(mmrf == this_mmrf) %>%
+        pull( seqfish_gene_names[which(seqfish_genes == gene)] )
+    } else {
+      return_value <- NA
+    }
+    return(return_value)
+  }
+  
+  return_translocations_formatted <- function(gene, seqfish_genes, 
+                                              seqfish_gene_names_formatted){
+    if (gene %in% seqfish_genes) {
+      return_value <- seqfish_gene_names_formatted[which(seqfish_genes == gene)]
+    } else {
+      return(NA)
     }
     return(return_value)
   }
@@ -246,11 +344,16 @@ if (recreate_plot_df) {
                                           "Missing"), 
                                exclude = NULL)) %>%
     rowwise() %>% 
+    mutate(translocation_indicator = return_translocations(
+      seqfish_clinical_info, mmrf, gene, seqfish_gene_names, seqfish_genes)) %>%
+    mutate(seqfish_gene_names_formatted = return_translocations_formatted(
+      gene, seqfish_genes, seqfish_gene_names_formatted)) %>%
     mutate(fusion_label = return_fusions(fusions_primary, srr, gene)) %>%
     ungroup() %>%
     mutate(fusion_status = !is.na(fusion_label)) %>%
     mutate(fusion_indicator = as.numeric(fusion_status)) %>%
     mutate(fusion_jitter = jitter(fusion_indicator)) %>%
+    mutate(translocation_jitter = jitter(translocation_indicator)) %>%
     left_join(seqfish_clinical_info, by = "mmrf")
   
   write_tsv(plot_df, str_c(output_dir, "expression_plot_tibble.tsv"))
