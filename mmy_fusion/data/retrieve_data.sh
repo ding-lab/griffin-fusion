@@ -23,3 +23,6 @@ rsync -avh 'sfoltz@linus6.gsc.wustl.edu:/gscmnt/gc2737/ding/Analysis/RNA-seq/fus
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/00_combined_fusion_file/FilterDatabase/kinase.tsv ' .
 
 head -n 55766 mmy_gene_tpm_table.tsv | cut -f3,4 > ensg_gene_list.tsv
+
+wget https://www.cell.com/cms/10.1016/j.celrep.2018.03.050/attachment/41b9158b-96f6-457e-8837-551b91c40e67/mmc2.xlsx
+mv mmc2.xlsx tcga_pancancer_fusions.xlsx
