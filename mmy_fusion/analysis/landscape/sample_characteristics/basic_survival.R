@@ -26,7 +26,7 @@ EFS_fit <- survfit(Surv(EFS, EFS_censor == 0) ~ ISS_Stage,
 # Plot survival curve stratified by Stage
 pdf(str_c(plot_dir, "event_free_survival.pdf"), width = 20, height = 15)
 ggsurvplot(EFS_fit, data = EFS_tibble,  conf.int = TRUE,
-           surv.median.line = "hv", pval = TRUE, 
+           surv.median.line = "hv", pval = TRUE,
            legend.labs = c("ISS Stage I", "ISS Stage II", "ISS Stage III"),
            xlab = "Time (days)",
            ggtheme = theme_bw(base_size = 20))
