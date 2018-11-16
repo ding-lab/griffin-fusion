@@ -60,7 +60,16 @@ n_fusion_tibble <- plot_df %>% group_by(hyperdiploid_categories) %>%
             mean_n_fusions = mean(n_fusions), 
             max_n_fusions = max(n_fusions))
 
-write_tsv(n_fusion_tibble, str_c(plot_dir, "n_fusion_table.txt"), 
+overall_n_fusion_tibble <- plot_df %>% 
+  summarize(hyperdiploid_categories = "Overall",
+            min_n_fusions = min(n_fusions),
+            median_n_fusions = median(n_fusions),
+            mean_n_fusions = mean(n_fusions),
+            max_n_fusions = max(n_fusions))
+
+n_fusion_all <- n_fusion_tibble %>% bind_rows(overall_n_fusion_tibble)
+
+write_tsv(n_fusion_all, str_c(plot_dir, "n_fusion_table.txt"), 
           na = "NA", append = FALSE, col_names = TRUE)
 
 # ==============================================================================
