@@ -13,7 +13,7 @@ set.seed(10)
 ################################################################################
 
 recreate_plot_df <- TRUE
-recreate_all_plots <- FALSE
+recreate_all_plots <- TRUE
 
 input_dir <- "analysis/fusion_correlations/event_associations/"
 output_dir <- "analysis/fusion_correlations/plot_expression/"
@@ -21,6 +21,8 @@ dir.create(output_dir, showWarnings = FALSE)
 dir.create(str_c(output_dir, "all_plots"), showWarnings = FALSE)
 dir.create(str_c(output_dir, "significant_plots"), showWarnings = FALSE)
 dir.create(str_c(output_dir, "seqFISH"), showWarnings = FALSE)
+dir.create(str_c(output_dir, "seqFISH/fusions"), showWarnings = FALSE)
+dir.create(str_c(output_dir, "seqFISH/translocations"), showWarnings = FALSE)
 
 testing_tbl <- read_tsv(str_c(input_dir, "testing_tbl.tsv"))
 testing_tbl_pvalue_adjusted <- read_tsv(
@@ -165,8 +167,12 @@ plot_fusion_expression_1d <- function(plot_df,
   set.seed(seed)
   
   plot_df <- plot_df %>% filter(gene %in% gene_list)
-  shape_vector <- plot_df %>% pull(translocation) %>% 
-    factor(labels = c("Not detected", "Detected", "Missing"), exclude = NULL)
+  if (is.null(translocation)) {
+    shape_vector <- "No shape vector given"
+  } else {
+    shape_vector <- plot_df %>% pull(translocation) %>%
+      factor(labels = c("Not detected", "Detected", "Missing"), exclude = NULL)  
+  }
   plot_df <- plot_df %>% mutate(shape_factor = shape_vector)
   
   p <- ggplot(plot_df)
@@ -206,14 +212,20 @@ plot_fusion_expression_1d <- function(plot_df,
   
   p <- p + scale_fill_manual(values = c("#ffffff", "#ffffff")) # both white
   
-  p <- p + scale_shape_manual(values = c(16, 17, 4))
-  
-  p <- p + guides(alpha = FALSE, fill = FALSE)
-  
-  p <- p + labs(x = NULL,
-                y = "Gene Expression TPM (log10)", 
-                color = "Copy Number",
-                shape = translocation_formatted)
+  if (is.null(translocation)) {
+    p <- p + scale_shape_manual(values = 16)
+    p <- p + guides(alpha = FALSE, fill = FALSE, shape = FALSE)
+    p <- p + labs(x = NULL,
+                  y = "Gene Expression TPM (log10)", 
+                  color = "Copy Number")
+  } else {
+    p <- p + scale_shape_manual(values = c(16, 17, 4))
+    p <- p + guides(alpha = FALSE, fill = FALSE)
+    p <- p + labs(x = NULL,
+                  y = "Gene Expression TPM (log10)", 
+                  color = "Copy Number",
+                  shape = translocation_formatted)
+  }
   
   p <- p + ggplot2_standard_additions()
     
@@ -228,6 +240,7 @@ plot_translocation_expression_1d <- function(plot_df,
                                              labels = FALSE,
                                              ymax_value,
                                              pdf_path,
+                                             pdf_width = 10, 
                                              pdf_height = 10,
                                              seed = 10){
   
@@ -283,7 +296,7 @@ plot_translocation_expression_1d <- function(plot_df,
   
   p <- p + ggplot2_standard_additions()
   
-  pdf(pdf_path, height = pdf_height, useDingbats = FALSE)
+  pdf(pdf_path, width = pdf_width, height = pdf_height, useDingbats = FALSE)
   print(p)
   shh <- dev.off()
   
@@ -415,7 +428,8 @@ if (recreate_plot_df) {
   }
   
   plot_df <- expression_primary %>% 
-    filter(gene %in% fusion_genes_gt2$fusion_gene) %>% 
+    filter(gene %in% fusion_genes_gt2$fusion_gene | 
+             gene %in% seqfish_genes) %>% 
     mutate(categorical_cnv = categorical_cnv(2*2^gene_avg_cnv)) %>% 
     mutate(cnv_factor = factor(categorical_cnv, 
                                labels = c("DELETION",
@@ -463,41 +477,54 @@ if (recreate_all_plots) {
     n_samples_with_fusion <- plot_df %>% 
       filter(gene == this_gene, !is.na(fusion_label)) %>% nrow()
     if (n_samples_with_fusion > 2) {
-      plot_expression_1d(plot_df,
-                         this_gene, 
-                         labels = FALSE,
-                         label_feature = NULL,
-                         color_feature = "cnv_factor",
-                         color_label = NULL,
-                         fill_feature = "fusion_status",
-                         fill_label = NULL,
-                         shape_feature = NULL,
-                         shape_label = NULL,
-                         ymax_value = ymax_expression_value,
-                         pdf_path = str_c(output_dir, "seqFISH/",
-                                          this_gene, ".pdf"),
-                         pdf_width = 10,
-                         pdf_height = 10,
-                         seed = 10)  
+      t_index = which(seqfish_genes == this_gene)
+      t_name = seqfish_gene_names[t_index]
+      t_format = seqfish_gene_names_formatted_short[t_index]
+      plot_fusion_expression_1d(plot_df,
+                                this_gene,
+                                labels = FALSE,
+                                translocation = t_name,
+                                translocation_formatted = t_format,
+                                ymax_value = ymax_expression_value,
+                                pdf_path = str_c(output_dir, 
+                                                 "seqFISH/fusions/", 
+                                                 this_gene, ".pdf"),
+                                pdf_width = 10,
+                                pdf_height = 10,
+                                seed = 10)
+      plot_translocation_expression_1d(plot_df,
+                                       this_gene,
+                                       labels = FALSE,
+                                       ymax_value = ymax_expression_value,
+                                       pdf_path = str_c(output_dir, "seqFISH/",
+                                                        "translocations/",
+                                                        this_gene, ".pdf"),
+                                       pdf_width = 10, 
+                                       pdf_height = 10,
+                                       seed = 10)
     }
   }
   
-  plot_expression_1d(plot_df,
-                     seqfish_genes,
-                     labels = FALSE,
-                     label_feature = NULL,
-                     color_feature = "cnv_factor",
-                     color_label = NULL,
-                     fill_feature = "fusion_status",
-                     fill_label = NULL,
-                     shape_feature = NULL,
-                     shape_label = NULL,
-                     ymax_value = ymax_expression_value,
-                     pdf_path = str_c(output_dir, "seqFISH/", 
-                                      "all.pdf"),
-                     pdf_width = 4*length(seqfish_gene_names),
-                     pdf_height = 10,
-                     seed = 10)  
+  plot_fusion_expression_1d(plot_df,
+                            seqfish_genes,
+                            labels = FALSE,
+                            ymax_value = ymax_expression_value,
+                            pdf_path = str_c(output_dir, "seqFISH/fusions/",
+                                             "all.pdf"),
+                            pdf_width = 4*length(seqfish_gene_names),
+                            pdf_height = 10,
+                            seed = 10)  
+  
+  plot_translocation_expression_1d(plot_df,
+                                   seqfish_genes,
+                                   labels = FALSE,
+                                   ymax_value = ymax_expression_value,
+                                   pdf_path = str_c(output_dir, 
+                                                    "seqFISH/translocations/",
+                                                    "all.pdf"),
+                                   pdf_width = 4*length(seqfish_gene_names),
+                                   pdf_height = 10,
+                                   seed = 10)  
   
   # Plot expression of genes recurrently involved in fusions
   for (this_gene in fusion_genes_gt2$fusion_gene) {
@@ -505,24 +532,24 @@ if (recreate_all_plots) {
       next
     }
     print(this_gene)
-    plot_expression_1d(plot_df,
-                       this_gene,
-                       labels = FALSE,
-                       label_feature = NULL,
-                       color_feature = "cnv_factor",
-                       color_label = NULL,
-                       fill_feature = "fusion_status",
-                       fill_label = NULL,
-                       shape_feature = NULL,
-                       shape_label = NULL,
-                       ymax_value = ymax_expression_value,
-                       pdf_path = str_c(output_dir, "all_plots/", 
-                                        this_gene, ".pdf"),
-                       pdf_width = 10,
-                       pdf_height = 10,
-                       seed = 10)  
-    
-
+    plot_fusion_expression_1d(plot_df,
+                              this_gene,
+                              labels = FALSE,
+                              ymax_value = ymax_expression_value,
+                              pdf_path = str_c(output_dir, "all_plots/", 
+                                              this_gene, ".pdf"),
+                              pdf_width = 10,
+                              pdf_height = 10,
+                              seed = 10)  
+    plot_fusion_expression_1d(plot_df,
+                              this_gene,
+                              labels = TRUE,
+                              ymax_value = ymax_expression_value,
+                              pdf_path = str_c(output_dir, "all_plots/", 
+                                               this_gene, ".labeled.pdf"),
+                              pdf_width = 10,
+                              pdf_height = 10,
+                              seed = 10)
   }
   
   significant_fusion_expresion_genes <- testing_tbl_pvalue_adjusted %>% 
@@ -536,40 +563,36 @@ if (recreate_all_plots) {
     n_samples_with_fusion <- plot_df %>% 
       filter(gene == this_gene, !is.na(fusion_label)) %>% nrow()
     if (n_samples_with_fusion > 2) {
-      plot_expression_1d(plot_df,
-                         this_gene, 
-                         labels = FALSE,
-                         label_feature = NULL,
-                         color_feature = "cnv_factor",
-                         color_label = NULL,
-                         fill_feature = "fusion_status",
-                         fill_label = NULL,
-                         shape_feature = NULL,
-                         shape_label = NULL,
-                         ymax_value = ymax_expression_value,
-                         pdf_path = str_c(output_dir, "significant_plots/",
-                                          this_gene, ".pdf"),
-                         pdf_width = 10,
-                         pdf_height = 10,
-                         seed = 10)  
+      plot_fusion_expression_1d(plot_df,
+                                this_gene, 
+                                labels = FALSE,
+                                ymax_value = ymax_expression_value,
+                                pdf_path = str_c(output_dir, 
+                                                 "significant_plots/",
+                                                this_gene, ".pdf"),
+                               pdf_width = 10,
+                               pdf_height = 10,
+                               seed = 10)  
+      plot_fusion_expression_1d(plot_df,
+                                this_gene, 
+                                labels = TRUE,
+                                ymax_value = ymax_expression_value,
+                                pdf_path = str_c(output_dir, 
+                                                 "significant_plots/",
+                                                 this_gene, ".labeled.pdf"),
+                                pdf_width = 10,
+                                pdf_height = 10,
+                                seed = 10)  
     }
   }
   
   plot_expression_1d(plot_df,
                      significant_fusion_expresion_genes,
                      labels = FALSE,
-                     label_feature = NULL,
-                     color_feature = "cnv_factor",
-                     color_label = NULL,
-                     fill_feature = "fusion_status",
-                     fill_label = NULL,
-                     shape_feature = NULL,
-                     shape_label = NULL,
                      ymax_value = ymax_expression_value,
                      pdf_path = str_c(output_dir, "significant_plots/", 
                                       "all.pdf"),
                      pdf_width = 4*length(significant_fusion_expresion_genes),
                      pdf_height = 10,
-                     seed = 10)  
-  
+                     seed = 10)
 }
