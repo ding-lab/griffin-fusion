@@ -191,7 +191,8 @@ plot_fusion_expression_1d <- function(plot_df,
                           shape = shape_factor))
   
   if (labels & length(gene_list) == 1) {
-    p <- p + geom_label_repel(aes(x = fusion_jitter,
+    p <- p + geom_label_repel(data = plot_df %>% filter(!is.na(fusion_filter)),
+                              aes(x = fusion_jitter,
                                   y = log10tpm,
                                   label = fusion_label,
                                   color = cnv_factor),
@@ -267,7 +268,8 @@ plot_translocation_expression_1d <- function(plot_df,
                       shape = 16)
   
   if (labels & length(gene_list) == 1) {
-    p <- p + geom_label_repel(aes(x = translocation_jitter,
+    p <- p + geom_label_repel(data = plot_df %>% filter(!is.na(fusion_filter)),
+                              aes(x = translocation_jitter,
                                   y = log10tpm,
                                   label = fusion_label,
                                   color = cnv_factor),
