@@ -12,8 +12,8 @@ set.seed(10)
 # Set seed for reproducibility
 ################################################################################
 
-recreate_plot_df <- TRUE
-recreate_all_plots <- TRUE
+recreate_plot_df <- FALSE
+recreate_all_plots <- FALSE
 
 input_dir <- "analysis/fusion_correlations/event_associations/"
 output_dir <- "analysis/fusion_correlations/plot_expression/"
@@ -191,7 +191,7 @@ plot_fusion_expression_1d <- function(plot_df,
                           shape = shape_factor))
   
   if (labels & length(gene_list) == 1) {
-    p <- p + geom_label_repel(data = plot_df %>% filter(!is.na(fusion_filter)),
+    p <- p + geom_label_repel(data = plot_df %>% filter(!is.na(fusion_label)),
                               aes(x = fusion_jitter,
                                   y = log10tpm,
                                   label = fusion_label,
@@ -268,7 +268,7 @@ plot_translocation_expression_1d <- function(plot_df,
                       shape = 16)
   
   if (labels & length(gene_list) == 1) {
-    p <- p + geom_label_repel(data = plot_df %>% filter(!is.na(fusion_filter)),
+    p <- p + geom_label_repel(data = plot_df %>% filter(!is.na(fusion_label)),
                               aes(x = translocation_jitter,
                                   y = log10tpm,
                                   label = fusion_label,
@@ -555,7 +555,7 @@ if (recreate_all_plots) {
   }
   
   significant_fusion_expresion_genes <- testing_tbl_pvalue_adjusted %>% 
-    filter(fdr < 0.05, 
+    filter(fdr < 0.05 | median_value > 0.9, 
            event_type %in% c("Fusion Expression", 
                              "Fusion Expression Outlier")) %>% 
     pull(event1) %>% unique()
@@ -588,7 +588,7 @@ if (recreate_all_plots) {
     }
   }
   
-  plot_expression_1d(plot_df,
+  plot_fusion_expression_1d(plot_df,
                      significant_fusion_expresion_genes,
                      labels = FALSE,
                      ymax_value = ymax_expression_value,
