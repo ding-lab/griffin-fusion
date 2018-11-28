@@ -548,7 +548,7 @@ if (recreate_testing_tbl) {
     testing_tbl <- bind_rows(testing_tbl, new_outlier_row)
   }
   
-  # Test expression of genes recurrently involved in fusions
+  # Test genes recurrently involved in fusions
   for (gene in fusion_genes_gt2$fusion_gene) {
     if ( str_detect(gene, "@") ) {
       next
@@ -609,6 +609,46 @@ if (recreate_testing_tbl) {
         return_tibble = FALSE)
       testing_tbl <- bind_rows(testing_tbl, new_continuous_row_mwu)
     }
+  }
+  
+  # Test seqfish events
+  for (seqfish in seqfish_variable_names) {
+    print(seqfish)
+    samples_with <- get_ids_with_seqfish(seqfish, 
+                                         seqfish_tbl = seqfish_clinical_info, 
+                                         samples_tbl = samples_primary)
+    samples_without <- get_ids_without_seqfish(seqfish, 
+                                               seqfish_tbl = seqfish_clinical_info, 
+                                               samples_tbl = samples_primary)
+    
+    for (this_feature in discrete_clinical_variable_names) {
+      new_discrete_row <- test_event_clinical_discrete(
+        samples_with, samples_without, event = seqfish, 
+        event_type = "seqFISH Clinical", 
+        clinical_tbl = seqfish_clinical_info, 
+        clinical_feature = this_feature, fisher_test = TRUE, 
+        return_tibble = FALSE, return_table = FALSE)
+      testing_tbl <- bind_rows(testing_tbl, new_discrete_row)
+    }
+    
+    for (this_feature in continuous_clinical_variable_names) {
+      new_continuous_row_ttest <- test_event_clinical_continuous(
+        samples_with, samples_without, event = seqfish, 
+        event_type = "seqFISH Clinical", 
+        clinical_tbl = seqfish_clinical_info, 
+        clinical_feature = this_feature, t_test = TRUE, mwu_test = FALSE, 
+        return_tibble = FALSE)
+      testing_tbl <- bind_rows(testing_tbl, new_continuous_row_ttest)
+      
+      new_continuous_row_mwu <- test_event_clinical_continuous(
+        samples_with, samples_without, event = gene, 
+        event_type = "Fusion Clinical", 
+        clinical_tbl = seqfish_clinical_info, 
+        clinical_feature = this_feature, t_test = FALSE, mwu_test = TRUE, 
+        return_tibble = FALSE)
+      testing_tbl <- bind_rows(testing_tbl, new_continuous_row_mwu)
+    }
+    
   }
   
   testing_tbl_pvalue_adjusted <- testing_tbl %>% 
