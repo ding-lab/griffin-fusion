@@ -159,7 +159,7 @@ test_event_clinical_continuous <- function(samples_with, samples_without,
     p.value <- NA
   } else if (t_test) {
     test_result <- t.test(with_values, without_values)
-    test_performed <- "Fisher's Exact Test"
+    test_performed <- "Student's t-Test"
     test_statistic <- test_result$statistic
     p.value <- test_result$p.value
   } else if (mwu_test) {

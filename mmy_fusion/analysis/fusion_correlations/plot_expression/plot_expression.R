@@ -69,6 +69,26 @@ get_ids_without_seqfish <- function(this_seqfish, seqfish_tbl, samples_tbl){
 }
 
 # ==============================================================================
+# Important fusion genes to keep around even if not reported in > 2 samples
+# ==============================================================================
+keep_genes <- unique(c(
+  fusions_primary %>% filter(geneA_driver == 1) %>% pull(geneA),
+  fusions_primary %>% filter(geneB_driver == 1) %>% pull(geneB),
+  fusions_primary %>% filter(geneA_oncogene == 1) %>% pull(geneA),
+  fusions_primary %>% filter(geneB_oncogene == 1) %>% pull(geneB),
+  fusions_primary %>% filter(geneA_kinase == 1) %>% pull(geneA),
+  fusions_primary %>% filter(geneB_kinase == 1) %>% pull(geneB),
+  fusions_primary %>% filter(geneA_tsg == 1) %>% pull(geneA),
+  fusions_primary %>% filter(geneB_tsg == 1) %>% pull(geneB),
+  fusions_primary %>% filter(geneA_mmy_known == 1) %>% pull(geneA),
+  fusions_primary %>% filter(geneB_mmy_known == 1) %>% pull(geneB),
+  fusions_primary %>% filter(drug_geneA == 1) %>% pull(geneA),
+  fusions_primary %>% filter(drug_geneB == 1) %>% pull(geneB),
+  fusions_primary %>% filter(drug_fusion == 1) %>% pull(geneA),
+  fusions_primary %>% filter(drug_fusion == 1) %>% pull(geneB)
+))
+
+# ==============================================================================
 # Assign seqFISH and clinical variables to approapiate lists
 # ==============================================================================
 
@@ -160,7 +180,8 @@ plot_fusion_expression_1d <- function(plot_df,
                                       pdf_path,
                                       pdf_width = 10,
                                       pdf_height = 10,
-                                      seed = 10){
+                                      seed = 10,
+                                      nrows = 1){
   
   library(ggplot2)
   library(ggrepel)
@@ -177,7 +198,7 @@ plot_fusion_expression_1d <- function(plot_df,
   
   p <- ggplot(plot_df)
   
-  p <- p + facet_wrap(~ gene, nrow = 1)
+  p <- p + facet_wrap(~ gene, nrow = nrows)
   
   p <- p + geom_violin(aes(x = fusion_indicator,
                            y = log10tpm,
@@ -431,7 +452,8 @@ if (recreate_plot_df) {
   
   plot_df <- expression_primary %>% 
     filter(gene %in% fusion_genes_gt2$fusion_gene | 
-             gene %in% seqfish_genes) %>% 
+             gene %in% seqfish_genes |
+             gene %in% keep_genes) %>% 
     mutate(categorical_cnv = categorical_cnv(2*2^gene_avg_cnv)) %>% 
     mutate(cnv_factor = factor(categorical_cnv, 
                                labels = c("DELETION",
@@ -554,6 +576,35 @@ if (recreate_all_plots) {
                               seed = 10)
   }
   
+  # Plot expression of genes from driver, oncogene, tsg, and druggable lists
+  for (this_gene in keep_genes) {
+    if ( str_detect(this_gene, "@") ) {
+      next
+    }
+    if ( this_gene %in% fusion_genes_gt2$fusion_gene) {
+      next
+    }
+    print(this_gene)
+    plot_fusion_expression_1d(plot_df,
+                              this_gene,
+                              labels = FALSE,
+                              ymax_value = ymax_expression_value,
+                              pdf_path = str_c(output_dir, "all_plots/", 
+                                               this_gene, ".pdf"),
+                              pdf_width = 10,
+                              pdf_height = 10,
+                              seed = 10)  
+    plot_fusion_expression_1d(plot_df,
+                              this_gene,
+                              labels = TRUE,
+                              ymax_value = ymax_expression_value,
+                              pdf_path = str_c(output_dir, "all_plots/", 
+                                               this_gene, ".labeled.pdf"),
+                              pdf_width = 10,
+                              pdf_height = 10,
+                              seed = 10)
+  }
+  
   significant_fusion_expresion_genes <- testing_tbl_pvalue_adjusted %>% 
     filter(fdr < 0.05 | median_value > 0.9, 
            event_type %in% c("Fusion Expression", 
@@ -598,3 +649,23 @@ if (recreate_all_plots) {
                      pdf_height = 10,
                      seed = 10)
 }
+
+hi <- testing_tbl_pvalue_adjusted %>%
+  filter(fdr < 0.05 | median_value > 0.9,
+         event_type %in% c("Fusion Expression",
+                           "Fusion Expression Outlier")) %>%
+  pull(event1) %>% unique() %>% sort()
+overexpressed_interesting_genes <- sort(unique(c(
+  fusions_primary %>% filter(geneA %in% hi, geneA_driver == 1) %>% pull(geneA),
+  fusions_primary %>% filter(geneB %in% hi, geneB_driver == 1) %>% pull(geneB),
+  fusions_primary %>% filter(geneA %in% hi, geneA_oncogene == 1) %>% pull(geneA),
+  fusions_primary %>% filter(geneB %in% hi, geneB_oncogene == 1) %>% pull(geneB),
+  fusions_primary %>% filter(geneA %in% hi, geneA_kinase == 1) %>% pull(geneA),
+  fusions_primary %>% filter(geneB %in% hi, geneB_kinase == 1) %>% pull(geneB))))
+
+plot_fusion_expression_1d(plot_df, overexpressed_interesting_genes, 
+                          ymax_value = ymax_expression_value, 
+                          pdf_path = "~/Desktop/ash_poster/overexpressed.pdf", 
+                          pdf_width = 11.5, nrows = 2)
+plot_fusion_expression_1d(plot_df, "BRAF", ymax_value = ymax_expression_value, pdf_path = "~/Desktop/braf.pdf", labels = TRUE)
+#plot_fusion_expression_1d(plot_df, "JAK2", ymax_value = ymax_expression_value, pdf_path = "~/Desktop/jak2.pdf", labels = TRUE)
