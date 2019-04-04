@@ -15,7 +15,7 @@ source("analysis/common_functions.R")
 # ==============================================================================
 samples_all <- read_tsv("data/sample_list.806.txt", 
                         col_names = c("mmrf","srr"))
-samples_primary <- read_tsv("data/sample_list.primary.txt", header = FALSE,
+samples_primary <- read_tsv("data/sample_list.primary.txt",
                             col_names = c("mmrf","srr"))
 
 # ==============================================================================
