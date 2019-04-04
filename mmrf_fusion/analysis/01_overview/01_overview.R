@@ -6,6 +6,10 @@
 paper_main = "paper/main/01_overview/"
 paper_supp = "paper/supplemental/01_overview/"
 
+# Create directories 
+dir.create(paper_main, recursive = TRUE, showWarnings = FALSE)
+dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
+
 # ==============================================================================
 # Clinical features of MMRF patients -- Supplemental
 # Originally written September 2018, Updated April 2019
@@ -694,3 +698,49 @@ if (TRUE) {
 
 }
 
+# ==============================================================================
+# Explore the landscape of fusions in samples with multiple timepoints
+# Originally written September 2018, Updated April 2019
+# ==============================================================================
+
+if (TRUE) {
+  
+  # Useful lists of samples
+  
+  samples_with_multiple_timepoints <- fusions_all %>% 
+    filter(fusion == "IGH--WHSC1" | fusion == "WHSC1--IGH") %>%
+    filter(has_secondary == 1) %>% pull(mmrf) %>% unique()
+  
+  # Plot labels of fusions at multiple timepoints
+  fusions_all %>% 
+    filter(mmrf %in% samples_with_multiple_timepoints) %>%
+    select(mmrf, srr, fusion, sample_number, FFPM) %>% 
+    mutate_at("sample_number", factor) %>%
+    ggplot(aes(x = sample_number, y = fusion,
+                         label = fusion, fill = FFPM)) + geom_label() +
+      scale_fill_continuous(low = "white", high = "red", limits = c(0,NA)) + 
+      #labs(x = str_c(this_mmrf, " Sample Number"), y = "Unique Fusion Number") + 
+      facet_wrap(~ mmrf, ncol = 3, scales = "free") +
+      ggplot2_standard_additions()
+      
+      ggsave(str_c(output_directory, "/", this_mmrf, ".multiple_timepoints.pdf"), 
+             device = "pdf", width = 10, height = 10)
+    
+    
+  
+  # ==============================================================================
+  # Useful lists of samples
+  # ==============================================================================
+  
+  samples_with_multiple_timepoints <- fusions_all %>% 
+    filter(fusion == "IGH--WHSC1" | fusion == "WHSC1--IGH") %>%
+    filter(has_secondary == 1) %>% pull(mmrf) %>% unique()
+  
+  # ==============================================================================
+  # Business
+  # ==============================================================================
+  
+  for (this_mmrf in samples_with_multiple_timepoints) {
+    plot_fusions_at_multiple_timepoints(fusions_all, this_mmrf, paper_supp)
+  }
+}
