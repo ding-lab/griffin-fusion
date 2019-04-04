@@ -10,6 +10,11 @@ library(tidyverse)
 library(readxl)
 source("analysis/common_functions.R")
 
+# Other R pacakges used in downstream scripts
+library(pheatmap) # 01_overview.R
+library(RColorBrewer) # 01_overview.R
+library(UpSetR) # 01_overview.R
+
 # ==============================================================================
 # Sample lists (MMRF, SRR) of data related to samples in this analysis
 # ==============================================================================
@@ -76,8 +81,8 @@ expression_primary <- expression_all %>% filter(srr %in% samples_primary$srr)
 # ==============================================================================
 # Sample output file locations
 # ==============================================================================
-#file_locations <- read_tsv("data/sample_list.with_file_names.txt",
-#                           col_names = FALSE)
+file_locations <- read_tsv("data/sample_list.with_file_names.txt",
+                           col_names = FALSE)
 
 # ==============================================================================
 # ENSG gene names
