@@ -138,9 +138,20 @@ if (TRUE) {
           nsets = ncol(upsetr_df), 
           nintersects = NA, 
           order.by = "freq",
-          text.scale = 2, 
-          point.size = 3, 
-          line.size = 1)
+          #text.scale = c(intersection size title, 
+          #               intersection size tick labels, 
+          #               set size title, 
+          #               set size tick labels, 
+          #               set names, 
+          #               numbers above bars),
+          text.scale = c(4, 
+                         3, 
+                         4, 
+                         3, 
+                         3, 
+                         3),
+          point.size = 4, 
+          line.size = 2)
     dev.off()
   }
   
@@ -483,9 +494,9 @@ if (TRUE) {
     
     "Plasmacytoma",
     "Yes",
-    as.numeric(str_split(bone_summary[2,1], ":", simplify = TRUE)[1,2]),
+    as.numeric(str_split(plasmacytoma_summary[2,1], ":", simplify = TRUE)[1,2]),
     ".",
-    as.numeric(str_split(bone_summary[2,1], ":", 
+    as.numeric(str_split(plasmacytoma_summary[2,1], ":", 
                          simplify = TRUE)[1,2])/n_samples_primary,
     ".", ".", ".", ".", ".", ".", 
     
