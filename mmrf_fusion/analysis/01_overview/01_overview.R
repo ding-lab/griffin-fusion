@@ -12,6 +12,7 @@ paper_supp = "paper/supplemental/01_overview/"
 # ==============================================================================
 
 if (TRUE) {
+  
   # ============================================================================
   # Function to create heatmap of binary seqFISH data
   # ============================================================================
@@ -547,3 +548,149 @@ if (TRUE) {
   write_tsv(summary_tibble, str_c(paper_supp, "summary_table.txt"), 
             na = "NA", append = FALSE, col_names = TRUE)
 }
+
+# ==============================================================================
+# Basic survival plots of MMRF patients -- Supplemental
+# Originally written September 2018, Updated April 2019
+# ==============================================================================
+
+if (TRUE) {
+  
+  # ============================================================================
+  # Create EFS survival object
+  # ============================================================================
+  
+  # Use EFS_censor == 0 because that is TRUE for death, FALSE for censored
+  # Stratify by Stage
+  EFS_tibble <- seqfish_clinical_info %>% 
+    filter(!is.na(ISS_Stage), !is.na(EFS_censor))
+  EFS_fit <- survfit(Surv(EFS, EFS_censor == 0) ~ ISS_Stage, 
+                     data = EFS_tibble)
+  
+  # Plot survival curve stratified by Stage
+  pdf(str_c(paper_supp, "event_free_survival.pdf"), width = 20, height = 15,
+      useDingbats = FALSE)
+  ggsurvplot(EFS_fit, data = EFS_tibble,  conf.int = TRUE,
+             surv.median.line = "hv", pval = TRUE,
+             legend.labs = c("ISS Stage I", "ISS Stage II", "ISS Stage III"),
+             xlab = "Time (days)",
+             ggtheme = theme_bw(base_size = 20))
+  dev.off()
+  
+  # Some survival stats
+  # Number of samples necessary data
+  seqfish_clinical_info %>% 
+    filter(is.na(ISS_Stage) | is.na(EFS_censor)) %>% nrow()
+  # Number of censored samples
+  summary(EFS_fit)$table[,"n.start"] - summary(EFS_fit)$table[,"events"]
+  # Number of samples with event (progression, death)
+  summary(EFS_fit)$table[,"events"]
+  # Median years of event-free survival
+  summary(EFS_fit)$table[,"median"]
+  
+  # ============================================================================
+  # Create Death survival object
+  # ============================================================================
+  
+  # Use EFS_censor == 0 because that is TRUE for death, FALSE for censored
+  # Stratify by Stage
+  death_tibble <- seqfish_clinical_info %>% 
+    filter(!is.na(ISS_Stage), !is.na(D_PT_lstalive)) %>% rowwise() %>% 
+    mutate( time_on_trial = max(D_PT_deathdy, D_PT_lstalive, na.rm = TRUE), 
+            death = as.numeric(!is.na(D_PT_deathdy)))
+  death_fit <- survfit(Surv(time_on_trial, death) ~ ISS_Stage, 
+                       data = death_tibble)
+  
+  # Plot survival curve stratified by Stage
+  pdf(str_c(paper_supp, "overall_survival.pdf"), width = 20, height = 15)
+  ggsurvplot(death_fit, data = death_tibble,  conf.int = TRUE,
+             surv.median.line = "hv", pval = TRUE, 
+             legend.labs = c("ISS Stage I", "ISS Stage II", "ISS Stage III"),
+             xlab = "Time (days)",
+             ggtheme = theme_bw(base_size = 20))
+  dev.off()
+  
+  # Some survival stats
+  seqfish_clinical_info %>% 
+    filter(is.na(ISS_Stage) | is.na(D_PT_lstalive)) %>% nrow()
+  # Number of censored samples
+  summary(death_fit)$table[,"n.start"] - summary(death_fit)$table[,"events"]
+  # Number of samples with event (progression, death)
+  summary(death_fit)$table[,"events"]
+  # Median years of event-free survival
+  summary(death_fit)$table[,"median"]
+  
+  # ============================================================================
+  # Survival table 
+  # ============================================================================
+  
+  summary_tibble <- tribble(
+    ~`Category`, ~`ISS Stage`, ~`N Samples`, ~`N Events`, ~`N Censored`, ~`Median Survival (Days)`, ~`95% Confidence Interval (Days)`,
+    "Event Free", "Stage I", 
+    summary(EFS_fit)$table["ISS_Stage=1","records"],
+    summary(EFS_fit)$table["ISS_Stage=1","events"],
+    summary(EFS_fit)$table["ISS_Stage=1","records"] - 
+      summary(EFS_fit)$table["ISS_Stage=1","events"],
+  summary(EFS_fit)$table["ISS_Stage=1","median"],
+  str_c(str_replace_na(summary(EFS_fit)$table["ISS_Stage=1","0.95LCL"]),
+        str_replace_na(summary(EFS_fit)$table["ISS_Stage=1","0.95UCL"]),
+        sep = " - "),
+  
+  "Event Free", "Stage II", 
+  summary(EFS_fit)$table["ISS_Stage=2","records"],
+  summary(EFS_fit)$table["ISS_Stage=2","events"],
+  summary(EFS_fit)$table["ISS_Stage=2","records"] - 
+    summary(EFS_fit)$table["ISS_Stage=2","events"],
+  summary(EFS_fit)$table["ISS_Stage=2","median"],
+  str_c(str_c(str_replace_na(summary(EFS_fit)$table["ISS_Stage=2","0.95LCL"]), 
+              str_replace_na(summary(EFS_fit)$table["ISS_Stage=2","0.95UCL"]), 
+              sep = " - ")),
+  
+  "Event Free", "Stage III", 
+  summary(EFS_fit)$table["ISS_Stage=3","records"],
+  summary(EFS_fit)$table["ISS_Stage=3","events"],
+  summary(EFS_fit)$table["ISS_Stage=3","records"] - 
+    summary(EFS_fit)$table["ISS_Stage=3","events"],
+  summary(EFS_fit)$table["ISS_Stage=3","median"],
+  str_c(str_c(str_replace_na(summary(EFS_fit)$table["ISS_Stage=3","0.95LCL"]), 
+              str_replace_na(summary(EFS_fit)$table["ISS_Stage=3","0.95UCL"]), 
+              sep = " - ")),
+        
+  
+  "Overall", "Stage I", 
+  summary(death_fit)$table["ISS_Stage=1","records"],
+  summary(death_fit)$table["ISS_Stage=1","events"],
+  summary(death_fit)$table["ISS_Stage=1","records"] - 
+    summary(death_fit)$table["ISS_Stage=1","events"],
+  summary(death_fit)$table["ISS_Stage=1","median"],
+  str_c(str_replace_na(summary(death_fit)$table["ISS_Stage=1","0.95LCL"]),
+        str_replace_na(summary(death_fit)$table["ISS_Stage=1","0.95UCL"]),
+        sep = " - "),
+  
+  "Overall", "Stage II", 
+  summary(death_fit)$table["ISS_Stage=2","records"],
+  summary(death_fit)$table["ISS_Stage=2","events"],
+  summary(death_fit)$table["ISS_Stage=2","records"] - 
+    summary(death_fit)$table["ISS_Stage=2","events"],
+  summary(death_fit)$table["ISS_Stage=2","median"],
+  str_c(str_c(str_replace_na(summary(death_fit)$table["ISS_Stage=2","0.95LCL"]), 
+              str_replace_na(summary(death_fit)$table["ISS_Stage=2","0.95UCL"]), 
+              sep = " - ")),
+  
+  "Overall", "Stage III", 
+  summary(death_fit)$table["ISS_Stage=3","records"],
+  summary(death_fit)$table["ISS_Stage=3","events"],
+  summary(death_fit)$table["ISS_Stage=3","records"] - 
+    summary(death_fit)$table["ISS_Stage=3","events"],
+  summary(death_fit)$table["ISS_Stage=3","median"],
+  str_c(str_c(str_replace_na(summary(death_fit)$table["ISS_Stage=3","0.95LCL"]), 
+              str_replace_na(summary(death_fit)$table["ISS_Stage=3","0.95UCL"]), 
+              sep = " - "))
+  
+  )
+
+  write_tsv(summary_tibble, str_c(paper_supp, "survival_table.txt"), 
+            na = "NA", append = FALSE, col_names = TRUE)
+
+}
+
