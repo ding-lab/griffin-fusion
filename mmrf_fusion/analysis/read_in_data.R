@@ -14,6 +14,8 @@ source("analysis/common_functions.R")
 library(pheatmap) # 01_overview.R
 library(RColorBrewer) # 01_overview.R
 library(UpSetR) # 01_overview.R
+library(survival) # 01_overview.R
+library(survminer) # 01_overview.R
 
 # ==============================================================================
 # Sample lists (MMRF, SRR) of data related to samples in this analysis
