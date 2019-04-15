@@ -780,7 +780,7 @@ if (TRUE) {
   n_na_hdp <- seqfish_clinical_info %>% 
     filter(is.na(seqfish_Hyperdiploidy)) %>% nrow()
   hpd_key <- tribble(~seqfish_Hyperdiploidy, ~hyperdiploid_categories, ~count,
-                     0, str_c("Not Hyperdiploid (", n_not_hdp, ")"), n_not_hdp,
+                     0, str_c("Non-Hyperdiploid (", n_not_hdp, ")"), n_not_hdp,
                      1, str_c("Hyperdiploid (", n_hdp, ")"), n_hdp,
                      NA, str_c("Not Available (", n_na_hdp, ")"), n_na_hdp
   )
@@ -820,8 +820,7 @@ if (TRUE) {
   
   plot_df %>% ggplot(aes(x = n_fusions, y = ..density..)) + 
     geom_freqpoly(aes(color = fct_reorder(hyperdiploid_categories, -count)), 
-                  binwidth = 1, center = 0,
-                  size = 2) + 
+                  binwidth = 1, center = 0, size = 2, show.legend = FALSE) + 
     labs(x = "Number of Fusions Detected", 
          y = "Sample Proportion",
          color = "Hyperdiploid Category") +
@@ -836,6 +835,6 @@ if (TRUE) {
                                 theme = ttheme_default(core = list(fg_params = list(col = matrix(c("#66c2a5", "#fc8d62", "#8da0cb" ,rep("#000000", 13)), nrow = 4, byrow = FALSE))))),
                       xmax = 80, ymax = 0.25) + 
     ggsave(str_c(paper_main, "freqpoly_n_fusions_per_sample.pdf"), 
-           device = "pdf", width = 6, height = 5)
+           device = "pdf", width = 6, height = 6)
   
 }
