@@ -764,19 +764,78 @@ if (TRUE) {
          device = "pdf", width = 8.5, height = 11)
 }
 
-  # ==============================================================================
-  # Useful lists of samples
-  # ==============================================================================
+# ==============================================================================
+# Number of fusions per sample
+# Originally written August 2018, Updated April 2019
+# ==============================================================================
+
+if (TRUE) {
   
-  samples_with_multiple_timepoints <- fusions_all %>% 
-    filter(fusion == "IGH--WHSC1" | fusion == "WHSC1--IGH") %>%
-    filter(has_secondary == 1) %>% pull(mmrf) %>% unique()
+  # Create data frame for plotting
   
-  # ==============================================================================
-  # Business
-  # ==============================================================================
+  n_hdp <- seqfish_clinical_info %>% 
+    filter(seqfish_Hyperdiploidy == 1) %>% nrow()
+  n_not_hdp <- seqfish_clinical_info %>% 
+    filter(seqfish_Hyperdiploidy == 0) %>% nrow()
+  n_na_hdp <- seqfish_clinical_info %>% 
+    filter(is.na(seqfish_Hyperdiploidy)) %>% nrow()
+  hpd_key <- tribble(~seqfish_Hyperdiploidy, ~hyperdiploid_categories, ~count,
+                     0, str_c("Not Hyperdiploid (", n_not_hdp, ")"), n_not_hdp,
+                     1, str_c("Hyperdiploid (", n_hdp, ")"), n_hdp,
+                     NA, str_c("Not Available (", n_na_hdp, ")"), n_na_hdp
+  )
   
-  for (this_mmrf in samples_with_multiple_timepoints) {
-    plot_fusions_at_multiple_timepoints(fusions_all, this_mmrf, paper_supp)
-  }
+  plot_df <- seqfish_clinical_info %>% select(mmrf, seqfish_Hyperdiploidy) %>% 
+    left_join(fusions_primary, by = "mmrf") %>%
+    group_by(mmrf, seqfish_Hyperdiploidy, srr) %>% 
+    summarize(n = n()) %>% ungroup() %>%
+    mutate(n_fusions = n - is.na(srr)) %>%
+    left_join(hpd_key, by = "seqfish_Hyperdiploidy")
+  
+  # Plot number of fusions per sample
+  
+  plot_df %>% 
+    ggplot(aes(x = n_fusions)) + 
+    geom_histogram(binwidth = 1, center = 0) + 
+    facet_wrap(~ fct_reorder(hyperdiploid_categories, -count), ncol = 1) +
+    labs(x = "Number of Fusions Detected", y = "Number of Samples") +
+    ggplot2_standard_additions() +
+    ggsave(str_c(paper_supp, "histogram_n_fusions_per_sample.pdf"), 
+           device = "pdf", width = 10, height = 5)
+  
+  # Plot frequency of number of fusions per sample
+  
+  n_fusion_tibble <- plot_df %>% group_by(hyperdiploid_categories) %>% 
+    summarize(`Median` = median(n_fusions), 
+              `Mean` = round(mean(n_fusions),1), 
+              `Max` = max(n_fusions))
+  
+  overall_n_fusion_tibble <- plot_df %>% 
+    summarize(hyperdiploid_categories = "Overall",
+              `Median` = median(n_fusions),
+              `Mean` = round(mean(n_fusions),1),
+              `Max` = max(n_fusions))
+  
+  n_fusion_all <- n_fusion_tibble %>% bind_rows(overall_n_fusion_tibble)
+  
+  plot_df %>% ggplot(aes(x = n_fusions, y = ..density..)) + 
+    geom_freqpoly(aes(color = fct_reorder(hyperdiploid_categories, -count)), 
+                  binwidth = 1, center = 0,
+                  size = 2) + 
+    labs(x = "Number of Fusions Detected", 
+         y = "Sample Proportion",
+         color = "Hyperdiploid Category") +
+    scale_color_brewer(palette = "Set2") +
+    ggplot2_standard_additions() +
+    xlim(0,70) +
+    theme(legend.position = "bottom",
+          legend.direction = "vertical") +
+    scale_y_continuous() +
+    annotation_custom(tableGrob(n_fusion_all, rows = NULL, 
+                                cols = c("", "Median", "Mean", "Max"),
+                                theme = ttheme_default(core = list(fg_params = list(col = matrix(c("#66c2a5", "#fc8d62", "#8da0cb" ,rep("#000000", 13)), nrow = 4, byrow = FALSE))))),
+                      xmax = 80, ymax = 0.25) + 
+    ggsave(str_c(paper_main, "freqpoly_n_fusions_per_sample.pdf"), 
+           device = "pdf", width = 6, height = 5)
+  
 }
