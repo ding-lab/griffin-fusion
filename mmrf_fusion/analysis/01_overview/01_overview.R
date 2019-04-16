@@ -792,6 +792,22 @@ if (TRUE) {
     mutate(n_fusions = n - is.na(srr)) %>%
     left_join(hpd_key, by = "seqfish_Hyperdiploidy")
   
+  # t-test to compare number of fusions between hyperdiploidy and not
+  
+  n_fusions_with_hyperdiploid_info <- seqfish_clinical_info %>% 
+    left_join(fusions_primary, by = "mmrf") %>% 
+    filter(!is.na(seqfish_Hyperdiploidy)) %>% 
+    group_by(mmrf, srr, seqfish_Hyperdiploidy)  %>% 
+    summarize(n = n()) %>% 
+    ungroup() %>% 
+    mutate(n_corrected = n - is.na(srr))
+  
+  n_fusions_hyperdiploid <- n_fusions_with_hyperdiploid_info %>% 
+    filter(seqfish_Hyperdiploidy == 1) %>% pull(n_corrected)
+  n_fusions_nonhyperdiploid <- n_fusions_with_hyperdiploid_info %>% 
+    filter(seqfish_Hyperdiploidy == 0) %>% pull(n_corrected)
+  pvalue <- t.test(n_fusions_hyperdiploid, n_fusions_nonhyperdiploid)$p.value
+  
   # Plot number of fusions per sample
   
   plot_df %>% 
@@ -810,8 +826,10 @@ if (TRUE) {
               `Mean` = round(mean(n_fusions),1), 
               `Max` = max(n_fusions))
   
+  n_total_samples <- plot_df %>% nrow()
+  
   overall_n_fusion_tibble <- plot_df %>% 
-    summarize(hyperdiploid_categories = "Overall",
+    summarize(hyperdiploid_categories = str_c("Overall (", n_total_samples, ")"),
               `Median` = median(n_fusions),
               `Mean` = round(mean(n_fusions),1),
               `Max` = max(n_fusions))
@@ -820,21 +838,75 @@ if (TRUE) {
   
   plot_df %>% ggplot(aes(x = n_fusions, y = ..density..)) + 
     geom_freqpoly(aes(color = fct_reorder(hyperdiploid_categories, -count)), 
-                  binwidth = 1, center = 0, size = 2, show.legend = FALSE) + 
-    labs(x = "Number of Fusions Detected", 
-         y = "Sample Proportion",
+                  binwidth = 1, center = 0, size = 2, show.legend = FALSE) +
+    geom_freqpoly(binwidth = 1, center = 0, size = 2, show.legend = FALSE) +
+    labs(x = "Number of Fusions Detected (per Sample)", 
+         y = "Sample Density",
          color = "Hyperdiploid Category") +
     scale_color_brewer(palette = "Set2") +
     ggplot2_standard_additions() +
-    xlim(0,70) +
-    theme(legend.position = "bottom",
-          legend.direction = "vertical") +
+    xlim(plot_df %>% pull(n_fusions) %>% min(),
+         plot_df %>% pull(n_fusions) %>% max()) +
     scale_y_continuous() +
     annotation_custom(tableGrob(n_fusion_all, rows = NULL, 
-                                cols = c("", "Median", "Mean", "Max"),
-                                theme = ttheme_default(core = list(fg_params = list(col = matrix(c("#66c2a5", "#fc8d62", "#8da0cb" ,rep("#000000", 13)), nrow = 4, byrow = FALSE))))),
+                                cols = c("HRD Status", "Median", "Mean", "Max"),
+                                theme = ttheme_default(core = list(fg_params = list(col = matrix(c("#66c2a5", "#fc8d62", "#8da0cb", rep("#000000", 13)), nrow = 4, byrow = FALSE),
+                                                                                    fontface = matrix(rep(c("bold", "plain", "plain", "plain"), 4), nrow = 4, byrow = TRUE))))),
                       xmax = 80, ymax = 0.25) + 
+    theme(panel.background = element_blank(),
+          panel.grid = element_blank(),
+          panel.border = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks.y = element_blank()) +
     ggsave(str_c(paper_main, "freqpoly_n_fusions_per_sample.pdf"), 
-           device = "pdf", width = 6, height = 6)
+           device = "pdf", width = 6, height = 3)
   
 }
+
+# ==============================================================================
+# Top recurrent fusions (with validation)
+# April 2019
+# ==============================================================================
+
+keep_fusions <- fusions_primary %>% group_by(fusion) %>% 
+  summarize(count = n(), 
+            n_not_na = sum(!is.na(n_discordant)), 
+            n_validated = sum(!is.na(n_discordant) & n_discordant > 0)) %>% 
+  filter(n_not_na > 1) %>%
+  mutate(validation_pct = 100*n_validated/n_not_na) %>%
+  filter(n_validated > 1) %>% pull(fusion)
+
+total_each_fusion <- fusions_primary %>% filter(fusion %in% keep_fusions) %>% 
+  group_by(fusion) %>% summarize(total = n())
+
+total_by_status <- fusions_primary %>% filter(fusion %in% keep_fusions) %>% 
+  select(fusion, n_discordant) %>% 
+  mutate(validation_status = case_when(is.na(n_discordant) ~ "Not Available", 
+                                       n_discordant > 0 ~ "Validated", 
+                                       TRUE ~ "Not Validated" )) %>% 
+  group_by(fusion, validation_status) %>% 
+  summarize(count = n())
+
+plot_df <- total_each_fusion %>% left_join(total_by_status, by = "fusion")
+
+ggplot(data = plot_df, aes(x = fct_reorder(fusion, total), 
+                           y = count, 
+                           fill = validation_status)) + 
+  geom_bar(stat = "identity") +
+  coord_flip(expand = c(0,0)) +
+  ggplot2_standard_additions() +
+  scale_y_continuous(breaks = seq(0, 100, 20),
+                     labels = seq(0, 100, 20),
+                     position = "right") +
+  scale_fill_brewer(palette = "Greys") +
+  theme(panel.background = element_blank(),
+        panel.border = element_blank(),
+        panel.grid = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.y = element_text(face = "italic"),
+        legend.position = "bottom") +
+  labs(x = NULL, fill = NULL, y = "Number of Fusions Detected (per Fusion)") +
+  ggsave(str_c(paper_main, "top_recurrent_validated_fusions.pdf"), 
+         device = "pdf", width = 12, height = 6)
