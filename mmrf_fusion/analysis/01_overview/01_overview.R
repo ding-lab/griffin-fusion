@@ -574,11 +574,11 @@ if (TRUE) {
   # Plot survival curve stratified by Stage
   pdf(str_c(paper_supp, "event_free_survival.pdf"), width = 20, height = 15,
       useDingbats = FALSE)
-  ggsurvplot(EFS_fit, data = EFS_tibble,  conf.int = TRUE,
+  print(ggsurvplot(EFS_fit, data = EFS_tibble,  conf.int = TRUE,
              surv.median.line = "hv", pval = TRUE,
              legend.labs = c("ISS Stage I", "ISS Stage II", "ISS Stage III"),
              xlab = "Time (days)",
-             ggtheme = theme_bw(base_size = 20))
+             ggtheme = theme_bw(base_size = 20)))
   dev.off()
   
   # Some survival stats
@@ -607,11 +607,11 @@ if (TRUE) {
   
   # Plot survival curve stratified by Stage
   pdf(str_c(paper_supp, "overall_survival.pdf"), width = 20, height = 15)
-  ggsurvplot(death_fit, data = death_tibble,  conf.int = TRUE,
+  print(ggsurvplot(death_fit, data = death_tibble,  conf.int = TRUE,
              surv.median.line = "hv", pval = TRUE, 
              legend.labs = c("ISS Stage I", "ISS Stage II", "ISS Stage III"),
              xlab = "Time (days)",
-             ggtheme = theme_bw(base_size = 20))
+             ggtheme = theme_bw(base_size = 20)))
   dev.off()
   
   # Some survival stats
