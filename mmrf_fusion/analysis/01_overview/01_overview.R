@@ -761,7 +761,7 @@ if (TRUE) {
     scale_x_discrete(drop = FALSE) +
     labs(y = "Sample Number", x = NULL, fill = "Scaled FFPM") +
     ggsave(str_c(paper_supp, "multiple_timepoints.pdf"),
-         device = "pdf", width = 8.5, height = 11)
+         device = "pdf", width = 8.5, height = 11, useDingbats = FALSE)
 }
 
 # ==============================================================================
@@ -817,7 +817,7 @@ if (TRUE) {
     labs(x = "Number of Fusions Detected", y = "Number of Samples") +
     ggplot2_standard_additions() +
     ggsave(str_c(paper_supp, "histogram_n_fusions_per_sample.pdf"), 
-           device = "pdf", width = 10, height = 5)
+           device = "pdf", width = 10, height = 5, useDingbats = FALSE)
   
   # Plot frequency of number of fusions per sample
   
@@ -860,7 +860,7 @@ if (TRUE) {
           axis.text.y = element_blank(),
           axis.ticks.y = element_blank()) +
     ggsave(str_c(paper_main, "freqpoly_n_fusions_per_sample.pdf"), 
-           device = "pdf", width = 6, height = 3)
+           device = "pdf", width = 6, height = 3, useDingbats = FALSE)
   
 }
 
@@ -911,7 +911,7 @@ if (TRUE) {
           legend.position = "bottom") +
     labs(x = NULL, fill = NULL, y = "Number of Fusions Detected (per Fusion)") +
     ggsave(str_c(paper_main, "top_recurrent_validated_fusions.pdf"), 
-           device = "pdf", width = 12, height = 6)
+           device = "pdf", width = 12, height = 6, useDingbats = FALSE)
   
 }
 
@@ -928,7 +928,7 @@ if (TRUE) {
   names(upsetr_df) <- c("EricScript", "FusionCatcher", "INTEGRATE", 
                         "PRADA", "STAR-Fusion")
   pdf(file = str_c(paper_supp, "tool_overlap.upsetr.pdf"), 
-     width = 8.5, height = 5)
+     width = 8.5, height = 5, useDingbats = FALSE)
   upset(upsetr_df, nsets = ncol(upsetr_df), nintersects = NA, order.by = "freq",
         set_size.angles = 90,
         text.scale = 1.5, point.size = 3, line.size = 1)
