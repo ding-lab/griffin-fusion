@@ -900,7 +900,8 @@ if (TRUE) {
     scale_y_continuous(breaks = seq(0, 100, 20),
                        labels = seq(0, 100, 20),
                        position = "right") +
-    scale_fill_brewer(palette = "Greys") +
+    scale_fill_brewer(palette = "Greys",
+                      breaks = c("Validated", "Not Validated", "Not Available")) +
     theme(panel.background = element_blank(),
           panel.border = element_blank(),
           panel.grid = element_blank(),
