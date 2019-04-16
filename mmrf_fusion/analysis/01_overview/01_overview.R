@@ -869,44 +869,67 @@ if (TRUE) {
 # April 2019
 # ==============================================================================
 
-keep_fusions <- fusions_primary %>% group_by(fusion) %>% 
-  summarize(count = n(), 
-            n_not_na = sum(!is.na(n_discordant)), 
-            n_validated = sum(!is.na(n_discordant) & n_discordant > 0)) %>% 
-  filter(n_not_na > 1) %>%
-  mutate(validation_pct = 100*n_validated/n_not_na) %>%
-  filter(n_validated > 1) %>% pull(fusion)
+if (TRUE) {
+  keep_fusions <- fusions_primary %>% group_by(fusion) %>% 
+    summarize(count = n(), 
+              n_not_na = sum(!is.na(n_discordant)), 
+              n_validated = sum(!is.na(n_discordant) & n_discordant > 0)) %>% 
+    filter(n_not_na > 1) %>%
+    mutate(validation_pct = 100*n_validated/n_not_na) %>%
+    filter(n_validated > 1) %>% pull(fusion)
+  
+  total_each_fusion <- fusions_primary %>% filter(fusion %in% keep_fusions) %>% 
+    group_by(fusion) %>% summarize(total = n())
+  
+  total_by_status <- fusions_primary %>% filter(fusion %in% keep_fusions) %>% 
+    select(fusion, n_discordant) %>% 
+    mutate(validation_status = case_when(is.na(n_discordant) ~ "Not Available", 
+                                         n_discordant > 0 ~ "Validated", 
+                                         TRUE ~ "Not Validated" )) %>% 
+    group_by(fusion, validation_status) %>% 
+    summarize(count = n())
+  
+  plot_df <- total_each_fusion %>% left_join(total_by_status, by = "fusion")
+  
+  ggplot(data = plot_df, aes(x = fct_reorder(fusion, total), 
+                             y = count, 
+                             fill = validation_status)) + 
+    geom_bar(stat = "identity") +
+    coord_flip(expand = c(0,0)) +
+    ggplot2_standard_additions() +
+    scale_y_continuous(breaks = seq(0, 100, 20),
+                       labels = seq(0, 100, 20),
+                       position = "right") +
+    scale_fill_brewer(palette = "Greys") +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          panel.grid = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.text.y = element_text(face = "italic"),
+          legend.position = "bottom") +
+    labs(x = NULL, fill = NULL, y = "Number of Fusions Detected (per Fusion)") +
+    ggsave(str_c(paper_main, "top_recurrent_validated_fusions.pdf"), 
+           device = "pdf", width = 12, height = 6)
+  
+}
 
-total_each_fusion <- fusions_primary %>% filter(fusion %in% keep_fusions) %>% 
-  group_by(fusion) %>% summarize(total = n())
+# ==============================================================================
+# Create a plot showing the overlap/agreement between tools
+# Originally written September 2018, Updated April 2019
+# ==============================================================================
 
-total_by_status <- fusions_primary %>% filter(fusion %in% keep_fusions) %>% 
-  select(fusion, n_discordant) %>% 
-  mutate(validation_status = case_when(is.na(n_discordant) ~ "Not Available", 
-                                       n_discordant > 0 ~ "Validated", 
-                                       TRUE ~ "Not Validated" )) %>% 
-  group_by(fusion, validation_status) %>% 
-  summarize(count = n())
-
-plot_df <- total_each_fusion %>% left_join(total_by_status, by = "fusion")
-
-ggplot(data = plot_df, aes(x = fct_reorder(fusion, total), 
-                           y = count, 
-                           fill = validation_status)) + 
-  geom_bar(stat = "identity") +
-  coord_flip(expand = c(0,0)) +
-  ggplot2_standard_additions() +
-  scale_y_continuous(breaks = seq(0, 100, 20),
-                     labels = seq(0, 100, 20),
-                     position = "right") +
-  scale_fill_brewer(palette = "Greys") +
-  theme(panel.background = element_blank(),
-        panel.border = element_blank(),
-        panel.grid = element_blank(),
-        axis.ticks.x = element_blank(),
-        axis.ticks.y = element_blank(),
-        axis.text.y = element_text(face = "italic"),
-        legend.position = "bottom") +
-  labs(x = NULL, fill = NULL, y = "Number of Fusions Detected (per Fusion)") +
-  ggsave(str_c(paper_main, "top_recurrent_validated_fusions.pdf"), 
-         device = "pdf", width = 12, height = 6)
+if (TRUE) {
+  
+  # Plot tool overlap (upsetr)
+  
+  upsetr_df <- data.frame(fusions_primary %>% select(starts_with("called_by")))
+  names(upsetr_df) <- c("EricScript", "FusionCatcher", "INTEGRATE", 
+                        "PRADA", "STAR-Fusion")
+  pdf(file = str_c(paper_supp, "tool_overlap.upsetr.pdf"), 
+     width = 8.5, height = 5)
+  upset(upsetr_df, nsets = ncol(upsetr_df), nintersects = NA, order.by = "freq",
+        set_size.angles = 90,
+        text.scale = 1.5, point.size = 3, line.size = 1)
+  dev.off()
+}
