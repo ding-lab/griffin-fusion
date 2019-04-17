@@ -83,6 +83,20 @@ expression_all <- read_tsv("data/mmy_gene_expr_with_fusions.tsv") %>%
 expression_primary <- expression_all %>% filter(srr %in% samples_primary$srr)
 
 # ==============================================================================
+# Information about kinases
+# ==============================================================================
+kinases <- read_tsv("data/Kinase_fusion_info.txt") %>% 
+  mutate(Fusion = str_remove(Fusion, "@")) %>% 
+  right_join(fusions_primary, by = c("PatientID" = "mmrf", 
+                                 "SampleID" = "srr", 
+                                 "Fusion" = "fusion")) %>% 
+  filter(!is.na(KinaseDomain)) %>%
+  mutate(kinase_group_full_name = case_when(Group == "TK" ~ "Tyrosine\nKinase",
+                                            Group == "OTHER" ~ "Other",
+                                            Group == "TKL" ~ "Tyrosine\nKinase-Like",
+                                            TRUE ~ Group))
+
+# ==============================================================================
 # Sample output file locations
 # ==============================================================================
 file_locations <- read_tsv("data/sample_list.with_file_names.txt",
