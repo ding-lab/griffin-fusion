@@ -11,6 +11,7 @@ library(readxl)
 source("analysis/common_functions.R")
 
 # Other R pacakges used in downstream scripts
+library(ggrepel) # 02_expression.R
 library(gridExtra) # 01_overview.R
 library(pheatmap) # 01_overview.R
 library(RColorBrewer) # 01_overview.R
