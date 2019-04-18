@@ -115,3 +115,8 @@ pancan_fusions <- read_excel("data/tcga_pancancer_fusions.xlsx",
                              sheet = "Final fusion call set")
 names(pancan_fusions) <- pancan_fusions[1,]
 pancan_fusions <- pancan_fusions[-1,]
+
+# ==============================================================================
+# DEPO database
+# ==============================================================================
+depo <- read.delim("data/DEPO_final_20170206.txt")
