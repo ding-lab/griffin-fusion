@@ -12,7 +12,7 @@ dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 
 # ==============================================================================
 # Types of kinases
-# Written April 2019
+# Written April 2019 -- Main
 # ==============================================================================
 
 if (TRUE) {
@@ -38,8 +38,8 @@ if (TRUE) {
           axis.title = element_text(size = 12)
           )
   
-  ggsave(str_c(paper_main, "kinase_groups.with_legend.pdf"), p, width = 8, height = 4)
-  ggsave(str_c(paper_main, "kinase_groups.without_legend.pdf"), p + guides(fill = FALSE), width = 8, height = 4)
+  ggsave(str_c(paper_main, "kinase_groups.with_legend.pdf"), p, width = 8, height = 4, useDingbats = FALSE)
+  ggsave(str_c(paper_main, "kinase_groups.without_legend.pdf"), p + guides(fill = FALSE), width = 8, height = 4, useDingbats = FALSE)
   
 }
 
@@ -85,3 +85,148 @@ if (TRUE) {
     ggsave(str_c(paper_main, "kinase_expression_correlation.pdf"),
            height = 4, width = 4, useDingbats = FALSE)
 }
+
+# ==============================================================================
+# Expression correlation of kinases by structure (3' or 5', in-frame or not)
+# Intact only
+# Written April 2019 -- Main
+# ==============================================================================
+
+if (TRUE) {
+  
+  cor_tibble <- kinases %>% 
+    mutate(kinase_expression = case_when(KinasePos == "5P_KINASE" ~ geneA_pct,
+                                         KinasePos == "3P_KINASE" ~ geneB_pct)) %>%
+    group_by(KinasePos, KinaseDomain) %>% 
+    summarize(c = cor(geneA_pct, geneB_pct, use = "pairwise.complete.obs")) %>% 
+    ungroup() %>% mutate(KinasePos = case_when(KinasePos == "5P_KINASE" ~ "5' Kinase",
+                                               KinasePos == "3P_KINASE" ~ "3' Kinase")) %>%
+    mutate(KinaseDomain = case_when(KinaseDomain == "Intact" ~ "Domain Intact",
+                                    KinaseDomain == "Disrupted" ~ "Domain Disrupted")) %>%
+    filter(KinaseDomain == "Domain Intact")
+  
+  kinases %>% mutate(KinasePos = case_when(KinasePos == "5P_KINASE" ~ "5' Kinase",
+                                           KinasePos == "3P_KINASE" ~ "3' Kinase")) %>%
+    mutate(KinaseDomain = case_when(KinaseDomain == "Intact" ~ "Domain Intact",
+                                    KinaseDomain == "Disrupted" ~ "Domain Disrupted")) %>%
+    filter(KinaseDomain == "Domain Intact") %>%
+    ggplot(aes(x = geneA_pct, y = geneB_pct)) + 
+    geom_smooth(method = "lm") + 
+    geom_point(shape = 16) + 
+    coord_fixed() + 
+    scale_y_continuous(expand = c(0.03, 0.03)) +
+    scale_x_continuous(expand = c(0.03, 0.03)) +
+    geom_text(data = cor_tibble, aes(x = 0.5, y = 0, label = str_c("cor = ", round(c, 2))), vjust = 1, color = "blue", size = 2.5) +
+    facet_grid(fct_reorder(KinasePos, desc(KinasePos)) ~ KinaseDomain) +
+    labs(x = "5' Gene Expression Percentile", y = "3' Expression Percentile") +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          strip.background = element_blank(),
+          panel.grid.minor = element_blank(),
+          strip.text = element_text(size = 12),
+          axis.title = element_text(size = 12),
+          axis.text = element_text(size = 8),
+          axis.ticks = element_blank()) +
+    ggsave(str_c(paper_main, "kinase_expression_correlation.intact.pdf"),
+           height = 5, width = 3, useDingbats = FALSE)
+}
+
+# ==============================================================================
+# Expression correlation of geneA and geneB for 3' intact kinase fusions
+# Written April 2019 -- Supplemental
+# ==============================================================================
+
+geneA <- "CBX7"
+geneB <- "CSNK1E"
+this_fusion = str_c(geneA, "--", geneB)
+
+fusion_samples <- kinases %>% 
+  filter(KinasePos == "3P_KINASE", KinaseDomain == "Intact") %>% 
+  filter(Fusion == this_fusion) %>% 
+  pull(SampleID)
+
+geneA_expr <- expression_primary %>% filter(gene == geneA) %>%
+  select(srr, gene, log10tpm, pct) %>%
+  rename(geneA = gene, geneA_log10tpm = log10tpm, geneA_pct = pct)
+
+geneB_expr <- expression_primary %>% filter(gene == geneB) %>%
+  select(srr, gene, log10tpm, pct) %>%
+  rename(geneB = gene, geneB_log10tpm = log10tpm, geneB_pct = pct)
+
+geneA_geneB_expr <- geneA_expr %>% left_join(geneB_expr, by = "srr") %>%
+  mutate(has_fusion = srr %in% fusion_samples) %>%
+  arrange(has_fusion)
+
+ggplot(geneA_geneB_expr, 
+       aes(x = geneA_pct, y = geneB_pct, color = has_fusion)) +
+  geom_point(shape = 16, size = 2) + 
+  coord_fixed() + 
+  geom_segment(x = 0, xend = 1, y = 0, yend = 1, 
+               linetype = 2, show.legend = FALSE,
+               color = "grey90") +
+  scale_x_continuous(expand = c(0.01, 0.01), limits = c(0,1)) +
+  scale_y_continuous(expand = c(0.01, 0.01), limits = c(0,1)) +
+  scale_color_manual(values = c("grey90", "black")) +
+  labs(x = str_c(geneA, " Expression Percentile"),
+       y = str_c(geneB, " Expression Percentile"),
+       color = str_c(this_fusion, "\nFusion Reported")) +
+  theme_bw() +
+  theme(panel.background = element_blank(),
+        panel.border = element_blank(),
+        panel.grid = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_text(size = 8),
+        axis.title = element_text(size = 10),
+        legend.position = "bottom"
+        ) +
+  ggsave(str_c(paper_supp, "CBX7--CSNK1E.expression.pdf"),
+         width = 4, height = 4, useDingbats = FALSE)
+
+# ==============================================================================
+# NTRK1 fusion structures -- manually create based on agFusion output
+# Written April 2019 -- Main
+# ==============================================================================
+
+structure_tbl <- tribble(~mmrf,          ~fusion,          ~element, ~fill_color, ~exterior_color, ~start, ~stop,   ~class,
+                          1232,     "TPR--NTRK1",             "TPR",           1,               1,      0,   366,   "gene",
+                          1232,     "TPR--NTRK1",           "NTRK1",           2,               1,    366,   764,   "gene",
+                          1232,     "TPR--NTRK1", "Tyrosine Kinase",           4,               2,    480,   749, "domain",
+                          1656,    "TPM3--NTRK1",            "TPM3",           1,               1,      0,   258,   "gene",
+                          1656,    "TPM3--NTRK1",           "NTRK1",           2,               1,    258,   656,   "gene",
+                          1656,    "TPM3--NTRK1",     "Tropomyosin",           3,               2,     49,   258, "domain",
+                          1656,    "TPM3--NTRK1", "Tyrosine Kinase",           4,               2,    372,   641, "domain",
+                          2490, "ARHGEF2--NTRK1",         "ARHGEF2",           1,               1,      0,   962,   "gene",
+                          2490, "ARHGEF2--NTRK1",           "NTRK1",           2,               1,    962,  1307,   "gene",
+                          2490, "ARHGEF2--NTRK1",          "RhoGEF",           3,               2,    239,	 431, "domain",
+                          2490, "ARHGEF2--NTRK1",              "PH",           3,               2,    474,   570, "domain",
+                          2490, "ARHGEF2--NTRK1", "Tyrosine Kinase",           4,               2,   1023,	1292, "domain") %>%
+  mutate(fusion = factor(fusion, levels = c("TPM3--NTRK1", "TPR--NTRK1", "ARHGEF2--NTRK1")),
+         fill_color = factor(fill_color),
+         exterior_color = factor(exterior_color),
+         class = factor(class))
+
+
+ggplot(structure_tbl, aes(xmin = start, xmax = stop, ymin = as.numeric(fusion), ymax = as.numeric(fusion) + 0.5, fill = fill_color, label = element)) +
+  geom_rect(show.legend = FALSE) +
+  scale_fill_manual(values = c("#abd9e9", "#fdae61", "#2c7bb6", "#d7191c")) +
+  scale_color_manual(values = c("#abd9e9", "#fdae61", "#2c7bb6", "#d7191c")) +
+  geom_segment(data = structure_tbl %>% filter(element == "NTRK1"), aes(x = start, xend = start, y = as.numeric(fusion) - 0.05, yend = as.numeric(fusion) + 0.55)) +
+  geom_text(data = structure_tbl %>% filter(class == "gene"), aes(x = start + (stop - start)/2, y = as.numeric(fusion) - 0.05, color = fill_color), size = 4, show.legend = FALSE, fontface = "italic") +
+  geom_text(data = structure_tbl %>% filter(class == "domain"), aes(x = start + (stop - start)/2, y = as.numeric(fusion) + 0.25), size = 4, show.legend = FALSE, color = "white") +
+  facet_wrap(~ fusion, strip.position = "left", scales = "free_y", ncol = 1) +
+  labs(x = "Amino Acid Position", y = NULL) +
+  scale_x_continuous(breaks = seq(0, 1300, 100), position = "bottom", expand = c(0.01, 0.01)) +
+  theme_bw() +
+  theme(panel.background = element_blank(),
+        panel.border = element_blank(),
+        panel.grid = element_blank(),
+        strip.background = element_blank(),
+        strip.text = element_text(size = 10, face = "italic"),
+        axis.text.x = element_text(size = 8),
+        axis.title.x = element_text(size = 10),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank()) + 
+  ggsave(str_c(paper_main, "NTRK1.structures.pdf"), width = 8, height = 4, useDingbats = FALSE)
+
+
