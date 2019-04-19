@@ -37,9 +37,9 @@ fusions_all <- read_tsv("data/fusion_df.txt") %>%
          geneB = str_remove(geneB, "@"))
 fusions_primary <- fusions_all %>% filter(srr %in% samples_primary$srr)
 
-#fusions_hard_all <- read_tsv("data/Hard_Filtered_Fusions.tsv")
-#fusions_hard_primary <- fusions_hard_all %>%
-#  filter(Sample %in% samples_primary$srr)
+fusions_hard_all <- read_tsv("data/Hard_Filtered_Fusions.tsv")
+fusions_hard_primary <- fusions_hard_all %>%
+  filter(Sample %in% samples_primary$srr)
 
 # ==============================================================================
 # Flag and remove potential false positives (significantly undervalidated)
