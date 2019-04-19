@@ -15,7 +15,7 @@ dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 # Steven Foltz (smfoltz@wustl.edu), August 2018
 # ==============================================================================
 
-if (FALSE) {
+if (TRUE) {
   
   # CHANGE TO TRUE ONLY IF YOU NEED TO CREATE TESTING FILE FOR THE FIRST TIME
   recreate_testing_tbl <- FALSE
