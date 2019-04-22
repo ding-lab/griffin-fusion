@@ -876,7 +876,7 @@ if (TRUE) {
               n_validated = sum(!is.na(n_discordant) & n_discordant > 0)) %>% 
     filter(n_not_na > 1) %>%
     mutate(validation_pct = 100*n_validated/n_not_na) %>%
-    filter(n_validated > 1) %>% pull(fusion)
+    filter(n_validated >= 1) %>% pull(fusion)
   
   total_each_fusion <- fusions_primary %>% filter(fusion %in% keep_fusions) %>% 
     group_by(fusion) %>% summarize(total = n())
