@@ -1486,7 +1486,7 @@ if (TRUE) {
     ggsave(str_c(paper_main, "gene_attributes.pdf"), height = 1, width = 8)
   
   fgfr3_whsc1_ymax <- plot_df %>% filter(gene %in% c("FGFR3", "WHSC1")) %>% 
-    pull(log10tpm) %>% max() %>% ceiling()  
+    pull(log10tpm) %>% max() %>% plyr::round_any(accuracy = 0.1, f = ceiling) 
   plot_expression_2d(plot_df,
                      c("WHSC1", "FGFR3"),
                      fusion1 = "IGH--WHSC1",
@@ -1499,14 +1499,81 @@ if (TRUE) {
                      pdf_height = 4,
                      seed = 10, 
                      pretty = TRUE)
+  
 }
+
+# ==============================================================================
+# MYC PVT1 story
+# ==============================================================================
+
+if (TRUE) {
+  myc_pvt1 <- fusions_primary %>% 
+    filter(geneA %in% c("PVT1", "MYC")) %>% 
+    group_by(srr) %>% 
+    summarize(fusion_labels = str_c(fusion, collapse = "\n")) %>% 
+    right_join(plot_df %>% filter(gene == "MYC"), by = "srr") %>% 
+    select(srr, 
+           fusion_labels,
+           log10tpm,
+           cnv_factor,
+           seqfish_Translocation_MYC_8_14) %>%
+    mutate(sv = factor(seqfish_Translocation_MYC_8_14, 
+                       labels = c("No", "Yes", "NA"), exclude = NULL)) %>%
+    mutate(jitter_fusion_labels = 
+             jitter(as.numeric(!is.na(fusion_labels)) + 1, factor = 1)) %>%
+    mutate(involves_PVT1 = str_detect(fusion_labels, pattern = "PVT1"),
+           involves_MYC = str_detect(fusion_labels, pattern = "MYC"),
+           genes_involved = case_when(is.na(involves_PVT1) & is.na(involves_MYC) ~ "None",
+                                      involves_PVT1 == 1 & involves_MYC == 0 ~ "PVT1",
+                                      involves_PVT1 == 0 & involves_MYC == 1 ~ "MYC",
+                                      TRUE ~ "Both")) %>%
+    mutate(genes_involved = factor(genes_involved, 
+                                   levels = c("PVT1", "MYC", "Both", "None"), 
+                                   ordered = TRUE)) %>%
+    arrange(seqfish_Translocation_MYC_8_14)
+  
+  max_myc_expr <- ceiling(max(myc_pvt1$log10tpm))
+  
+  p <- ggplot(myc_pvt1) +
+    coord_flip(expand = c(0.01, 0.01)) +
+    geom_violin(aes(x = !is.na(fusion_labels), y = log10tpm),
+                color = NA,
+                fill = "black",
+                alpha = 0.1) +
+    geom_point(aes(x = jitter_fusion_labels,
+                   y = log10tpm,
+                   color = genes_involved,
+                   shape = sv)) +
+    #scale_color_brewer(palette = "Set2", na.value = "grey50", direction = 1) +
+    scale_color_manual(values = c("#66c2a5", "#fc8d62", "#8da0cb", "grey50")) +
+    scale_y_continuous(limits = c(0, max_myc_expr), position = "right") +
+    scale_shape_manual(values = c(16, 17, 4)) +
+    labs(x = "MYC or PVT1 Fusion",
+         y = "MYC Expression TPM (log10)",
+         color = "Fusion Gene",
+         shape = "t(8;14)") +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.border = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text.y = element_text(angle = 90, hjust = 0.5),
+          legend.position = "bottom")
+    
+  ggsave(str_c(paper_supp, "PVT1_MYC.pdf"), p, width = 8, height = 2)
+  ggsave(str_c(paper_supp, "PVT1_MYC.no_legend.pdf"), 
+         p + guides(shape = FALSE, color = FALSE),
+         width = 4, height = 2)
+}
+
 
 # ==============================================================================
 # Plot expression of oncogenes, tumor suppressors, kinases
 # Written April 2019
 # ==============================================================================
 
-if (TRUE) {
+if (FALSE) {
   plot_df <- bind_rows(fusions_primary %>% filter(geneA_oncogene == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Oncogene", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
                        fusions_primary %>% filter(geneB_oncogene == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Oncogene", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct),
                        fusions_primary %>% filter(geneA_tsg == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Tumor\nSuppressor", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
@@ -1515,7 +1582,7 @@ if (TRUE) {
                        fusions_primary %>% filter(geneB_kinase == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Kinase", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct))
   
   ggplot(data = plot_df, aes(x = geneAB, y = pct)) + 
-    geom_violin(size = 1, color = "grey80", scale = "width") + 
+    geom_violin(color = NA, fill = "black", alpha = 0.1) + 
     geom_jitter(height = 0, width = 0.2, shape = 16) + 
     facet_wrap(~ category, nrow = 1) +
     theme_bw() +
