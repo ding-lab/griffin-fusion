@@ -69,29 +69,23 @@ if (TRUE) {
   coxph_model_Death_list <- list()
   
   fusions_gt2 <- seqfish_clinical_info %>%
-    filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age),
-           !is.na(seqfish_CN_del_17p13),
-           !is.na(seqfish_Translocation_WHSC1_4_14)) %>% 
+    filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
     left_join(fusions_primary, by = "mmrf") %>% 
     filter(!is.na(fusion)) %>%
     select(fusion) %>% 
     group_by(fusion) %>%
     summarize(count = n()) %>% 
-    filter(count > 5) %>% 
+    filter(count > 10) %>% 
     pull(fusion)
   
   genes_gt2 <- bind_rows(seqfish_clinical_info %>%
-                           filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age),
-                                  !is.na(seqfish_CN_del_17p13),
-                                  !is.na(seqfish_Translocation_WHSC1_4_14)) %>% 
+                           filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
                            left_join(fusions_primary, by = "mmrf") %>% 
                            filter(!is.na(fusion)) %>% 
                            select(geneA) %>% 
                            rename("gene" = "geneA"), 
                          seqfish_clinical_info %>%
-                           filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age),
-                                  !is.na(seqfish_CN_del_17p13),
-                                  !is.na(seqfish_Translocation_WHSC1_4_14)) %>% 
+                           filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
                            left_join(fusions_primary, by = "mmrf") %>% 
                            filter(!is.na(fusion)) %>% 
                            select(geneB) %>% 
@@ -99,43 +93,45 @@ if (TRUE) {
     filter(!(gene %in% c("IGH", "IGK", "IGL", "IGHpseudo"))) %>%
     group_by(gene) %>% 
     summarize(count = n()) %>% 
-    filter(count > 5) %>% 
+    filter(count > 10) %>% 
     pull(gene)
   
-  n_tests_fusions <- 2 #length(fusions_gt2)
-  n_tests_genes <- 2 #length(genes_gt2)
+  n_tests_fusions <- 1 #length(fusions_gt2) + length(genes_gt2)
+  n_tests_genes <- 1 #length(fusions_gt2) + length(genes_gt2)
   
   for (this_fusion in fusions_gt2) {
     print(this_fusion)
     
     EFS_tibble <- seqfish_clinical_info %>%
-      filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age),
-             !is.na(seqfish_CN_del_17p13),
-             !is.na(seqfish_Translocation_WHSC1_4_14)) %>% 
+      filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
       left_join(fusions_primary %>% filter(fusion == this_fusion), by = "mmrf") %>% 
-      select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor,
-             seqfish_CN_del_17p13, seqfish_Translocation_WHSC1_4_14) %>% 
+      select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor) %>%
       replace_na(list(fusion = "_None"))
     Death_tibble <- seqfish_clinical_info %>% 
-      filter(!is.na(ISS_Stage), !is.na(D_PT_lstalive), !is.na(Age),
-             !is.na(seqfish_CN_del_17p13),
-             !is.na(seqfish_Translocation_WHSC1_4_14)) %>%
+      filter(!is.na(ISS_Stage), !is.na(D_PT_lstalive), !is.na(Age)) %>%
       rowwise() %>% 
       mutate( time_on_trial = max(D_PT_deathdy, D_PT_lstalive, na.rm = TRUE), 
               death = as.numeric(!is.na(D_PT_deathdy))) %>%
       left_join(fusions_primary %>% filter(fusion == this_fusion), by = "mmrf") %>% 
-      select(mmrf, Age, fusion, ISS_Stage, time_on_trial, death,
-             seqfish_CN_del_17p13, seqfish_Translocation_WHSC1_4_14) %>% 
+      select(mmrf, Age, fusion, ISS_Stage, time_on_trial, death) %>%
       replace_na(list(fusion = "_None"))
     
     if (EFS_tibble %>% pull(fusion) %>% unique() %>% length() > 1) {
-      coxph_model_EFS <- coxph(Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + seqfish_CN_del_17p13 + seqfish_Translocation_WHSC1_4_14 + fusion, data = EFS_tibble)
+      baseline_coxph_model_EFS <- coxph(Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age, data = EFS_tibble)
+      #baseline_AIC <- extractAIC(baseline_coxph_model_EFS)[2]
+      
+      coxph_model_EFS <- coxph(Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fusion, data = EFS_tibble)
+      #model_AIC <- extractAIC(coxph_model_EFS)[2]
+      
       p_value_EFS <- summary(coxph_model_EFS)$coefficients[str_c("fusion", this_fusion), 5]
-      if (p_value_EFS < 0.05/n_tests_fusions) {
+      
+      p_value_model_comparison <- anova(baseline_coxph_model_EFS, coxph_model_EFS)["P(>|Chi|)"][2,1]
+      
+      if (p_value_EFS < 0.05/n_tests_fusions & p_value_model_comparison < 0.05/n_tests_fusions) {
         coxph_model_EFS_list[[this_fusion]] <- coxph_model_EFS
         
         fit <- survfit(Surv(EFS, EFS_censor == 0) ~ fusion, data = EFS_tibble)
-        pdf(str_c(paper_main, this_fusion, "with_legend.pdf"), 
+        pdf(str_c(paper_main, this_fusion, ".EFS.with_legend.pdf"), 
             width = 4, height = 4)
         print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
                          surv.median.line = "hv", pval = TRUE,
@@ -145,7 +141,7 @@ if (TRUE) {
                          ggtheme = theme_survminer(),
                          conf.int.alpha = 0.1))
         dev.off()
-        pdf(str_c(paper_main, this_fusion, "without_legend.pdf"),
+        pdf(str_c(paper_main, this_fusion, ".EFS.without_legend.pdf"),
             width = 4, height = 4)
         print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
                          surv.median.line = "hv", pval = TRUE,
@@ -159,12 +155,13 @@ if (TRUE) {
     }
     
     if (Death_tibble %>% pull(fusion) %>% unique() %>% length() > 1) {
-      coxph_model_Death <- coxph(Surv(time_on_trial, death == 1) ~ ISS_Stage + Age + seqfish_CN_del_17p13 + seqfish_Translocation_WHSC1_4_14 + fusion, data = Death_tibble)
+      coxph_model_Death <- coxph(Surv(time_on_trial, death == 1) ~ ISS_Stage + Age + fusion, data = Death_tibble) #seqfish_CN_del_17p13 + seqfish_Translocation_WHSC1_4_14, data = Death_tibble)
       p_value_Death <- summary(coxph_model_Death)$coefficients[str_c("fusion", this_fusion), 5]
       if (p_value_Death < 0.05/n_tests_fusions) {
         coxph_model_Death_list[[this_fusion]] <- coxph_model_Death
+        
         fit <- survfit(Surv(time_on_trial, death == 1) ~ fusion, data = Death_tibble)
-        pdf(str_c(paper_main, this_fusion, "with_legend.pdf"), 
+        pdf(str_c(paper_main, this_fusion, ".Death.with_legend.pdf"), 
             width = 4, height = 4)
         print(ggsurvplot(fit, data = Death_tibble, conf.int = TRUE,
                          surv.median.line = "hv", pval = TRUE,
@@ -174,7 +171,7 @@ if (TRUE) {
                          ggtheme = theme_survminer(),
                          conf.int.alpha = 0.1))
         dev.off()
-        pdf(str_c(paper_main, this_fusion, "without_legend.pdf"),
+        pdf(str_c(paper_main, this_fusion, ".Death.without_legend.pdf"),
             width = 4, height = 4)
         print(ggsurvplot(fit, data = Death_tibble, conf.int = TRUE,
                          surv.median.line = "hv", pval = TRUE,
@@ -192,40 +189,84 @@ if (TRUE) {
     print(this_gene)
     
     EFS_tibble <- seqfish_clinical_info %>%
-      filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age),
-             !is.na(seqfish_CN_del_17p13),
-             !is.na(seqfish_Translocation_WHSC1_4_14)) %>% 
+      filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>% #,
+             #!is.na(seqfish_CN_del_17p13),
+             #!is.na(seqfish_Translocation_WHSC1_4_14)) %>% 
       left_join(fusions_primary %>% filter(geneA == this_gene | geneB == this_gene), by = "mmrf") %>% 
-      select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor,
-             seqfish_CN_del_17p13, seqfish_Translocation_WHSC1_4_14) %>%
+      select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor) %>% #,
+             #seqfish_CN_del_17p13, seqfish_Translocation_WHSC1_4_14) %>%
       mutate(gene = case_when(is.na(fusion) ~ "_None", 
                               TRUE ~ this_gene))
     Death_tibble <- seqfish_clinical_info %>% 
-      filter(!is.na(ISS_Stage), !is.na(D_PT_lstalive), !is.na(Age),
-             !is.na(seqfish_CN_del_17p13),
-             !is.na(seqfish_Translocation_WHSC1_4_14)) %>%
+      filter(!is.na(ISS_Stage), !is.na(D_PT_lstalive), !is.na(Age)) %>% #,
+             #!is.na(seqfish_CN_del_17p13),
+             #!is.na(seqfish_Translocation_WHSC1_4_14)) %>%
       rowwise() %>% 
       mutate( time_on_trial = max(D_PT_deathdy, D_PT_lstalive, na.rm = TRUE), 
               death = as.numeric(!is.na(D_PT_deathdy))) %>%
       left_join(fusions_primary %>% filter(geneA == this_gene | geneB == this_gene), by = "mmrf") %>% 
-      select(mmrf, Age, fusion, ISS_Stage, time_on_trial, death,
-             seqfish_CN_del_17p13, seqfish_Translocation_WHSC1_4_14) %>% 
+      select(mmrf, Age, fusion, ISS_Stage, time_on_trial, death) %>% #,
+             #seqfish_CN_del_17p13, seqfish_Translocation_WHSC1_4_14) %>% 
       mutate(gene = case_when(is.na(fusion) ~ "_None", 
                               TRUE ~ this_gene))
     
     if (EFS_tibble %>% pull(gene) %>% unique() %>% length() > 1) {
-      coxph_model_EFS <- coxph(Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + seqfish_CN_del_17p13 + seqfish_Translocation_WHSC1_4_14 + gene, data = EFS_tibble)
+      coxph_model_EFS <- coxph(Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + gene, data = EFS_tibble) #seqfish_CN_del_17p13 + seqfish_Translocation_WHSC1_4_14, data = EFS_tibble)
       p_value_EFS <- summary(coxph_model_EFS)$coefficients[str_c("gene", this_gene), 5]
       if (p_value_EFS < 0.05/n_tests_genes) {
         coxph_model_EFS_list[[this_gene]] <- coxph_model_EFS
+        
+        fit <- survfit(Surv(EFS, EFS_censor == 0) ~ gene, data = EFS_tibble)
+        pdf(str_c(paper_main, this_gene, ".EFS.with_legend.pdf"), 
+            width = 4, height = 4)
+        print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
+                         surv.median.line = "hv", pval = TRUE,
+                         legend.labs = c("No Fusion", str_c(this_gene, " Fusion")),
+                         legend = "right",
+                         xlab = "Time (days)", ylab = "Event-Free Survival Probability",
+                         ggtheme = theme_survminer(),
+                         conf.int.alpha = 0.1))
+        dev.off()
+        pdf(str_c(paper_main, this_gene, ".EFS.without_legend.pdf"),
+            width = 4, height = 4)
+        print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
+                         surv.median.line = "hv", pval = TRUE,
+                         legend.labs = c("No Fusion", str_c(this_gene, " Fusion")),
+                         legend = "none",
+                         xlab = "Time (days)", ylab = "Event-Free Survival Probability",
+                         ggtheme = theme_survminer(),
+                         conf.int.alpha = 0.1))
+        dev.off()
       }
     }
     
     if (Death_tibble %>% pull(gene) %>% unique() %>% length() > 1) {
-      coxph_model_Death <- coxph(Surv(time_on_trial, death == 1) ~ ISS_Stage + Age + seqfish_CN_del_17p13 + seqfish_Translocation_WHSC1_4_14 + gene, data = Death_tibble)
+      coxph_model_Death <- coxph(Surv(time_on_trial, death == 1) ~ ISS_Stage + Age + gene, data = Death_tibble) #seqfish_CN_del_17p13 + seqfish_Translocation_WHSC1_4_14, data = Death_tibble)
       p_value_Death <- summary(coxph_model_Death)$coefficients[str_c("gene", this_gene), 5]
       if (p_value_Death < 0.05/n_tests_genes) {
         coxph_model_Death_list[[this_gene]] <- coxph_model_Death
+        
+        fit <- survfit(Surv(time_on_trial, death == 1) ~ gene, data = Death_tibble)
+        pdf(str_c(paper_main, this_gene, ".Death.with_legend.pdf"), 
+            width = 4, height = 4)
+        print(ggsurvplot(fit, data = Death_tibble, conf.int = TRUE,
+                         surv.median.line = "hv", pval = TRUE,
+                         legend.labs = c("No Fusion", str_c(this_gene, " Fusion")),
+                         legend = "right",
+                         xlab = "Time (days)", ylab = "Overall Survival Probability",
+                         ggtheme = theme_survminer(),
+                         conf.int.alpha = 0.1))
+        dev.off()
+        pdf(str_c(paper_main, this_gene, ".Death.without_legend.pdf"),
+            width = 4, height = 4)
+        print(ggsurvplot(fit, data = Death_tibble, conf.int = TRUE,
+                         surv.median.line = "hv", pval = TRUE,
+                         legend.labs = c("No Fusion", str_c(this_gene, " Fusion")),
+                         legend = "none",
+                         xlab = "Time (days)", ylab = "Overall Survival Probability",
+                         ggtheme = theme_survminer(),
+                         conf.int.alpha = 0.1))
+        dev.off()
       }
     }
   }
