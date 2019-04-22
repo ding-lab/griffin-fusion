@@ -369,3 +369,40 @@ if (TRUE) {
     ggsave(str_c(paper_main, "clinical_associations.pdf"), p, width = 8, height = 2, useDingbats = FALSE)
     ggsave(str_c(paper_main, "clinical_associations.no_legend.pdf"), p + guides(color = FALSE), width = 8, height = 2, useDingbats = FALSE)
 }
+
+################################################################################
+# Connection to TCGA cancer fusion calls
+# Written April 2019
+################################################################################
+
+if (TRUE) {
+  x <- fusions_primary %>% 
+    filter(drug_geneA | drug_geneB) %>% 
+    group_by(fusion) %>% 
+    summarize(mmrf_count = n()) %>% ungroup() %>% 
+    left_join(pancan_fusions, by = c("fusion" = "Fusion")) %>% 
+    filter(!is.na(Cancer)) %>% 
+    select(mmrf_count, fusion, Cancer, Sample) %>% 
+    group_by(Cancer) %>% 
+    summarize(count = n(), 
+              mmrf_fusions = str_c(unique(sort(fusion)), collapse = ", "))
+  ggplot(data = x, aes(x = fct_reorder(Cancer, desc(count)), y = count)) +
+    geom_bar(stat = "identity") +
+    geom_text(data = x %>% filter(count == 1), aes(label = mmrf_fusions),
+              color = "black",
+              hjust = 1) +
+    geom_text(data = x %>% filter(count > 1), aes(label = mmrf_fusions),
+              color = "white",
+              hjust = 0) +
+    scale_y_reverse() + 
+    scale_x_discrete(position = "top") +
+    coord_flip(expand = c(0, 0)) +
+    labs(x = NULL, y = NULL) +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          panel.grid = element_blank(),
+          axis.ticks = element_blank()) +
+    ggsave(str_c(paper_main, "TCGA_PanCan_Fusions.pdf"),
+           width = 4, height = 2)
+}
