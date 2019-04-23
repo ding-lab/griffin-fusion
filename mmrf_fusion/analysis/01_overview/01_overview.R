@@ -934,3 +934,18 @@ if (TRUE) {
         text.scale = 1.5, point.size = 3, line.size = 1)
   dev.off()
 }
+
+# ==============================================================================
+# Create a summary table of soft filtering
+# Written April 2019
+# ==============================================================================
+soft_filtered %>% 
+  group_by(FusionName, filter) %>% 
+  summarize(fusion_count = n()) %>% 
+  separate(col = "FusionName", into = c("geneA", "geneB"), sep = "--", remove = FALSE) %>%
+  select(FusionName, geneA,	geneB, fusion_count, filter) %>%
+  arrange(desc(fusion_count), filter) %>% 
+  rename("Fusion Name" = "FusionName", 
+         "Fusion Count" = "fusion_count", 
+         "Filter" = "filter") %>%
+  write_tsv(str_c(paper_supp, "soft_filtering.tsv"))
