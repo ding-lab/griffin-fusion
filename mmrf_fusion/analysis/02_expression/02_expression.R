@@ -1544,7 +1544,7 @@ if (TRUE) {
                    y = log10tpm,
                    color = genes_involved,
                    shape = sv)) +
-    #scale_color_brewer(palette = "Set2", na.value = "grey50", direction = 1) +
+    scale_color_brewer(palette = "Set2", na.value = "grey50", direction = 1) +
     scale_color_manual(values = c("#66c2a5", "#fc8d62", "#8da0cb", "grey50")) +
     scale_y_continuous(limits = c(0, max_myc_expr), position = "right") +
     scale_shape_manual(values = c(16, 17, 4)) +
@@ -1573,7 +1573,7 @@ if (TRUE) {
 # Written April 2019
 # ==============================================================================
 
-if (FALSE) {
+if (TRUE) {
   plot_df <- bind_rows(fusions_primary %>% filter(geneA_oncogene == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Oncogene", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
                        fusions_primary %>% filter(geneB_oncogene == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Oncogene", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct),
                        fusions_primary %>% filter(geneA_tsg == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Tumor\nSuppressor", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
