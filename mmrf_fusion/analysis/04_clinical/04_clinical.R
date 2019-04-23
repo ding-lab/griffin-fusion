@@ -27,11 +27,12 @@ if (TRUE) {
   drug_info <- bind_rows(geneA_drugs, geneB_drugs) %>% filter(Variant %in% c("any", "any ")) %>% 
     mutate(drug_pmid = str_c(Drug_Class, ": ", PubMed.ID)) %>%
     group_by(gene, Effect) %>%
-    summarize(evidence = str_c(sort(unique(as.vector(str_split(str_c(Drug_Class, collapse = ","), pattern = ",", simplify = TRUE)))), collapse = ", "))
+    summarize(evidence = str_c(sort(unique(as.vector(str_split(str_c(Drug_Class, collapse = ","), pattern = ",", simplify = TRUE)))), collapse = ", "),
+              cancer_types = str_c(unique(sort(Disease)), collapse = ", "))
   
   drug_df <- bind_rows(fusions_primary %>% filter(drug_geneA == 1) %>% select(fusion, geneA, srr) %>% rename("gene" = "geneA"),
                        fusions_primary %>% filter(drug_geneB == 1) %>% select(fusion, geneB, srr) %>% rename("gene" = "geneB")) %>%
-    right_join(drug_info, by = "gene") %>% group_by(gene, Effect, evidence) %>%
+    right_join(drug_info, by = "gene") %>% group_by(gene, Effect, evidence, cancer_types) %>%
     summarize(n_fusions = n(), n_samples = length(unique(as.vector(str_split(str_c(srr, collapse = ","), pattern = ",", simplify = TRUE)))), fusions = str_c(fusion, collapse = ", ")) %>% 
     arrange(desc(n_samples))
   drug_df[8, "evidence"] <- "EGFR inhibitor, HER-2 inhibitor"
@@ -56,6 +57,17 @@ if (TRUE) {
           axis.text.y = element_blank(),
           axis.title = element_text(size = 12)) + 
     ggsave(str_c(paper_main, "drug_targets.pdf"), width = 8, height = 4)
+  
+  # Write table of drug evidence
+  drug_df %>% ungroup() %>% 
+    rename("Gene" = "gene", 
+           "Drug_Class" = "evidence", 
+           "Disease" = "cancer_types", 
+           "MMRF_Fusion_Count" = "n_fusions", 
+           "MMRF_Sample_Count" = "n_samples", 
+           "MMRF_Fusions" = "fusions") %>% 
+    write_tsv(path = str_c(paper_supp, "drug_evidence.tsv"))
+  
 }
 
 # ==============================================================================
@@ -383,11 +395,11 @@ if (TRUE) {
     left_join(pancan_fusions, by = c("fusion" = "Fusion")) %>% 
     filter(!is.na(Cancer)) %>% 
     select(mmrf_count, fusion, Cancer, Sample) %>% 
-    group_by(Cancer) %>% 
+    group_by(Cancer, fusion) %>% 
     summarize(count = n(), 
               mmrf_fusions = str_c(unique(sort(fusion)), collapse = ", "))
-  ggplot(data = x, aes(x = fct_reorder(Cancer, desc(count)), y = count)) +
-    geom_bar(stat = "identity") +
+  ggplot(data = x, aes(x = fct_reorder(Cancer, desc(Cancer)), y = count)) +
+    geom_bar(aes(fill = mmrf_fusions), stat = "identity") +
     geom_text(data = x %>% filter(count == 1), aes(label = mmrf_fusions),
               color = "black",
               hjust = 1) +
@@ -405,4 +417,9 @@ if (TRUE) {
           axis.ticks = element_blank()) +
     ggsave(str_c(paper_main, "TCGA_PanCan_Fusions.pdf"),
            width = 4, height = 2)
+  
+  x %>% ungroup() %>%
+    select(Cancer, fusion, count) %>%
+    rename("Fusion" = "fusion", "TCGA_Sample_Count" = "count") %>%
+    write_tsv(str_c(paper_supp, "TCGA_overlap.tsv"))
 }
