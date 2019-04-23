@@ -119,4 +119,20 @@ pancan_fusions <- pancan_fusions[-1,]
 # ==============================================================================
 # DEPO database
 # ==============================================================================
-depo <- read.delim("data/DEPO_final_20170206.txt")
+depo <- read_tsv("data/DEPO_final_20170206.txt")
+
+# ==============================================================================
+# Soft filtering
+# ==============================================================================
+soft_columns <- c("FusionName",	"LeftBreakpoint",	"RightBreakpoint", "Cancer", 
+                  "Sample", "JunctionReadCount", "SpanningFragCount", "FFPM", 
+                  "PROT_FUSION_TYPE", "GTEx", "Callers", "CallerNumber")
+efi <- read_tsv("data/Fusions_EFI.tsv", col_names = soft_columns)
+efi <- efi %>% mutate(filter = "EFI")
+low_count <- read_tsv("data/Fusions_low_count.tsv", col_names = soft_columns)
+low_count <- low_count %>% mutate(filter = "Low Count")
+many_partners <- read_tsv("data/Fusions_with_many_partners.tsv", col_names = soft_columns)
+many_partners <- many_partners %>% mutate(filter = "Many Partners")
+within_300kb <- read_tsv("data/Fusions_within_300kb.tsv", col_names = soft_columns)
+within_300kb <- within_300kb %>% mutate(filter = "Within 300Kb")
+soft_filtered <- bind_rows(efi, low_count, many_partners, within_300kb)
