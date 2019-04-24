@@ -929,7 +929,7 @@ if (TRUE) {
                     shape = translocation_formatted)
     }
     
-    p <- p + ggplot2_standard_additions()
+    p <- p + theme_bw()
     
     if (pretty) { 
       p <- p + theme(legend.position = "bottom",
@@ -1137,9 +1137,10 @@ if (TRUE) {
                      legend.position = "bottom",
                      legend.text = element_text(size = 8),
                      legend.title = element_text(size = 10),
-                     axis.title = element_text(size = 12)) +
-        #guides(shape = FALSE, color = FALSE) +
-        scale_color_brewer(palette = "Oranges", direction = -1)
+                     axis.title = element_text(size = 12),
+                     axis.text = element_text(size = 8)) +
+        #scale_color_brewer(palette = "Oranges", direction = -1) +
+        scale_color_manual(values = c("#D9565C", "#F28A8A"))
         
     }
     
@@ -1464,7 +1465,7 @@ if (TRUE) {
   plot_fusion_expression_1d(plot_df, overexpressed_interesting_genes, 
                             ymax_value = interesting_ymax, 
                             pdf_path = str_c(paper_main, "overexpressed_interesting.pdf"), 
-                            pdf_width = 8, 
+                            pdf_width = 7.25, 
                             pdf_height = 4,
                             nrows = 1, 
                             pretty = TRUE)
@@ -1483,7 +1484,7 @@ if (TRUE) {
           axis.ticks = element_blank(),
           axis.text.y = element_text(size = 10, color = "grey50"),
           panel.grid.major = element_line(size = 0.1)) +
-    ggsave(str_c(paper_main, "gene_attributes.pdf"), height = 1, width = 8)
+    ggsave(str_c(paper_main, "gene_attributes.pdf"), height = 1, width = 7.25)
   
   fgfr3_whsc1_ymax <- plot_df %>% filter(gene %in% c("FGFR3", "WHSC1")) %>% 
     pull(log10tpm) %>% max() %>% plyr::round_any(accuracy = 0.1, f = ceiling) 
@@ -1495,8 +1496,8 @@ if (TRUE) {
                      translocation_formatted = "t(4;14)",
                      ymax_value = fgfr3_whsc1_ymax,
                      pdf_path = str_c(paper_main, "FGFR3_WHSC1_t414.pdf"),
-                     pdf_width = 4,
-                     pdf_height = 4,
+                     pdf_width = 3.5,
+                     pdf_height = 3.5,
                      seed = 10, 
                      pretty = TRUE)
   
@@ -1508,72 +1509,60 @@ if (TRUE) {
 
 if (TRUE) {
   myc_pvt1 <- fusions_primary %>% 
-    filter(geneA %in% c("PVT1", "MYC")) %>% 
+    filter(geneA %in% c("PVT1", "MYC"), geneB == "IGL") %>% 
     group_by(srr) %>% 
     summarize(fusion_labels = str_c(fusion, collapse = "\n")) %>% 
     right_join(plot_df %>% filter(gene == "MYC"), by = "srr") %>% 
-    select(srr, 
-           fusion_labels,
-           log10tpm,
-           cnv_factor,
-           seqfish_Translocation_MYC_8_14) %>%
-    mutate(sv = factor(seqfish_Translocation_MYC_8_14, 
-                       labels = c("No", "Yes", "NA"), exclude = NULL)) %>%
+    select(fusion_labels, log10tpm) %>%
     mutate(jitter_fusion_labels = 
-             jitter(as.numeric(!is.na(fusion_labels)) + 1, factor = 1)) %>%
-    mutate(involves_PVT1 = str_detect(fusion_labels, pattern = "PVT1"),
-           involves_MYC = str_detect(fusion_labels, pattern = "MYC"),
-           genes_involved = case_when(is.na(involves_PVT1) & is.na(involves_MYC) ~ "None",
-                                      involves_PVT1 == 1 & involves_MYC == 0 ~ "PVT1",
-                                      involves_PVT1 == 0 & involves_MYC == 1 ~ "MYC",
-                                      TRUE ~ "Both")) %>%
-    mutate(genes_involved = factor(genes_involved, 
-                                   levels = c("PVT1", "MYC", "Both", "None"), 
-                                   ordered = TRUE)) %>%
-    arrange(seqfish_Translocation_MYC_8_14)
+             jitter(as.numeric(!is.na(fusion_labels)) + 1, factor = 1),
+           fusion_labels = replace_na(fusion_labels, "Neither\nReported")) %>%
+    mutate(fusion_labels = factor(fusion_labels, levels = c("MYC--IGL", 
+                                                            "PVT1--IGL", 
+                                                            "Neither\nReported"), 
+                                  ordered = TRUE))
   
   max_myc_expr <- ceiling(max(myc_pvt1$log10tpm))
   
   p <- ggplot(myc_pvt1) +
     coord_flip(expand = c(0.01, 0.01)) +
-    geom_violin(aes(x = !is.na(fusion_labels), y = log10tpm),
+    geom_violin(aes(x = str_detect(fusion_labels, "IGL"), y = log10tpm),
                 color = NA,
                 fill = "black",
                 alpha = 0.1) +
     geom_point(aes(x = jitter_fusion_labels,
                    y = log10tpm,
-                   color = genes_involved,
-                   shape = sv)) +
-    scale_color_brewer(palette = "Set2", na.value = "grey50", direction = 1) +
-    scale_color_manual(values = c("#66c2a5", "#fc8d62", "#8da0cb", "grey50")) +
+                   color = fusion_labels),
+               shape = 16) +
+    scale_color_manual(values = c("#1BB6AF", "#088BBE", "#172869")) +
     scale_y_continuous(limits = c(0, max_myc_expr), position = "right") +
-    scale_shape_manual(values = c(16, 17, 4)) +
-    labs(x = "MYC or PVT1 Fusion",
+    labs(x = NULL,
          y = "MYC Expression TPM (log10)",
-         color = "Fusion Gene",
-         shape = "t(8;14)") +
+         color = "Fusion Gene") +
     theme_bw() +
     theme(panel.background = element_blank(),
           panel.grid.minor = element_blank(),
           panel.grid.major.x = element_blank(),
           panel.border = element_blank(),
           axis.ticks = element_blank(),
-          axis.text.y = element_text(angle = 90, hjust = 0.5),
-          legend.position = "bottom")
+          axis.text.y = element_blank(),
+          legend.position = "bottom",
+          legend.direction = "vertical",
+          axis.text.x = element_text(size = 8),
+          axis.title = element_text(size = 12))
     
-  ggsave(str_c(paper_supp, "PVT1_MYC.pdf"), p, width = 8, height = 2)
-  ggsave(str_c(paper_supp, "PVT1_MYC.no_legend.pdf"), 
+  ggsave(str_c(paper_main, "PVT1_MYC.pdf"), p, width = 8, height = 2)
+  ggsave(str_c(paper_main, "PVT1_MYC.no_legend.pdf"), 
          p + guides(shape = FALSE, color = FALSE),
-         width = 4, height = 2)
+         width = 3.5, height = 1.75)
 }
-
 
 # ==============================================================================
 # Plot expression of oncogenes, tumor suppressors, kinases
 # Written April 2019
 # ==============================================================================
 
-if (TRUE) {
+if (FALSE) {
   plot_df <- bind_rows(fusions_primary %>% filter(geneA_oncogene == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Oncogene", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
                        fusions_primary %>% filter(geneB_oncogene == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Oncogene", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct),
                        fusions_primary %>% filter(geneA_tsg == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Tumor\nSuppressor", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
@@ -1604,5 +1593,5 @@ if (TRUE) {
           strip.text = element_text(size = 10)
           ) +
     ggsave(str_c(paper_main, "kinase_oncogene_tsg.pdf"),
-           width = 4, height = 4, useDingbats = FALSE)
+           width = 3.5, height = 1.75, useDingbats = FALSE)
 }

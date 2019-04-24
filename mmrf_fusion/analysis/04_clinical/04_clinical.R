@@ -56,7 +56,7 @@ if (TRUE) {
           axis.text.x = element_text(size = 8),
           axis.text.y = element_blank(),
           axis.title = element_text(size = 12)) + 
-    ggsave(str_c(paper_main, "drug_targets.pdf"), width = 8, height = 4)
+    ggsave(str_c(paper_main, "drug_targets.pdf"), width = 7.25, height = 7.25/1.618, useDingbats = FALSE)
   
   # Write table of drug evidence
   drug_df %>% ungroup() %>% 
@@ -136,28 +136,6 @@ if (TRUE) {
       
       if (p_value_EFS < 0.05/n_tests_fusions & p_value_model_comparison < 0.05/n_tests_fusions) {
         coxph_model_EFS_list[[this_fusion]] <- coxph_model_EFS
-        
-        fit <- survfit(Surv(EFS, EFS_censor == 0) ~ fusion, data = EFS_tibble)
-        pdf(str_c(paper_main, this_fusion, ".EFS.with_legend.pdf"), 
-            width = 4, height = 4)
-        print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
-                         surv.median.line = "hv", pval = TRUE,
-                         legend.labs = c("No Fusion", str_c(this_fusion, " Fusion")),
-                         legend = "right",
-                         xlab = "Time (days)", ylab = "Event-Free Survival Probability",
-                         ggtheme = theme_survminer(),
-                         conf.int.alpha = 0.1))
-        dev.off()
-        pdf(str_c(paper_main, this_fusion, ".EFS.without_legend.pdf"),
-            width = 4, height = 4)
-        print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
-                         surv.median.line = "hv", pval = TRUE,
-                         legend.labs = c("No Fusion", str_c(this_fusion, " Fusion")),
-                         legend = "none",
-                         xlab = "Time (days)", ylab = "Event-Free Survival Probability",
-                         ggtheme = theme_survminer(),
-                         conf.int.alpha = 0.1))
-        dev.off()
       }
     }
     
@@ -169,28 +147,6 @@ if (TRUE) {
       
       if (p_value_Death < 0.05/n_tests_fusions & p_value_model_comparison < 0.05/n_tests_fusions) {
         coxph_model_Death_list[[this_fusion]] <- coxph_model_Death
-        
-        fit <- survfit(Surv(time_on_trial, death == 1) ~ fusion, data = Death_tibble)
-        pdf(str_c(paper_main, this_fusion, ".Death.with_legend.pdf"), 
-            width = 4, height = 4)
-        print(ggsurvplot(fit, data = Death_tibble, conf.int = TRUE,
-                         surv.median.line = "hv", pval = TRUE,
-                         legend.labs = c("No Fusion", str_c(this_fusion, " Fusion")),
-                         legend = "right",
-                         xlab = "Time (days)", ylab = "Overall Survival Probability",
-                         ggtheme = theme_survminer(),
-                         conf.int.alpha = 0.1))
-        dev.off()
-        pdf(str_c(paper_main, this_fusion, ".Death.without_legend.pdf"),
-            width = 4, height = 4)
-        print(ggsurvplot(fit, data = Death_tibble, conf.int = TRUE,
-                         surv.median.line = "hv", pval = TRUE,
-                         legend.labs = c("No Fusion", str_c(this_fusion, " Fusion")),
-                         legend = "none",
-                         xlab = "Time (days)", ylab = "Overall Survival Probability",
-                         ggtheme = theme_survminer(),
-                         conf.int.alpha = 0.1))
-        dev.off()
       }
       }
     }
@@ -222,28 +178,6 @@ if (TRUE) {
       
       if (p_value_EFS < 0.05/n_tests_fusions & p_value_model_comparison < 0.05/n_tests_fusions) {
         coxph_model_EFS_list[[this_gene]] <- coxph_model_EFS
-        
-        fit <- survfit(Surv(EFS, EFS_censor == 0) ~ gene, data = EFS_tibble)
-        pdf(str_c(paper_main, this_gene, ".EFS.with_legend.pdf"), 
-            width = 4, height = 4)
-        print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
-                         surv.median.line = "hv", pval = TRUE,
-                         legend.labs = c("No Fusion", str_c(this_gene, " Fusion")),
-                         legend = "right",
-                         xlab = "Time (days)", ylab = "Event-Free Survival Probability",
-                         ggtheme = theme_survminer(),
-                         conf.int.alpha = 0.1))
-        dev.off()
-        pdf(str_c(paper_main, this_gene, ".EFS.without_legend.pdf"),
-            width = 4, height = 4)
-        print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
-                         surv.median.line = "hv", pval = TRUE,
-                         legend.labs = c("No Fusion", str_c(this_gene, " Fusion")),
-                         legend = "none",
-                         xlab = "Time (days)", ylab = "Event-Free Survival Probability",
-                         ggtheme = theme_survminer(),
-                         conf.int.alpha = 0.1))
-        dev.off()
       }
     }
     
@@ -255,34 +189,157 @@ if (TRUE) {
       
       if (p_value_Death < 0.05/n_tests_fusions & p_value_model_comparison < 0.05/n_tests_fusions) {
         coxph_model_Death_list[[this_gene]] <- coxph_model_Death
-        
-        fit <- survfit(Surv(time_on_trial, death == 1) ~ gene, data = Death_tibble)
-        pdf(str_c(paper_main, this_gene, ".Death.with_legend.pdf"), 
-            width = 4, height = 4)
-        print(ggsurvplot(fit, data = Death_tibble, conf.int = TRUE,
-                         surv.median.line = "hv", pval = TRUE,
-                         legend.labs = c("No Fusion", str_c(this_gene, " Fusion")),
-                         legend = "right",
-                         xlab = "Time (days)", ylab = "Overall Survival Probability",
-                         ggtheme = theme_survminer(),
-                         conf.int.alpha = 0.1))
-        dev.off()
-        pdf(str_c(paper_main, this_gene, ".Death.without_legend.pdf"),
-            width = 4, height = 4)
-        print(ggsurvplot(fit, data = Death_tibble, conf.int = TRUE,
-                         surv.median.line = "hv", pval = TRUE,
-                         legend.labs = c("No Fusion", str_c(this_gene, " Fusion")),
-                         legend = "none",
-                         xlab = "Time (days)", ylab = "Overall Survival Probability",
-                         ggtheme = theme_survminer(),
-                         conf.int.alpha = 0.1))
-        dev.off()
       }
     }
   }
   
   print(coxph_model_EFS_list %>% names())
   print(coxph_model_Death_list %>% names())
+  
+  # Make EFS survival figures for IGH--WHSC1 and PVT1--IGL/MYC--IGL
+  plot_survival_list <- list()
+  
+  #IGH--WHSC1
+  EFS_tibble <- seqfish_clinical_info %>%
+    filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
+    left_join(fusions_primary %>% filter(fusion == "IGH--WHSC1"), by = "mmrf") %>% 
+    select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor) %>%
+    replace_na(list(fusion = "_None"))
+  
+  plot_survival_list[["base_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age, data = EFS_tibble)
+  plot_survival_list[["WHSC1_fusion_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fusion, data = EFS_tibble)
+  plot_survival_list[["anova_WHSC1_fusion_EFS"]] <- anova(plot_survival_list[["base_EFS"]], plot_survival_list[["WHSC1_fusion_EFS"]]) # Significant
+  
+  Death_tibble <- seqfish_clinical_info %>% 
+    filter(!is.na(ISS_Stage), !is.na(D_PT_lstalive), !is.na(Age)) %>%
+    rowwise() %>% 
+    mutate( time_on_trial = max(D_PT_deathdy, D_PT_lstalive, na.rm = TRUE), 
+            death = as.numeric(!is.na(D_PT_deathdy))) %>%
+    left_join(fusions_primary %>% filter(fusion == "IGH--WHSC1"), by = "mmrf") %>% 
+    select(mmrf, Age, fusion, ISS_Stage, time_on_trial, death) %>%
+    replace_na(list(fusion = "_None"))
+  
+  plot_survival_list[["base_Death"]] <- coxph(formula = Surv(time_on_trial, death == 1) ~ ISS_Stage + Age, data = Death_tibble)
+  plot_survival_list[["WHSC1_fusion_Death"]] <- coxph(formula = Surv(time_on_trial, death == 1) ~ ISS_Stage + Age + fusion, data = Death_tibble)
+  plot_survival_list[["anova_WHSC1_fusion_Death"]] <- anova(plot_survival_list[["base_Death"]], plot_survival_list[["WHSC1_fusion_Death"]]) # Significant
+  
+  fit <- survfit(Surv(EFS, EFS_censor == 0) ~ fusion, data = EFS_tibble)
+  pdf(str_c(paper_main, "WHSC1.EFS.with_legend.pdf"),
+      width = 3.5, height = 3.5, useDingbats = FALSE)
+  print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("No Fusion", str_c("IGH--WHSC1", " Fusion")),
+                   legend = "right", 
+                   xlab = "Time (days)", 
+                   ylab = "Event-Free Survival Probability",
+                   ggtheme = theme_survminer(),
+                   conf.int.alpha = 0.1))
+  dev.off()
+  pdf(str_c(paper_main, "WHSC1.EFS.without_legend.pdf"),
+      width = 3.5, height = 3.5, useDingbats = FALSE)
+  print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("No Fusion", str_c("IGH--WHSC1", " Fusion")),
+                   legend = "none",
+                   xlab = "Time (days)", 
+                   ylab = "Event-Free Survival Probability",
+                   ggtheme = theme_survminer(),
+                   conf.int.alpha = 0.1))
+  dev.off()
+  
+  fit <- survfit(Surv(time_on_trial, death == 1) ~ fusion, data = Death_tibble)
+  pdf(str_c(paper_supp, "WHSC1.Death.with_legend.pdf"),
+      width = 3.5, height = 3.5, useDingbats = FALSE)
+  print(ggsurvplot(fit, data = Death_tibble, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("No Fusion", str_c("IGH--WHSC1", " Fusion")),
+                   legend = "right", 
+                   xlab = "Time (days)", 
+                   ylab = "Overall Survival Probability",
+                   ggtheme = theme_survminer(),
+                   conf.int.alpha = 0.1))
+  dev.off()
+  pdf(str_c(paper_supp, "WHSC1.Death.without_legend.pdf"),
+      width = 3.5, height = 3.5, useDingbats = FALSE)
+  print(ggsurvplot(fit, data = Death_tibble, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("No Fusion", str_c("IGH--WHSC1", " Fusion")),
+                   legend = "none",
+                   xlab = "Time (days)", 
+                   ylab = "Overall Survival Probability",
+                   ggtheme = theme_survminer(),
+                   conf.int.alpha = 0.1))
+  dev.off()
+  
+  #PVT1--IGL MYC--IGL
+  EFS_tibble <- seqfish_clinical_info %>%
+    filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
+    left_join(fusions_primary %>% filter(fusion %in% c("PVT1--IGL", "MYC--IGL")), by = "mmrf") %>% 
+    select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor) %>%
+    replace_na(list(fusion = "_None"))
+  
+  plot_survival_list[["PVT1_MYC_fusion_EFS"]] <- fusion_model <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fusion, data = EFS_tibble)
+  plot_survival_list[["anova_PVT1_MYC_fusion_EFS"]] <- anova(plot_survival_list[["base_EFS"]], plot_survival_list[["PVT1_MYC_fusion_EFS"]]) # Significant
+  
+  Death_tibble <- seqfish_clinical_info %>% 
+    filter(!is.na(ISS_Stage), !is.na(D_PT_lstalive), !is.na(Age)) %>%
+    rowwise() %>% 
+    mutate( time_on_trial = max(D_PT_deathdy, D_PT_lstalive, na.rm = TRUE), 
+            death = as.numeric(!is.na(D_PT_deathdy))) %>%
+    left_join(fusions_primary %>% filter(fusion %in% c("PVT1--IGL", "MYC--IGL")), by = "mmrf") %>% 
+    select(mmrf, Age, fusion, ISS_Stage, time_on_trial, death) %>%
+    replace_na(list(fusion = "_None"))
+  
+  plot_survival_list[["PVT1_MYC_fusion_Death"]] <- fusion_model <- coxph(formula = Surv(time_on_trial, death == 1) ~ ISS_Stage + Age + fusion, data = Death_tibble)
+  plot_survival_list[["anova_PVT1_MYC_fusion_Death"]] <- anova(plot_survival_list[["base_Death"]], plot_survival_list[["PVT1_MYC_fusion_Death"]]) # NOT Significant
+  
+  fit <- survfit(Surv(EFS, EFS_censor == 0) ~ fusion, data = EFS_tibble)
+  pdf(str_c(paper_main, "PVT1_MYC.EFS.with_legend.pdf"),
+      width = 3.5, height = 3.5, useDingbats = FALSE)
+  print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("No Fusion", str_c(c("MYC--IGL", "PVT1--IGL"), " Fusion")),
+                   legend = "right", 
+                   xlab = "Time (days)", 
+                   ylab = "Event-Free Survival Probability",
+                   ggtheme = theme_survminer(),
+                   conf.int.alpha = 0.1))
+  dev.off()
+  pdf(str_c(paper_main, "PVT1_MYC.EFS.without_legend.pdf"),
+      width = 3.5, height = 3.5, useDingbats = FALSE)
+  print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("No Fusion", str_c(c("MYC--IGL", "PVT1--IGL"), " Fusion")),
+                   legend = "none",
+                   xlab = "Time (days)", 
+                   ylab = "Event-Free Survival Probability",
+                   ggtheme = theme_survminer(),
+                   conf.int.alpha = 0.1))
+  dev.off()
+  
+  fit <- survfit(Surv(time_on_trial, death == 1) ~ fusion, data = Death_tibble)
+  pdf(str_c(paper_supp, "PVT1_MYC.Death.with_legend.pdf"),
+      width = 3.5, height = 3.5, useDingbats = FALSE)
+  print(ggsurvplot(fit, data = Death_tibble, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("No Fusion", str_c(c("MYC--IGL", "PVT1--IGL"), " Fusion")),
+                   legend = "right", 
+                   xlab = "Time (days)", 
+                   ylab = "Overall Survival Probability",
+                   ggtheme = theme_survminer(),
+                   conf.int.alpha = 0.1))
+  dev.off()
+  pdf(str_c(paper_supp, "PVT1_MYC.Death.without_legend.pdf"),
+      width = 3.5, height = 3.5, useDingbats = FALSE)
+  print(ggsurvplot(fit, data = Death_tibble, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("No Fusion", str_c(c("MYC--IGL", "PVT1--IGL"), " Fusion")),
+                   legend = "none",
+                   xlab = "Time (days)", 
+                   ylab = "Overall Survival Probability",
+                   ggtheme = theme_survminer(),
+                   conf.int.alpha = 0.1))
+  dev.off()
 }
 
 ################################################################################
@@ -378,8 +435,8 @@ if (TRUE) {
           #panel.grid.major.y = element_blank(),
           axis.ticks = element_blank())
   
-    ggsave(str_c(paper_main, "clinical_associations.pdf"), p, width = 8, height = 2, useDingbats = FALSE)
-    ggsave(str_c(paper_main, "clinical_associations.no_legend.pdf"), p + guides(color = FALSE), width = 8, height = 2, useDingbats = FALSE)
+    ggsave(str_c(paper_supp, "clinical_associations.pdf"), p, width = 7.25, height = 7.25/(2*1.618), useDingbats = FALSE)
+    ggsave(str_c(paper_supp, "clinical_associations.no_legend.pdf"), p + guides(color = FALSE), width = 7.25, height = 7.25/(2*1.618), useDingbats = FALSE)
 }
 
 ################################################################################
@@ -397,28 +454,8 @@ if (TRUE) {
     select(mmrf_count, fusion, Cancer, Sample) %>% 
     group_by(Cancer, fusion) %>% 
     summarize(count = n(), 
-              mmrf_fusions = str_c(unique(sort(fusion)), collapse = ", "))
-  ggplot(data = x, aes(x = fct_reorder(Cancer, desc(Cancer)), y = count)) +
-    geom_bar(aes(fill = mmrf_fusions), stat = "identity") +
-    geom_text(data = x %>% filter(count == 1), aes(label = mmrf_fusions),
-              color = "black",
-              hjust = 1) +
-    geom_text(data = x %>% filter(count > 1), aes(label = mmrf_fusions),
-              color = "white",
-              hjust = 0) +
-    scale_y_reverse() + 
-    scale_x_discrete(position = "top") +
-    coord_flip(expand = c(0, 0)) +
-    labs(x = NULL, y = NULL) +
-    theme_bw() +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank(),
-          panel.grid = element_blank(),
-          axis.ticks = element_blank()) +
-    ggsave(str_c(paper_main, "TCGA_PanCan_Fusions.pdf"),
-           width = 4, height = 2)
-  
-  x %>% ungroup() %>%
+              mmrf_fusions = str_c(unique(sort(fusion)), collapse = ", ")) %>%
+    ungroup() %>%
     select(Cancer, fusion, count) %>%
     rename("Fusion" = "fusion", "TCGA_Sample_Count" = "count") %>%
     write_tsv(str_c(paper_supp, "TCGA_overlap.tsv"))

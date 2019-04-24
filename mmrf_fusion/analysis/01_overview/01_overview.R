@@ -572,13 +572,13 @@ if (TRUE) {
                      data = EFS_tibble)
   
   # Plot survival curve stratified by Stage
-  pdf(str_c(paper_supp, "event_free_survival.pdf"), width = 20, height = 15,
+  pdf(str_c(paper_supp, "event_free_survival.pdf"), width = 7.25, height = 5,
       useDingbats = FALSE)
   print(ggsurvplot(EFS_fit, data = EFS_tibble,  conf.int = TRUE,
              surv.median.line = "hv", pval = TRUE,
              legend.labs = c("ISS Stage I", "ISS Stage II", "ISS Stage III"),
              xlab = "Time (days)",
-             ggtheme = theme_bw(base_size = 20)))
+             ggtheme = theme_survminer()))
   dev.off()
   
   # Some survival stats
@@ -606,12 +606,12 @@ if (TRUE) {
                        data = death_tibble)
   
   # Plot survival curve stratified by Stage
-  pdf(str_c(paper_supp, "overall_survival.pdf"), width = 20, height = 15)
+  pdf(str_c(paper_supp, "overall_survival.pdf"), width = 7.25, height = 5)
   print(ggsurvplot(death_fit, data = death_tibble,  conf.int = TRUE,
              surv.median.line = "hv", pval = TRUE, 
              legend.labs = c("ISS Stage I", "ISS Stage II", "ISS Stage III"),
              xlab = "Time (days)",
-             ggtheme = theme_bw(base_size = 20)))
+             ggtheme = theme_survminer()))
   dev.off()
   
   # Some survival stats
@@ -726,7 +726,9 @@ if (TRUE) {
     pull(fusion)
   
   # plot it 
-  keep_these_mmrfs <- fusions_all %>% filter(fusion %in% fusions_with_important_genes, has_secondary) %>% pull(mmrf) %>% unique()
+  keep_these_mmrfs <- fusions_all %>% 
+    filter(fusion %in% fusions_with_important_genes, has_secondary) %>% 
+    pull(mmrf) %>% unique()
   
   keep_these_srrs <- samples_all %>% group_by(mmrf) %>% summarize(n()) %>% 
     filter(`n()` > 1) %>% 
@@ -761,7 +763,7 @@ if (TRUE) {
     scale_x_discrete(drop = FALSE) +
     labs(y = "Sample Number", x = NULL, fill = "Scaled FFPM") +
     ggsave(str_c(paper_supp, "multiple_timepoints.pdf"),
-         device = "pdf", width = 8.5, height = 11, useDingbats = FALSE)
+         device = "pdf", width = 7.5, height = 9, useDingbats = FALSE)
 }
 
 # ==============================================================================
@@ -844,23 +846,27 @@ if (TRUE) {
          y = "Sample Density",
          color = "Hyperdiploid Category") +
     scale_color_brewer(palette = "Set2") +
-    ggplot2_standard_additions() +
+    theme_bw() +
     xlim(plot_df %>% pull(n_fusions) %>% min(),
          plot_df %>% pull(n_fusions) %>% max()) +
     scale_y_continuous() +
     annotation_custom(tableGrob(n_fusion_all, rows = NULL, 
                                 cols = c("HRD Status", "Median", "Mean", "Max"),
                                 theme = ttheme_default(core = list(fg_params = list(col = matrix(c("#66c2a5", "#fc8d62", "#8da0cb", rep("#000000", 13)), nrow = 4, byrow = FALSE),
-                                                                                    fontface = matrix(rep(c("bold", "plain", "plain", "plain"), 4), nrow = 4, byrow = TRUE))))),
+                                                                                    fontface = matrix(rep(c("bold", "plain", "plain", "plain"), 4), nrow = 4, byrow = TRUE),
+                                                                                    fontsize = 10)), 
+                                                       colhead = list(fg_params = list( fontsize = 12)))),
                       xmax = 80, ymax = 0.25) + 
     theme(panel.background = element_blank(),
           panel.grid = element_blank(),
           panel.border = element_blank(),
           axis.ticks.x = element_blank(),
           axis.text.y = element_blank(),
-          axis.ticks.y = element_blank()) +
+          axis.ticks.y = element_blank(),
+          axis.title = element_text(size = 12),
+          axis.text.x = element_text(size = 8)) +
     ggsave(str_c(paper_main, "freqpoly_n_fusions_per_sample.pdf"), 
-           device = "pdf", width = 6, height = 3, useDingbats = FALSE)
+           device = "pdf", width = 5, height = 5/1.618, useDingbats = FALSE)
   
 }
 
@@ -891,12 +897,12 @@ if (TRUE) {
   
   plot_df <- total_each_fusion %>% left_join(total_by_status, by = "fusion")
   
-  ggplot(data = plot_df, aes(x = fct_reorder(fusion, total), 
+  p <- ggplot(data = plot_df, aes(x = fct_reorder(fusion, total), 
                              y = count, 
                              fill = validation_status)) + 
-    geom_bar(stat = "identity") +
+    geom_col() +
     coord_flip(expand = c(0,0)) +
-    ggplot2_standard_additions() +
+    theme_bw() +
     scale_y_continuous(breaks = seq(0, 100, 20),
                        labels = seq(0, 100, 20),
                        position = "right") +
@@ -907,11 +913,18 @@ if (TRUE) {
           panel.grid = element_blank(),
           axis.ticks.x = element_blank(),
           axis.ticks.y = element_blank(),
-          axis.text.y = element_text(face = "italic"),
-          legend.position = "bottom") +
-    labs(x = NULL, fill = NULL, y = "Number of Fusions Detected (per Fusion)") +
-    ggsave(str_c(paper_main, "top_recurrent_validated_fusions.pdf"), 
-           device = "pdf", width = 12, height = 6, useDingbats = FALSE)
+          axis.text.x = element_text(size = 8),
+          axis.title = element_text(size = 12),
+          axis.text.y = element_text(face = "italic", size = 10),
+          legend.position = "bottom",
+          legend.direction = "vertical") +
+    labs(x = NULL, fill = NULL, y = "Number of Fusions Detected (per Fusion)")
+    
+  ggsave(str_c(paper_main, "top_recurrent_validated_fusions.pdf"), p,
+           device = "pdf", width = 7.25, height = 7.25/1.618, useDingbats = FALSE)
+  ggsave(str_c(paper_main, "top_recurrent_validated_fusions.no_legend.pdf"), 
+         p + guides(fill = FALSE), 
+         device = "pdf", width = 7.25, height = 7.25/1.618, useDingbats = FALSE)
   
 }
 

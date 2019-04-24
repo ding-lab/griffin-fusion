@@ -22,7 +22,7 @@ if (TRUE) {
     coord_flip(expand = c(0,0)) +
     labs(y = "Fusion Count", x = "Kinase Group", fill = "Kinase Position") +
     scale_y_continuous(position = "right") +
-    scale_fill_brewer(palette = "Reds",
+    scale_fill_manual(values = c("#bcbddc", "#756bb1"),
                       breaks = c("5P_KINASE", "3P_KINASE"),
                       labels = c("5' Kinase", "3' Kinase")) +
     theme_bw() +
@@ -38,8 +38,11 @@ if (TRUE) {
           axis.title = element_text(size = 12)
           )
   
-  ggsave(str_c(paper_main, "kinase_groups.with_legend.pdf"), p, width = 8, height = 4, useDingbats = FALSE)
-  ggsave(str_c(paper_main, "kinase_groups.without_legend.pdf"), p + guides(fill = FALSE), width = 8, height = 4, useDingbats = FALSE)
+  ggsave(str_c(paper_main, "kinase_groups.with_legend.pdf"), p, 
+         width = 7.25, height = 7.25/1.618, useDingbats = FALSE)
+  ggsave(str_c(paper_main, "kinase_groups.without_legend.pdf"), 
+         p + guides(fill = FALSE), 
+         width = 7.25, height = 7.25/1.618, useDingbats = FALSE)
   
 }
 
@@ -48,7 +51,7 @@ if (TRUE) {
 # Written April 2019
 # ==============================================================================
 
-if (TRUE) {
+if (FALSE) {
   
   cor_tibble <- kinases %>% 
     mutate(kinase_expression = case_when(KinasePos == "5P_KINASE" ~ geneA_pct,
@@ -83,7 +86,7 @@ if (TRUE) {
           axis.text = element_text(size = 8),
           axis.ticks = element_blank()) +
     ggsave(str_c(paper_main, "kinase_expression_correlation.pdf"),
-           height = 4, width = 4, useDingbats = FALSE)
+           height = 3.25, width = 3.25, useDingbats = FALSE)
 }
 
 # ==============================================================================
@@ -181,7 +184,7 @@ ggplot(geneA_geneB_expr,
         legend.position = "bottom"
         ) +
   ggsave(str_c(paper_supp, "CBX7--CSNK1E.expression.pdf"),
-         width = 4, height = 4, useDingbats = FALSE)
+         width = 6, height = 6, useDingbats = FALSE)
 
 # ==============================================================================
 # NTRK1 fusion structures -- manually create based on agFusion output
@@ -207,26 +210,33 @@ structure_tbl <- tribble(~mmrf,          ~fusion,          ~element, ~fill_color
          class = factor(class))
 
 
-ggplot(structure_tbl, aes(xmin = start, xmax = stop, ymin = as.numeric(fusion), ymax = as.numeric(fusion) + 0.5, fill = fill_color, label = element)) +
+ggplot(structure_tbl, aes(xmin = start, 
+                          xmax = stop, 
+                          ymin = as.numeric(fusion), 
+                          ymax = as.numeric(fusion) + 0.25, 
+                          fill = fill_color, 
+                          label = element)) +
   geom_rect(show.legend = FALSE) +
-  scale_fill_manual(values = c("#abd9e9", "#fdae61", "#2c7bb6", "#d7191c")) +
-  scale_color_manual(values = c("#abd9e9", "#fdae61", "#2c7bb6", "#d7191c")) +
-  geom_segment(data = structure_tbl %>% filter(element == "NTRK1"), aes(x = start, xend = start, y = as.numeric(fusion) - 0.05, yend = as.numeric(fusion) + 0.55)) +
-  geom_text(data = structure_tbl %>% filter(class == "gene"), aes(x = start + (stop - start)/2, y = as.numeric(fusion) - 0.05, color = fill_color), size = 4, show.legend = FALSE, fontface = "italic") +
-  geom_text(data = structure_tbl %>% filter(class == "domain"), aes(x = start + (stop - start)/2, y = as.numeric(fusion) + 0.25), size = 4, show.legend = FALSE, color = "white") +
+  scale_fill_manual(values = c("#bdd7e7", "#fcae91", "#2171b5", "#cb181d")) +
+  scale_color_manual(values = c("#bdd7e7", "#fcae91", "#2171b5", "#cb181d")) +
+  geom_segment(data = structure_tbl %>% filter(element == "NTRK1"), aes(x = start, xend = start, y = as.numeric(fusion) - 0.05, yend = as.numeric(fusion) + 0.25 + 0.025)) +
+  geom_text(data = structure_tbl %>% filter(class == "gene"), aes(x = start + (stop - start)/2, y = as.numeric(fusion) - 0.075, color = fill_color), size = 4, show.legend = FALSE, fontface = "italic") +
+  geom_text(data = structure_tbl %>% filter(class == "domain"), aes(x = start + (stop - start)/2, y = as.numeric(fusion) + 0.125), size = 4, show.legend = FALSE, color = "white") +
   facet_wrap(~ fusion, strip.position = "left", scales = "free_y", ncol = 1) +
   labs(x = "Amino Acid Position", y = NULL) +
+  scale_y_continuous(expand = c(0.05, 0.05)) +
   scale_x_continuous(breaks = seq(0, 1300, 100), position = "bottom", expand = c(0.01, 0.01)) +
   theme_bw() +
   theme(panel.background = element_blank(),
         panel.border = element_blank(),
         panel.grid = element_blank(),
         strip.background = element_blank(),
-        strip.text = element_text(size = 10, face = "italic"),
+        strip.text = element_blank(),
         axis.text.x = element_text(size = 8),
-        axis.title.x = element_text(size = 10),
+        axis.title.x = element_text(size = 12),
         axis.text.y = element_blank(),
         axis.ticks = element_blank()) + 
-  ggsave(str_c(paper_main, "NTRK1.structures.pdf"), width = 8, height = 4, useDingbats = FALSE)
+  ggsave(str_c(paper_main, "NTRK1.structures.pdf"), 
+         width = 7.25, height = 7.25/(2*1.618), useDingbats = FALSE)
 
 
