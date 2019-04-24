@@ -1551,10 +1551,10 @@ if (TRUE) {
           axis.text.x = element_text(size = 8),
           axis.title = element_text(size = 12))
     
-  ggsave(str_c(paper_main, "PVT1_MYC.pdf"), p, width = 8, height = 2)
+  ggsave(str_c(paper_main, "PVT1_MYC.pdf"), p, width = 8, height = 2, useDingbats = FALSE)
   ggsave(str_c(paper_main, "PVT1_MYC.no_legend.pdf"), 
          p + guides(shape = FALSE, color = FALSE),
-         width = 3.5, height = 1.75)
+         width = 3.5, height = 1.75, useDingbats = FALSE)
 }
 
 # ==============================================================================
