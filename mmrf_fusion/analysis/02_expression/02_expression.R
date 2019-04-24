@@ -1516,10 +1516,10 @@ if (TRUE) {
     select(fusion_labels, log10tpm) %>%
     mutate(jitter_fusion_labels = 
              jitter(as.numeric(!is.na(fusion_labels)) + 1, factor = 1),
-           fusion_labels = replace_na(fusion_labels, "Neither\nReported")) %>%
+           fusion_labels = replace_na(fusion_labels, "Neither Reported")) %>%
     mutate(fusion_labels = factor(fusion_labels, levels = c("MYC--IGL", 
                                                             "PVT1--IGL", 
-                                                            "Neither\nReported"), 
+                                                            "Neither Reported"), 
                                   ordered = TRUE))
   
   max_myc_expr <- ceiling(max(myc_pvt1$log10tpm))
@@ -1562,7 +1562,7 @@ if (TRUE) {
 # Written April 2019
 # ==============================================================================
 
-if (FALSE) {
+if (TRUE) {
   plot_df <- bind_rows(fusions_primary %>% filter(geneA_oncogene == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Oncogene", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
                        fusions_primary %>% filter(geneB_oncogene == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Oncogene", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct),
                        fusions_primary %>% filter(geneA_tsg == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Tumor\nSuppressor", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
