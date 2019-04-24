@@ -944,8 +944,9 @@ soft_filtered %>%
   summarize(fusion_count = n()) %>% 
   separate(col = "FusionName", into = c("geneA", "geneB"), sep = "--", remove = FALSE) %>%
   select(FusionName, geneA,	geneB, fusion_count, filter) %>%
-  arrange(desc(fusion_count), filter) %>% 
+  bind_rows(undervalidated) %>%
   rename("Fusion Name" = "FusionName", 
          "Fusion Count" = "fusion_count", 
          "Filter" = "filter") %>%
+  arrange(desc(`Fusion Count`), `Filter`) %>%
   write_tsv(str_c(paper_supp, "soft_filtering.tsv"))

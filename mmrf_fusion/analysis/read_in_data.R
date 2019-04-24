@@ -45,8 +45,7 @@ fusions_hard_primary <- fusions_hard_all %>%
 # Flag and remove potential false positives (significantly undervalidated)
 # This REMOVES significantly undervalidated fusions from fusions data frames
 # ==============================================================================
-wgs_discordant_read_validation_rate <- 
-fusions_primary %>% 
+wgs_discordant_read_validation_rate <- fusions_primary %>% 
   filter(!is.na(n_discordant), 
          Overlap != "Overlapping_regions") %>% 
   mutate(validated = n_discordant >= 1) %>%
@@ -62,6 +61,15 @@ significantly_under_validated_fusions <- fusions_primary %>%
   mutate(p_value = pbinom(q = n_validated, size = n, 
                           prob = wgs_discordant_read_validation_rate)) %>% 
   filter(p_value < 0.15) %>% pull(fusion)
+
+undervalidated <- fusions_all %>% 
+  filter(fusion %in% significantly_under_validated_fusions) %>%
+  select(fusion, geneA, geneB) %>%
+  group_by(fusion, geneA, geneB) %>%
+  summarize(fusion_count = n()) %>%
+  ungroup() %>%
+  mutate(filter = "Undervalidated") %>%
+  rename("FusionName" = "fusion")
 
 fusions_all <- fusions_all %>% 
   filter(!(fusion %in% significantly_under_validated_fusions))
