@@ -17,15 +17,15 @@ dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 
 if (TRUE) {
   geneA_drugs <- fusions_primary %>% filter(drug_geneA == 1) %>% select(geneA) %>% unique() %>%
-    left_join(depo, by = c("geneA" = "Gene")) %>% filter(Variant.Type == "Fusion") %>%
+    left_join(depo, by = c("geneA" = "Gene")) %>% filter(`Variant Type` == "Fusion") %>%
     rename("gene" = "geneA")
   
   geneB_drugs <- fusions_primary %>% filter(drug_geneB == 1) %>% select(geneB) %>% unique() %>%
-    left_join(depo, by = c("geneB" = "Gene")) %>% filter(Variant.Type == "Fusion") %>%
+    left_join(depo, by = c("geneB" = "Gene")) %>% filter(`Variant Type` == "Fusion") %>%
     rename("gene" = "geneB")
   
   drug_info <- bind_rows(geneA_drugs, geneB_drugs) %>% filter(Variant %in% c("any", "any ")) %>% 
-    mutate(drug_pmid = str_c(Drug_Class, ": ", PubMed.ID)) %>%
+    mutate(drug_pmid = str_c(Drug_Class, ": ", `PubMed ID`)) %>%
     group_by(gene, Effect) %>%
     summarize(evidence = str_c(sort(unique(as.vector(str_split(str_c(Drug_Class, collapse = ","), pattern = ",", simplify = TRUE)))), collapse = ", "),
               cancer_types = str_c(unique(sort(Disease)), collapse = ", "))
