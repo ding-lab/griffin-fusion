@@ -38,10 +38,10 @@ if (TRUE) {
   drug_df[8, "evidence"] <- "EGFR inhibitor, HER-2 inhibitor"
   
   ggplot(data = drug_df, aes(x = fct_reorder(gene, n_samples), y = n_samples, label = evidence)) +
-    geom_bar(stat = "identity") +
+    geom_col() +
     geom_text(data = drug_df %>% filter(n_samples < 10), color = "black", hjust = 0, nudge_y = 0.1, size = 3) +
     geom_text(data = drug_df %>% filter(n_samples > 10), color = "white", hjust = 1, nudge_y = -0.1, size = 3) +
-    geom_text(aes(label = gene, y = 0), color = "white", hjust = 0, nudge_y = 0.025, fontface = "italic", size = 3) +
+    geom_text(aes(label = gene, y = 0), color = "white", hjust = 0, nudge_y = 0.025, fontface = "italic", size = 2.5) +
     scale_y_continuous(position = "right", breaks = c(0, drug_df %>% pull(n_samples) %>% unique() %>% sort())) +
     coord_flip(expand = c(0, 0)) +
     labs(y = "Patient Count", x = "Target Gene") +
