@@ -18,11 +18,12 @@ dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 if (TRUE) {
   p <- kinases %>% group_by(kinase_group_full_name, KinasePos) %>% summarize(count = n()) %>% ungroup() %>%
     ggplot(aes(x = fct_reorder(kinase_group_full_name, count), fill = KinasePos, y = count)) +
-    geom_bar(stat = "identity", position = "dodge") +
+    #geom_bar(stat = "identity", position = "dodge") +
+    geom_col(position = "dodge") +
     coord_flip(expand = c(0,0)) +
     labs(y = "Fusion Count", x = "Kinase Group", fill = "Kinase Position") +
     scale_y_continuous(position = "right") +
-    scale_fill_manual(values = c("#bcbddc", "#756bb1"),
+    scale_fill_manual(values = c("#addd8e", "#31a354"),
                       breaks = c("5P_KINASE", "3P_KINASE"),
                       labels = c("5' Kinase", "3' Kinase")) +
     theme_bw() +
