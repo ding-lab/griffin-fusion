@@ -839,20 +839,20 @@ if (TRUE) {
   n_fusion_all <- n_fusion_tibble %>% bind_rows(overall_n_fusion_tibble)
   
   plot_df %>% ggplot(aes(x = n_fusions, y = ..density..)) + 
-    geom_freqpoly(aes(color = fct_reorder(hyperdiploid_categories, -count)), 
+    geom_freqpoly(aes(color = fct_reorder(hyperdiploid_categories, count)), 
                   binwidth = 1, center = 0, size = 2, show.legend = FALSE) +
     geom_freqpoly(binwidth = 1, center = 0, size = 2, show.legend = FALSE) +
     labs(x = "Number of Fusions Detected (per Sample)", 
          y = "Sample Density",
          color = "Hyperdiploid Category") +
-    scale_color_brewer(palette = "Set2") +
+    scale_color_brewer(palette = "Paired", direction = -1) +
     theme_bw() +
     xlim(plot_df %>% pull(n_fusions) %>% min(),
          plot_df %>% pull(n_fusions) %>% max()) +
     scale_y_continuous() +
     annotation_custom(tableGrob(n_fusion_all, rows = NULL, 
                                 cols = c("HRD Status", "Median", "Mean", "Max"),
-                                theme = ttheme_default(core = list(fg_params = list(col = matrix(c("#66c2a5", "#fc8d62", "#8da0cb", rep("#000000", 13)), nrow = 4, byrow = FALSE),
+                                theme = ttheme_default(core = list(fg_params = list(col = matrix(c("#a6cee3", "#1f78b4", "#b2df8a", rep("#000000", 13)), nrow = 4, byrow = FALSE),
                                                                                     fontface = matrix(rep(c("bold", "plain", "plain", "plain"), 4), nrow = 4, byrow = TRUE),
                                                                                     fontsize = 10)), 
                                                        colhead = list(fg_params = list( fontsize = 12)))),
@@ -906,7 +906,7 @@ if (TRUE) {
     scale_y_continuous(breaks = seq(0, 100, 20),
                        labels = seq(0, 100, 20),
                        position = "right") +
-    scale_fill_brewer(palette = "Greys",
+    scale_fill_brewer(palette = "Purples",
                       breaks = c("Validated", "Not Validated", "Not Available")) +
     theme(panel.background = element_blank(),
           panel.border = element_blank(),
