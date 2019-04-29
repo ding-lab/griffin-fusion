@@ -240,4 +240,42 @@ ggplot(structure_tbl, aes(xmin = start,
   ggsave(str_c(paper_main, "NTRK1.structures.pdf"), 
          width = 7.25, height = 7.25/(2*1.618), useDingbats = FALSE)
 
+# ==============================================================================
+# 3' intact kinase TCGA overlap
+# Written April 2018 Supplement
+# ==============================================================================
 
+if (TRUE) {
+  plot_df <- kinases %>% 
+    filter(KinasePos == "3P_KINASE", KinaseDomain == "Intact") %>% 
+    group_by(geneB) %>% 
+    summarize(count = n()) %>% 
+    left_join(pancan_fusions %>% 
+                separate(Fusion, into = c("geneA", "geneB"), sep = "--"), 
+              by = "geneB") %>% 
+    group_by(geneB, Cancer) %>% 
+    summarize(count2 = n()) %>%
+    filter(!is.na(Cancer))
+  
+  ggplot(data = plot_df, aes(y = geneB, x = Cancer)) + 
+    geom_tile(aes(fill = factor(count2))) + 
+    geom_text(data = plot_df %>% filter(count2 < 6), aes(label = count2),
+              color = "#000000") +
+    geom_text(data = plot_df %>% filter(count2 >= 6), aes(label = count2),
+              color = "#ffffff") +
+    scale_fill_brewer(palette = "Blues") +
+    labs(x = "TCGA Cancer Type",
+         y = "MMRF 3' Intact Kinase Fusions",
+         fill = "TCGA Samples\nwith Same 3' Fusion") +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = "bottom",
+          axis.text.y = element_text(size = 10, face = "italic"),
+          axis.text.x = element_text(size = 10, angle = 90, vjust = 0.5, hjust = 1),
+          axis.title = element_text(size = 12)) +
+    ggsave(str_c(paper_supp, "TCGA_kinase_fusions.pdf"),
+                 width = 7.5, height = 9)
+  
+}
