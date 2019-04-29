@@ -38,10 +38,10 @@ if (TRUE) {
   drug_df[8, "evidence"] <- "EGFR inhibitor, HER-2 inhibitor"
   
   ggplot(data = drug_df, aes(x = fct_reorder(gene, n_samples), y = n_samples, label = evidence)) +
-    geom_col() +
-    geom_text(data = drug_df %>% filter(n_samples < 10), color = "black", hjust = 0, nudge_y = 0.1, size = 3) +
-    geom_text(data = drug_df %>% filter(n_samples > 10), color = "white", hjust = 1, nudge_y = -0.1, size = 3) +
-    geom_text(aes(label = gene, y = 0), color = "white", hjust = 0, nudge_y = 0.025, fontface = "italic", size = 2.5) +
+    geom_col(fill = "#F28A8A") +
+    geom_text(data = drug_df %>% filter(n_samples < 10), color = "#000000", hjust = 0, nudge_y = 0.1, size = 3) +
+    geom_text(data = drug_df %>% filter(n_samples > 10), color = "#000000", hjust = 1, nudge_y = -0.1, size = 3) +
+    geom_text(aes(label = gene, y = 0), color = "#000000", hjust = 0, nudge_y = 0.025, fontface = "italic", size = 2.5) +
     scale_y_continuous(position = "right", breaks = c(0, drug_df %>% pull(n_samples) %>% unique() %>% sort())) +
     coord_flip(expand = c(0, 0)) +
     labs(y = "Patient Count", x = "Target Gene") +
@@ -459,4 +459,32 @@ if (TRUE) {
     select(Cancer, fusion, count) %>%
     rename("Fusion" = "fusion", "TCGA_Sample_Count" = "count") %>%
     write_tsv(str_c(paper_supp, "TCGA_overlap.tsv"))
+  
+  p <- ggplot(x, aes(x = fct_reorder(Cancer, desc(TCGA_Sample_Count)), 
+                y = TCGA_Sample_Count, 
+                fill = Fusion)) + 
+    geom_col() + 
+    scale_fill_manual(values = c("#1BB6AF", "#088BBE", "#172869")) +
+    theme_bw() +
+    coord_flip() +
+    #labs(x = "TCGA Cancer Type", y = "TCGA Sample Count") +
+    labs(x = NULL, y = "TCGA Sample Count") +
+    scale_y_reverse(expand = c(0.01,0.01)) +
+    scale_x_discrete(position = "top", expand = c(0.01,0.01)) +
+    theme(panel.background = element_blank(),
+          panel.grid = element_blank(), 
+          panel.border = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text.x = element_text(size = 8),
+          axis.text.y = element_text(size = 10),
+          axis.title.x = element_text(size = 12),
+          axis.title.y = element_text(size = 12),
+          legend.position = "bottom",
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10, face = "italic"))
+  
+  ggsave(str_c(paper_main, "TCGA_connection.pdf"), p,
+               width = 10, height = 5)
+  ggsave(str_c(paper_main, "TCGA_connection.no_legend.pdf"), p + guides(fill = FALSE),
+               width = 3.5, height = 3.5/1.618)
 }
