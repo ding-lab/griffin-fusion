@@ -144,3 +144,26 @@ many_partners <- many_partners %>% mutate(filter = "Many Partners")
 within_300kb <- read_tsv("data/Fusions_within_300kb.tsv", col_names = soft_columns)
 within_300kb <- within_300kb %>% mutate(filter = "Within 300Kb")
 soft_filtered <- bind_rows(efi, low_count, many_partners, within_300kb)
+
+# ==============================================================================
+# Mutation calls from Hua
+# ==============================================================================
+mutation_calls <- read_tsv("data/wxs_bm_data.withmutect.merged.maf.rc.caller.renamed.Bone_Marrow.tsv",
+                           col_types = cols_only(Hugo_Symbol = "c",
+                                                 Chromosome	= "n",
+                                                 Start_Position	= "n",
+                                                 End_Position	= "n",
+                                                 Variant_Classification = "c",
+                                                 Variant_Type = "c",
+                                                 Reference_Allele	= "c",
+                                                 Tumor_Seq_Allele1 = "c",
+                                                 Tumor_Seq_Allele2 = "c",
+                                                 Tumor_Sample_Barcode	= "c",
+                                                 Matched_Norm_Sample_Barcode = "c",
+                                                 HGVSc	= "c",
+                                                 HGVSp	= "c",
+                                                 HGVSp_Short = "c",
+                                                 Transcript_ID = "c",
+                                                 t_depth = "n",
+                                                 t_ref_count = "n",
+                                                 t_alt_count = "n"))
