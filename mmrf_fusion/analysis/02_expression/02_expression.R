@@ -1504,6 +1504,104 @@ if (TRUE) {
 }
 
 # ==============================================================================
+# More FGFR3 WHSC1 IGH story
+# Updated April 2019
+# ==============================================================================
+
+if (TRUE) {
+  
+  get_t414 <- function(delly){
+    chr_pos_list <- NULL
+    vector_of_events <- str_split(delly, pattern = "\\*")[[1]]
+    for (event in vector_of_events) {
+      vector_of_sides = str_split(event, pattern = "\\|")[[1]]
+      chr_pos_list <- list()
+      for (side in vector_of_sides) {
+        chr = str_split(side, pattern = "\\:")[[1]][1]
+        pos = str_split(str_split(side, pattern = "\\:")[[1]][2], pattern = "-")[[1]][1]
+        chr_pos_list[[chr]] <- as.numeric(pos)
+      }
+      if (all(sort(names(chr_pos_list)) == c("14", "4")) ) {
+        return(chr_pos_list)
+        break()
+      }
+    }
+    return(list("4" = NA, "14" = NA))
+  }
+  
+  fgfr3_mutations <- mutation_calls %>% 
+    filter(Hugo_Symbol == "FGFR3") %>% 
+    separate(Tumor_Sample_Barcode, 
+             by = "_", 
+             into = c("MMRF", "mmrf", "sample_n")) %>% 
+    filter(sample_n == 1) %>% 
+    mutate(mmrf = str_c(MMRF, "_", mmrf)) %>% 
+    mutate(vaf = t_alt_count/t_depth) %>% select(mmrf, vaf)
+  
+  plot_df <- fusions_primary %>% 
+    filter(fusion == "IGH--WHSC1", !is.na(delly_evidence)) %>% 
+    select(mmrf, fusion, srr, LeftBreakpoint, RightBreakpoint, 
+           chrA, posA, chrB, posB, delly_evidence) %>% 
+    rowwise() %>%
+    mutate(chr4_genome_position = get_t414(as.character(delly_evidence))[["4"]],
+           chr14_genome_position = get_t414(as.character(delly_evidence))[["14"]]) %>%
+    filter(!is.na(chr4_genome_position), !is.na(chr14_genome_position)) %>%
+    left_join(expression_primary %>% 
+                filter(gene == "FGFR3") %>% 
+                select(mmrf, tpm, pct), 
+              by = "mmrf") %>%
+    mutate(high_expression = case_when(log10(tpm + 1) > 1 ~ "FGFR3 Expression High",
+                                       TRUE ~ "FGFR3 Expression Low")) %>%
+    left_join(fgfr3_mutations, by = "mmrf") %>%
+    ungroup()
+  
+  p <- ggplot(plot_df, aes(x = posA/1e6, y = posB/1e6)) + 
+    geom_jitter(aes(color = !is.na(vaf)), shape = 16, alpha = 0.5, size = 5) +
+    geom_point(shape = 16, alpha = 0.5) +
+    facet_wrap(~ high_expression, nrow = 1) +
+    labs(x = "IGH Fusion Breakpoint (chr14 Mb)", 
+         y = "WHSC1 Fusion Breakpoint (chr4 Mb)",
+         color = "FGFR3 Mutant") +
+    scale_color_brewer(palette = "Set2", direction = 1) +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          axis.text.x = element_text(angle = 90, vjust = 0.5),
+          strip.background = element_blank(),
+          strip.text = element_text(size = 10),
+          axis.text = element_text(size = 8),
+          axis.title = element_text(size = 10),
+          legend.position = "bottom")
+  
+  ggsave(str_c(paper_supp, "igh_whsc1_fusion_breakpoints.pdf"), p,
+         width = 7.25, height = 3)
+  ggsave(str_c(paper_supp, "igh_whsc1_fusion_breakpoints.no_legend.pdf"), p + guides(color = FALSE),
+         width = 7.25, height = 3)
+  
+  
+  q <- ggplot(plot_df, aes(x = chr14_genome_position/1e6, y = chr4_genome_position/1e6)) + 
+    geom_jitter(aes(color = !is.na(vaf)), shape = 16, alpha = 0.5, size = 5) +
+    geom_point(shape = 16, alpha = 0.5) +
+    facet_wrap(~ high_expression, nrow = 1) +
+    labs(x = "IGH Genome Breakpoint (chr14 Mb)", 
+         y = "WHSC1 Genome Breakpoint (chr4 Mb)",
+         color = "FGFR3 Mutant") +
+    scale_color_brewer(palette = "Set2", direction = 1) +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          axis.text.x = element_text(angle = 90, vjust = 0.5),
+          strip.background = element_blank(),
+          strip.text = element_text(size = 10),
+          axis.text = element_text(size = 8),
+          axis.title = element_text(size = 10),
+          legend.position = "bottom")
+  
+  ggsave(str_c(paper_supp, "igh_whsc1_genome_breakpoints.pdf"), q,
+         width = 7.25, height = 3)
+  ggsave(str_c(paper_supp, "igh_whsc1_genome_breakpoints.no_legend.pdf"), q + guides(color = FALSE),
+         width = 7.25, height = 3)
+}
+
+# ==============================================================================
 # MYC PVT1 story
 # ==============================================================================
 
