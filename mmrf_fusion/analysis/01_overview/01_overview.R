@@ -771,6 +771,7 @@ if (TRUE) {
   n_fusion_all <- n_fusion_tibble %>% bind_rows(overall_n_fusion_tibble)
   
   plot_df %>% ggplot(aes(x = n_fusions, y = ..density..)) + 
+    geom_vline(xintercept = c(0, 3), color = "grey70") + 
     geom_freqpoly(aes(color = fct_reorder(hyperdiploid_categories, count)), 
                   binwidth = 1, center = 0, size = 2, show.legend = FALSE) +
     geom_freqpoly(binwidth = 1, center = 0, size = 2, show.legend = FALSE) +
@@ -779,8 +780,10 @@ if (TRUE) {
          color = "Hyperdiploid Category") +
     scale_color_brewer(palette = "Paired", direction = -1) +
     theme_bw() +
-    xlim(plot_df %>% pull(n_fusions) %>% min(),
-         plot_df %>% pull(n_fusions) %>% max()) +
+    scale_x_continuous(limits = c(plot_df %>% pull(n_fusions) %>% min(),
+                                  plot_df %>% pull(n_fusions) %>% max()),
+                       breaks = c(0, 3, 20, 40, 60),
+                       labels = c(0, 3, 20, 40, 60)) +
     scale_y_continuous() +
     annotation_custom(tableGrob(n_fusion_all, rows = NULL, 
                                 cols = c("HRD Status", "Median", "Mean", "Max"),
