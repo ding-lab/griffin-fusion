@@ -224,7 +224,7 @@ if (TRUE) {
   plot_survival_list[["anova_WHSC1_fusion_Death"]] <- anova(plot_survival_list[["base_Death"]], plot_survival_list[["WHSC1_fusion_Death"]]) # Significant
   
   fit <- survfit(Surv(EFS, EFS_censor == 0) ~ fusion, data = EFS_tibble)
-  pdf(str_c(paper_main, "WHSC1.EFS.with_legend.pdf"),
+  pdf(str_c(paper_supp, "WHSC1.EFS.with_legend.pdf"),
       width = 3.5, height = 3.5, useDingbats = FALSE)
   print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
                    surv.median.line = "hv", pval = TRUE,
@@ -235,7 +235,7 @@ if (TRUE) {
                    ggtheme = theme_survminer(),
                    conf.int.alpha = 0.1))
   dev.off()
-  pdf(str_c(paper_main, "WHSC1.EFS.without_legend.pdf"),
+  pdf(str_c(paper_supp, "WHSC1.EFS.without_legend.pdf"),
       width = 3.5, height = 3.5, useDingbats = FALSE)
   print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
                    surv.median.line = "hv", pval = TRUE,
@@ -294,7 +294,7 @@ if (TRUE) {
   plot_survival_list[["anova_PVT1_MYC_fusion_Death"]] <- anova(plot_survival_list[["base_Death"]], plot_survival_list[["PVT1_MYC_fusion_Death"]]) # NOT Significant
   
   fit <- survfit(Surv(EFS, EFS_censor == 0) ~ fusion, data = EFS_tibble)
-  pdf(str_c(paper_main, "PVT1_MYC.EFS.with_legend.pdf"),
+  pdf(str_c(paper_supp, "PVT1_MYC.EFS.with_legend.pdf"),
       width = 3.5, height = 3.5, useDingbats = FALSE)
   print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
                    surv.median.line = "hv", pval = TRUE,
@@ -305,7 +305,7 @@ if (TRUE) {
                    ggtheme = theme_survminer(),
                    conf.int.alpha = 0.1))
   dev.off()
-  pdf(str_c(paper_main, "PVT1_MYC.EFS.without_legend.pdf"),
+  pdf(str_c(paper_supp, "PVT1_MYC.EFS.without_legend.pdf"),
       width = 3.5, height = 3.5, useDingbats = FALSE)
   print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
                    surv.median.line = "hv", pval = TRUE,
