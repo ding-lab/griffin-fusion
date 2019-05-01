@@ -851,6 +851,127 @@ if (TRUE) {
   # Plotting functions
   # ============================================================================
   
+  plot_fusion_expression_1d_no_color <- function(plot_df,
+                                        gene_list,
+                                        labels = FALSE,
+                                        translocation = NULL,
+                                        translocation_formatted = NULL,
+                                        ymax_value,
+                                        pdf_path,
+                                        pdf_width = 10,
+                                        pdf_height = 10,
+                                        seed = 10,
+                                        nrows = 1,
+                                        pretty = FALSE){
+    
+    set.seed(seed)
+    
+    plot_df <- plot_df %>% filter(gene %in% gene_list)
+    if (is.null(translocation)) {
+      shape_vector <- "No shape vector given"
+    } else {
+      shape_vector <- plot_df %>% pull(translocation) %>%
+        factor(labels = c("Not detected", "Detected", "Missing"), exclude = NULL)  
+    }
+    plot_df <- plot_df %>% mutate(shape_factor = shape_vector)
+    
+    p <- ggplot(plot_df)
+    
+    p <- p + facet_wrap(~ gene, nrow = nrows)
+    
+    p <- p + geom_violin(aes(x = fusion_indicator,
+                             y = log10tpm,
+                             fill = fusion_status),
+                         scale = "width",
+                         color = "black",
+                         draw_quantiles = 0.5)
+    
+    p <- p + geom_point(data = plot_df %>% filter(fusion_status == FALSE),
+                        aes(x = fusion_jitter,
+                            color = gene,
+                            y = log10tpm),
+                        alpha = 0.25,
+                        shape = 16,
+                        show.legend = FALSE)
+    
+    p <- p + geom_point(data = plot_df %>% filter(fusion_status == TRUE),
+                        aes(x = fusion_jitter,
+                            y = log10tpm,
+                            color = gene),
+                        alpha = 1,
+                        shape = 16,
+                        show.legend = FALSE)
+    
+    if (labels & length(gene_list) == 1) {
+      p <- p + geom_label_repel(data = plot_df %>% filter(!is.na(fusion_label)),
+                                aes(x = fusion_jitter,
+                                    y = log10tpm,
+                                    #color = cnv_factor,
+                                    label = fusion_label),
+                                point.padding = 0.5,
+                                show.legend = FALSE)
+    }
+    
+    p <- p + scale_x_continuous(breaks = c(0, 1), 
+                                labels = c("No fusion", "Fusion"))
+    
+    p <- p + ylim(0, ymax_value)
+    
+    #color_scale <- c("#1f78b4", "#a6cee3", # deletions
+    #                 "#b2df8a", # neutral 
+    #                 "#cab2d6", #missing
+    #                 "#fb9a99", "#e31a1c") # amplifications
+    
+    #p <- p + scale_color_manual(values = color_scale, drop = FALSE)
+    
+    p <- p + scale_color_brewer(palette = "Paired", drop = FALSE)
+    
+    p <- p + scale_fill_manual(values = c("#ffffff", "#ffffff")) # both white
+    
+    if (is.null(translocation)) {
+      p <- p + scale_shape_manual(values = 16)
+      p <- p + guides(alpha = FALSE, fill = FALSE, shape = FALSE)
+      p <- p + labs(x = NULL,
+                    y = "Gene Expression TPM (log10)", 
+                    color = "Copy Number")
+    } else {
+      p <- p + scale_shape_manual(values = c(16, 17, 4))
+      p <- p + guides(alpha = FALSE, fill = FALSE)
+      p <- p + labs(x = NULL,
+                    y = "Gene Expression TPM (log10)", 
+                    color = "Copy Number",
+                    shape = translocation_formatted)
+    }
+    
+    p <- p + theme_bw()
+    
+    if (pretty) { 
+      p <- p + theme(plot.background = element_blank(),
+                     legend.position = "bottom",
+                     legend.text = element_text(size = 8),
+                     legend.title = element_text(size = 10),
+                     axis.ticks.y = element_blank(),
+                     axis.title = element_text(size = 12),
+                     axis.ticks.x = element_blank(),
+                     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 10, color = "grey50", face = "italic"),
+                     strip.background = element_blank(),
+                     strip.text = element_text(size = 10,
+                                               face = "italic"),
+                     panel.background = element_blank(),
+                     panel.border = element_blank(),
+                     panel.spacing.x = unit(0.025, units = "inches"),
+                     #panel.grid.major = element_line(size = 0.1),
+                     panel.grid.major.x = element_blank(),
+                     panel.grid.minor.x = element_blank(),
+                     panel.grid.minor.y = element_blank())
+    }
+    
+    pdf(pdf_path, width = pdf_width, height = pdf_height, useDingbats = FALSE)
+    print(p)
+    shh <- dev.off()
+    
+  }
+  
   plot_fusion_expression_1d <- function(plot_df,
                                         gene_list,
                                         labels = FALSE,
@@ -945,7 +1066,7 @@ if (TRUE) {
                      panel.background = element_blank(),
                      panel.border = element_blank(),
                      panel.spacing.x = unit(0.025, units = "inches"),
-                     panel.grid.major = element_line(size = 0.1),
+                     #panel.grid.major = element_line(size = 0.1),
                      panel.grid.major.x = element_blank(),
                      panel.grid.minor.x = element_blank(),
                      panel.grid.minor.y = element_blank())
@@ -1033,7 +1154,7 @@ if (TRUE) {
                      panel.background = element_blank(),
                      panel.border = element_blank(),
                      panel.spacing.x = unit(0.025, units = "inches"),
-                     panel.grid.major = element_line(size = 0.1),
+                     #panel.grid.major = element_line(size = 0.1),
                      panel.grid.major.x = element_blank(),
                      panel.grid.minor.x = element_blank(),
                      panel.grid.minor.y = element_blank())
@@ -1126,7 +1247,7 @@ if (TRUE) {
     p <- p + coord_fixed(ratio = 1)
     
     if (pretty) { 
-      p <- p + theme(panel.grid.major = element_line(size = 0.1),
+      p <- p + theme(#panel.grid.major = element_line(size = 0.1),
                      panel.background = element_blank(),
                      panel.border = element_blank(),
                      panel.grid.minor = element_blank(),
@@ -1462,7 +1583,7 @@ if (TRUE) {
   
   interesting_ymax <- plot_df %>% filter(gene %in% overexpressed_interesting_genes) %>% 
     pull(log10tpm) %>% max() %>% ceiling()
-  plot_fusion_expression_1d(plot_df, overexpressed_interesting_genes, 
+  plot_fusion_expression_1d_no_color(plot_df, overexpressed_interesting_genes, 
                             ymax_value = interesting_ymax, 
                             pdf_path = str_c(paper_main, "overexpressed_interesting.pdf"), 
                             pdf_width = 7.25, 
@@ -1470,10 +1591,19 @@ if (TRUE) {
                             nrows = 1, 
                             pretty = TRUE)
   
+  plot_fusion_expression_1d(plot_df, overexpressed_interesting_genes, 
+                                     ymax_value = interesting_ymax, 
+                                     pdf_path = str_c(paper_supp, "overexpressed_interesting.pdf"), 
+                                     pdf_width = 7.25, 
+                                     pdf_height = 4,
+                                     nrows = 1, 
+                                     pretty = TRUE)
+  
   ggplot(data = gene_attributes, aes(x = gene, 
                                      y = fct_reorder(category, 
                                                      desc(category)))) + 
-    geom_point(shape = 18, size = 3) + 
+    geom_point(aes(color = gene), shape = 18, size = 3, show.legend = FALSE) + 
+    scale_color_brewer(palette = "Paired", drop = FALSE) +
     theme_bw() +
     labs(y = NULL, x = NULL) +
     theme(panel.background = element_blank(),
@@ -1482,8 +1612,8 @@ if (TRUE) {
           panel.border = element_blank(),
           axis.text.x = element_blank(),
           axis.ticks = element_blank(),
-          axis.text.y = element_text(size = 10, color = "grey50"),
-          panel.grid.major = element_line(size = 0.1)) +
+          #panel.grid.major = element_line(size = 0.1),
+          axis.text.y = element_text(size = 10, color = "grey50")) +
     ggsave(str_c(paper_main, "gene_attributes.pdf"), height = 1, width = 7.25)
   
   fgfr3_whsc1_ymax <- plot_df %>% filter(gene %in% c("FGFR3", "WHSC1")) %>% 
@@ -1502,6 +1632,108 @@ if (TRUE) {
                      pretty = TRUE)
   
 }
+
+# ==============================================================================
+# MYC PVT1 story
+# ==============================================================================
+
+if (TRUE) {
+  myc_pvt1 <- fusions_primary %>% 
+    filter(geneA %in% c("PVT1", "MYC"), geneB == "IGL") %>% 
+    group_by(srr) %>% 
+    summarize(fusion_labels = str_c(fusion, collapse = "\n")) %>% 
+    right_join(plot_df %>% filter(gene == "MYC"), by = "srr") %>% 
+    select(fusion_labels, log10tpm) %>%
+    mutate(jitter_fusion_labels = 
+             jitter(as.numeric(!is.na(fusion_labels)) + 1, factor = 1),
+           fusion_labels = replace_na(fusion_labels, "Neither Reported")) %>%
+    mutate(fusion_labels = factor(fusion_labels, levels = c("MYC--IGL", 
+                                                            "PVT1--IGL", 
+                                                            "Neither Reported"), 
+                                  ordered = TRUE))
+  
+  max_myc_expr <- ceiling(max(myc_pvt1$log10tpm))
+  
+  p <- ggplot(myc_pvt1) +
+    coord_flip(expand = c(0.01, 0.01)) +
+    #geom_violin(aes(x = str_detect(fusion_labels, "IGL"), y = log10tpm),
+    #            color = NA,
+    #            fill = "black",
+    #            alpha = 0.25) +
+    geom_violin(aes(x = str_detect(fusion_labels, "IGL"), y = log10tpm),
+                color = "black",
+                draw_quantiles = 0.5,
+                scale = "width") + 
+    geom_point(aes(x = jitter_fusion_labels,
+                   y = log10tpm,
+                   color = fusion_labels),
+               #alpha = 0.25,
+               shape = 16) +
+    scale_color_manual(values = c("#1BB6AF", "#088BBE", "#172869")) +
+    scale_y_continuous(limits = c(0, max_myc_expr), position = "right") +
+    labs(x = NULL,
+         y = "MYC Expression TPM (log10)",
+         color = "Fusion Gene") +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.grid.major.x = element_blank(),
+          panel.border = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text.y = element_blank(),
+          legend.position = "bottom",
+          legend.direction = "vertical",
+          axis.text.x = element_text(size = 8),
+          axis.title = element_text(size = 12))
+    
+  ggsave(str_c(paper_main, "PVT1_MYC.pdf"), p, width = 8, height = 2, useDingbats = FALSE)
+  ggsave(str_c(paper_main, "PVT1_MYC.no_legend.pdf"), 
+         p + guides(shape = FALSE, color = FALSE),
+         width = 3.5, height = 1.75, useDingbats = FALSE)
+}
+
+# ==============================================================================
+# Plot expression of oncogenes, tumor suppressors, kinases
+# Written April 2019
+# ==============================================================================
+
+if (TRUE) {
+  plot_df <- bind_rows(fusions_primary %>% filter(geneA_oncogene == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Oncogene", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
+                       fusions_primary %>% filter(geneB_oncogene == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Oncogene", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct),
+                       fusions_primary %>% filter(geneA_tsg == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Tumor\nSuppressor", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
+                       fusions_primary %>% filter(geneB_tsg == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Tumor\nSuppressor", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct),
+                       fusions_primary %>% filter(geneA_kinase == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Kinase", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
+                       fusions_primary %>% filter(geneB_kinase == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Kinase", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct))
+  
+  ggplot(data = plot_df, aes(x = geneAB, y = pct)) + 
+    #geom_violin(color = NA, fill = "black", alpha = 0.25) + 
+    geom_violin(color = "black",
+                draw_quantiles = 0.5,
+                scale = "width") +
+    geom_jitter(height = 0, width = 0.2, shape = 16, alpha = 0.25) + 
+    facet_wrap(~ category, nrow = 1) +
+    theme_bw() +
+    scale_y_continuous(expand = c(0,0), limits = c(-0.05, 1.02)) +
+    scale_x_discrete(expand = c(0,0)) +
+    labs(x = NULL, y = "Expression Percentile") +
+    annotate("text", label = "Gene A", x = "geneA", y = -0.02, size = 2, color = "grey50", vjust = 1) +
+    annotate("text", label = "Gene B", x = "geneB", y = -0.02, size = 2, color = "grey50", vjust = 1) +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          plot.background = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.grid.major.x = element_blank(),
+          strip.background = element_blank(),
+          axis.ticks = element_blank(),
+          panel.spacing.x = unit(0.1, units = "inches"),
+          axis.title = element_text(size = 12),
+          axis.text.x = element_blank(),
+          strip.text = element_text(size = 10)
+          ) +
+    ggsave(str_c(paper_main, "kinase_oncogene_tsg.pdf"),
+           width = 3.5, height = 1.75, useDingbats = FALSE)
+}
+
 
 # ==============================================================================
 # More FGFR3 WHSC1 IGH story
@@ -1599,97 +1831,4 @@ if (TRUE) {
          width = 7.25, height = 3)
   ggsave(str_c(paper_supp, "igh_whsc1_genome_breakpoints.no_legend.pdf"), q + guides(color = FALSE),
          width = 7.25, height = 3)
-}
-
-# ==============================================================================
-# MYC PVT1 story
-# ==============================================================================
-
-if (TRUE) {
-  myc_pvt1 <- fusions_primary %>% 
-    filter(geneA %in% c("PVT1", "MYC"), geneB == "IGL") %>% 
-    group_by(srr) %>% 
-    summarize(fusion_labels = str_c(fusion, collapse = "\n")) %>% 
-    right_join(plot_df %>% filter(gene == "MYC"), by = "srr") %>% 
-    select(fusion_labels, log10tpm) %>%
-    mutate(jitter_fusion_labels = 
-             jitter(as.numeric(!is.na(fusion_labels)) + 1, factor = 1),
-           fusion_labels = replace_na(fusion_labels, "Neither Reported")) %>%
-    mutate(fusion_labels = factor(fusion_labels, levels = c("MYC--IGL", 
-                                                            "PVT1--IGL", 
-                                                            "Neither Reported"), 
-                                  ordered = TRUE))
-  
-  max_myc_expr <- ceiling(max(myc_pvt1$log10tpm))
-  
-  p <- ggplot(myc_pvt1) +
-    coord_flip(expand = c(0.01, 0.01)) +
-    geom_violin(aes(x = str_detect(fusion_labels, "IGL"), y = log10tpm),
-                color = NA,
-                fill = "black",
-                alpha = 0.1) +
-    geom_point(aes(x = jitter_fusion_labels,
-                   y = log10tpm,
-                   color = fusion_labels),
-               shape = 16) +
-    scale_color_manual(values = c("#1BB6AF", "#088BBE", "#172869")) +
-    scale_y_continuous(limits = c(0, max_myc_expr), position = "right") +
-    labs(x = NULL,
-         y = "MYC Expression TPM (log10)",
-         color = "Fusion Gene") +
-    theme_bw() +
-    theme(panel.background = element_blank(),
-          panel.grid.minor = element_blank(),
-          panel.grid.major.x = element_blank(),
-          panel.border = element_blank(),
-          axis.ticks = element_blank(),
-          axis.text.y = element_blank(),
-          legend.position = "bottom",
-          legend.direction = "vertical",
-          axis.text.x = element_text(size = 8),
-          axis.title = element_text(size = 12))
-    
-  ggsave(str_c(paper_main, "PVT1_MYC.pdf"), p, width = 8, height = 2, useDingbats = FALSE)
-  ggsave(str_c(paper_main, "PVT1_MYC.no_legend.pdf"), 
-         p + guides(shape = FALSE, color = FALSE),
-         width = 3.5, height = 1.75, useDingbats = FALSE)
-}
-
-# ==============================================================================
-# Plot expression of oncogenes, tumor suppressors, kinases
-# Written April 2019
-# ==============================================================================
-
-if (TRUE) {
-  plot_df <- bind_rows(fusions_primary %>% filter(geneA_oncogene == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Oncogene", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
-                       fusions_primary %>% filter(geneB_oncogene == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Oncogene", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct),
-                       fusions_primary %>% filter(geneA_tsg == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Tumor\nSuppressor", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
-                       fusions_primary %>% filter(geneB_tsg == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Tumor\nSuppressor", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct),
-                       fusions_primary %>% filter(geneA_kinase == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Kinase", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
-                       fusions_primary %>% filter(geneB_kinase == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Kinase", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct))
-  
-  ggplot(data = plot_df, aes(x = geneAB, y = pct)) + 
-    geom_violin(color = NA, fill = "black", alpha = 0.1) + 
-    geom_jitter(height = 0, width = 0.2, shape = 16) + 
-    facet_wrap(~ category, nrow = 1) +
-    theme_bw() +
-    scale_y_continuous(expand = c(0,0), limits = c(-0.05, 1.02)) +
-    scale_x_discrete(expand = c(0,0)) +
-    labs(x = NULL, y = "Expression Percentile") +
-    annotate("text", label = "Gene A", x = "geneA", y = -0.02, size = 2, color = "grey50", vjust = 1) +
-    annotate("text", label = "Gene B", x = "geneB", y = -0.02, size = 2, color = "grey50", vjust = 1) +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank(),
-          plot.background = element_blank(),
-          panel.grid.minor = element_blank(),
-          panel.grid.major = element_blank(),
-          strip.background = element_blank(),
-          axis.ticks = element_blank(),
-          panel.spacing.x = unit(0.1, units = "inches"),
-          axis.title = element_text(size = 12),
-          axis.text.x = element_blank(),
-          strip.text = element_text(size = 10)
-          ) +
-    ggsave(str_c(paper_main, "kinase_oncogene_tsg.pdf"),
-           width = 3.5, height = 1.75, useDingbats = FALSE)
 }
