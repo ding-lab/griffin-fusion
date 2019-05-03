@@ -1831,4 +1831,66 @@ if (TRUE) {
          width = 7.25, height = 3)
   ggsave(str_c(paper_supp, "igh_whsc1_genome_breakpoints.no_legend.pdf"), q + guides(color = FALSE),
          width = 7.25, height = 3)
+  
+  
+  # Look at gene expression
+  p <- bind_cols(expression_primary %>% filter(gene == "FGFR3") %>% 
+              select(mmrf, log10tpm, pct, gene_avg_cnv), 
+            expression_primary %>% filter(gene == "WHSC1") %>% 
+              select(mmrf, log10tpm, pct, gene_avg_cnv)) %>% 
+    left_join(fusions_primary %>% filter(fusion == "IGH--WHSC1"), by = "mmrf") %>% 
+    filter(!is.na(fusion)) %>% 
+    mutate(expression_level = case_when(log10tpm < 1 ~ "Low",
+                                        TRUE ~ "High")) %>%
+    ggplot(aes(x = gene_avg_cnv1, y = gene_avg_cnv)) + 
+    geom_abline(linetype = 3, color = "grey50") + 
+    geom_point(aes(color = expression_level), shape = 16) + 
+    coord_equal() +
+    theme_bw() +
+    labs(color = "FGFR3 Expression", 
+         x = "WHSC1 CNV (log2 ratio)",
+         y = "FGFR3 CNV (log2 ratio)") +
+    theme(panel.background = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.border = element_blank(),
+          plot.background = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text = element_text(size = 8),
+          axis.title = element_text(size = 12),
+          legend.text = element_text(size = 10),
+          legend.title = element_text(size = 12),
+          legend.position = "bottom")
+  ggsave(str_c(paper_supp, "fgfr3_whsc1_cnv.pdf"), p,
+         width = 5, height = 5, useDingbats = FALSE)
+  ggsave(str_c(paper_supp, "fgfr3_whsc1_cnv.no_legend.pdf"), 
+         p + guides(color = FALSE),
+         width = 3.5, height = 3.5, useDingbats = FALSE)
+  
+  q <- bind_cols(expression_primary %>% filter(gene == "FGFR3") %>% 
+              select(mmrf, log10tpm, pct, gene_avg_cnv), 
+            expression_primary %>% filter(gene == "WHSC1") %>% 
+              select(mmrf, log10tpm, pct, gene_avg_cnv)) %>% 
+    left_join(fusions_primary %>% filter(fusion == "IGH--WHSC1"), by = "mmrf") %>% 
+    filter(!is.na(fusion)) %>% 
+    mutate(expression_level = case_when(log10tpm < 1 ~ "Low",
+                                        TRUE ~ "High")) %>%
+    ggplot(aes(x = expression_level, y = gene_avg_cnv)) + 
+    geom_violin(scale = "width") + 
+    geom_jitter(aes(color = expression_level), height = 0, width = 0.1, show.legend = FALSE) +
+    theme_bw() +
+    labs(x = "FGFR3 Expression", y = "FGFR3 CNV (log2 ratio)") +
+    theme(panel.background = element_blank(),
+        panel.border = element_blank(),
+        plot.background = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text = element_text(size = 8),
+        axis.title = element_text(size = 12),
+        legend.text = element_text(size = 10),
+        legend.title = element_text(size = 12),
+        legend.position = "bottom",
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank())
+    ggsave(str_c(paper_supp, "fgfr3_expression_cnv.pdf"), q,
+             width = 3.5, height = 3.5, useDingbats = FALSE)
+
 }
