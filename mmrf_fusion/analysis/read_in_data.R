@@ -172,10 +172,10 @@ mutation_calls <- read_tsv("data/wxs_bm_data.withmutect.merged.maf.rc.caller.ren
 # Important genes
 # ==============================================================================
 drivers <- read_tsv("data/driver.tsv", col_names = FALSE)
-kinases <- read_tsv("data/kinase.tsv", col_names = FALSE)
+kinases2 <- read_tsv("data/kinase.tsv", col_names = FALSE)
 mmy_known <- read_tsv("data/mmy_known.tsv", col_names = FALSE)
 oncogenes <- read_tsv("data/oncogene.tsv", col_names = FALSE)
 mmy21 <- c("KRAS", "NRAS", "FAM46C", "BRAF", "TP53", "DIS3", "PRDM1", "SP140",
            "EGR1", "TRAF3", "ATM", "CCDN1", "HIST1E", "LTB", "IRF4", "FGFR3",
            "RB1", "ACTG1", "CYLD", "MAX", "ATR")
-drivers_kinases_oncogenes_mmy_genes <- unique(sort(c(drivers$X1, kinases$X1, oncogenes$X1, mmy21)))
+drivers_kinases_oncogenes_mmy_genes <- unique(sort(c(drivers$X1, kinases2$X1, oncogenes$X1, mmy21)))
