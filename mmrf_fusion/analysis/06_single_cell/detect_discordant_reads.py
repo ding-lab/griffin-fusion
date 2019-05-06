@@ -22,6 +22,7 @@ def return_read_info(read):
   return_dict = {}  
   return_dict["this_chromosome"] = str(read.reference_name)
   return_dict["this_start_bp"] = int(read.reference_start)
+  return_dict["this_end_bp"] = int(read.reference_end)
   tags_dict = {x:y for (x,y) in read.get_tags()}
   return_dict["CB"] = tags_dict["CB"]
   return_dict["UB"] = tags_dict["UB"]
@@ -82,12 +83,12 @@ for line in star_fusion:
     # check if any overlap
     for key in rangeA_reads:
       if key in rangeB_reads:
-        discordant_reads_list.append([str(x) for x in [rangeA_reads[key]["CB"], rangeA_reads[key]["UB"], rangeA_reads[key]["BC"], rangeA_reads[key]["this_chromosome"], rangeA_reads[key]["this_start_bp"], rangeB_reads[key]["this_chromosome"], rangeB_reads[key]["this_start_bp"], FusionName]])
+        discordant_reads_list.append([str(x) for x in [rangeA_reads[key]["CB"], rangeA_reads[key]["UB"], rangeA_reads[key]["BC"], rangeA_reads[key]["this_chromosome"], rangeA_reads[key]["this_start_bp"], rangeA_reads[key]["this_end_bp"], rangeB_reads[key]["this_chromosome"], rangeB_reads[key]["this_start_bp"], rangeB_reads[key]["this_end_bp"], FusionName]])
 
 os.makedirs(output_dir, exist_ok = True)
 output_file_path = os.path.join(output_dir, output_prefix + ".discordant_reads.tsv")
 output_file = open(output_file_path, "w")
-output_file.write("\t".join(["cell_barcode", "molecular_barcode", "sample_index", "chromA", "posA", "chromB", "posB", "fusion"]) + "\n") # list of column headers
+output_file.write("\t".join(["cell_barcode", "molecular_barcode", "sample_index", "chromA", "startA", "endA", "chromB", "startB", "endB", "fusion"]) + "\n") # list of column headers
 for dis_read in discordant_reads_list:
   output_file.write("\t".join(dis_read) + "\n") # write info for each discordant read
 output_file.close() 
