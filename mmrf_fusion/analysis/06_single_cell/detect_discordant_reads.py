@@ -48,7 +48,6 @@ for line in star_fusion:
     chromB = RightBreakpoint.split(":")[0][3:]
     min_posB = int(RightBreakpoint.split(":")[1]) - plusminus
     max_posB = int(RightBreakpoint.split(":")[1]) + plusminus
-    print(FusionName)
     
     # main business 
     rangeA_reads = {}
@@ -84,13 +83,11 @@ for line in star_fusion:
     for key in rangeA_reads:
       if key in rangeB_reads:
         discordant_reads_list.append([str(x) for x in [rangeA_reads[key]["CB"], rangeA_reads[key]["UB"], rangeA_reads[key]["BC"], rangeA_reads[key]["this_chromosome"], rangeA_reads[key]["this_start_bp"], rangeB_reads[key]["this_chromosome"], rangeB_reads[key]["this_start_bp"], FusionName]])
-        print(discordant_reads_list[-1])
 
 os.makedirs(output_dir, exist_ok = True)
 output_file_path = os.path.join(output_dir, output_prefix + ".discordant_reads.tsv")
 output_file = open(output_file_path, "w")
 output_file.write("\t".join(["cell_barcode", "molecular_barcode", "sample_index", "chromA", "posA", "chromB", "posB", "fusion"]) + "\n") # list of column headers
 for dis_read in discordant_reads_list:
-  print("\t".join(dis_read))
   output_file.write("\t".join(dis_read) + "\n") # write info for each discordant read
 output_file.close() 
