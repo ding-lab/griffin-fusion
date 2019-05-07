@@ -15,6 +15,7 @@ library(ggrepel) # 02_expression.R
 library(gridExtra) # 01_overview.R
 library(pheatmap) # 01_overview.R
 library(RColorBrewer) # 01_overview.R
+library(Seurat) # 06_scRNA.R
 library(survival) # 01_overview.R
 library(survminer) # 01_overview.R
 library(UpSetR) # 01_overview.R
@@ -179,3 +180,10 @@ mmy21 <- c("KRAS", "NRAS", "FAM46C", "BRAF", "TP53", "DIS3", "PRDM1", "SP140",
            "EGR1", "TRAF3", "ATM", "CCDN1", "HIST1E", "LTB", "IRF4", "FGFR3",
            "RB1", "ACTG1", "CYLD", "MAX", "ATR")
 drivers_kinases_oncogenes_mmy_genes <- unique(sort(c(drivers$X1, kinases2$X1, oncogenes$X1, mmy21)))
+
+# ==============================================================================
+# scRNA analysis
+# ==============================================================================
+cell_types <- read_tsv("data/scRNA.cell_types.27522_1.tsv")
+tsne_coords <- read_tsv("data/scRNA.tSNE_coordinates.27522_1.tsv")
+seurat_object <- read_rds("data/scRNA.seurat_object.27522_1.rds")
