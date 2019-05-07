@@ -10,7 +10,7 @@ def extract_read_info(read):
   # Relevant information includes: cell barcode (CB), molecular barcode (UB), and sample index read (BC)
   if False: #read.is_duplicate or read.is_qcfail or read.is_secondary: #or not read.is_proper_pair:
     return(None)
-  elif read.has_tag("CB") and read.has_tag("UB") and read.has_tag("BC"):
+  elif read.has_tag("CB") and read.has_tag("UB"): #and read.has_tag("BC"):
     return(return_read_info(read))
   else: 
     return(None)
@@ -26,7 +26,6 @@ def return_read_info(read):
   tags_dict = {x:y for (x,y) in read.get_tags()}
   return_dict["CB"] = tags_dict["CB"]
   return_dict["UB"] = tags_dict["UB"]
-  return_dict["BC"] = tags_dict["BC"]
   return(return_dict)
 
 # read arguments
@@ -63,8 +62,10 @@ for line in star_fusion:
       else:
         CB = read_info["CB"] 
         UB = read_info["UB"]
-        BC = read_info["BC"]
-        rangeA_reads[CB+":"+UB+":"+BC] = read_info   
+        if CB+":"+UB in rangeA_reads:
+          rangeA_reads[CB+":"+UB].append(read_info)
+        else:
+          rangeA_reads[CB+":"+UB] = [read_info]   
     samfile.close()
 
     # iterate over rangeB
@@ -76,19 +77,29 @@ for line in star_fusion:
       else:
         CB = read_info["CB"]
         UB = read_info["UB"]
-        BC = read_info["BC"]
-        rangeB_reads[CB+":"+UB+":"+BC] = read_info
+        if CB+":"+UB in rangeB_reads:
+          rangeB_reads[CB+":"+UB].append(read_info)
+        else:
+          rangeB_reads[CB+":"+UB] = [read_info]
     samfile.close()
 
     # check if any overlap
     for key in rangeA_reads:
       if key in rangeB_reads:
-        discordant_reads_list.append([str(x) for x in [rangeA_reads[key]["CB"], rangeA_reads[key]["UB"], rangeA_reads[key]["BC"], rangeA_reads[key]["this_chromosome"], rangeA_reads[key]["this_start_bp"], rangeA_reads[key]["this_end_bp"], rangeB_reads[key]["this_chromosome"], rangeB_reads[key]["this_start_bp"], rangeB_reads[key]["this_end_bp"], FusionName]])
+        combined_reads = rangeA_reads[key]
+        combined_reads.extend(rangeB_reads[key])
+        for read_info in combined_reads:
+          discordant_reads_list.append([str(x) for x in [read_info["CB"], read_info["UB"], read_info["this_chromosome"], read_info["this_start_bp"], read_info["this_end_bp"], FusionName]])
+
+unique_discordant_reads_list = []
+for x in discordant_reads_list:
+  if x not in unique_discordant_reads_list:
+    unique_discordant_reads_list.append(x)
 
 os.makedirs(output_dir, exist_ok = True)
 output_file_path = os.path.join(output_dir, output_prefix + ".discordant_reads.tsv")
 output_file = open(output_file_path, "w")
-output_file.write("\t".join(["cell_barcode", "molecular_barcode", "sample_index", "chromA", "startA", "endA", "chromB", "startB", "endB", "fusion"]) + "\n") # list of column headers
-for dis_read in discordant_reads_list:
+output_file.write("\t".join(["cell_barcode", "molecular_barcode", "chrom", "start", "end", "fusion"]) + "\n") # list of column headers
+for dis_read in sorted(unique_discordant_reads_list):
   output_file.write("\t".join(dis_read) + "\n") # write info for each discordant read
 output_file.close() 
