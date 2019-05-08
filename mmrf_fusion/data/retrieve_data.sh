@@ -28,6 +28,7 @@ head -n 55766 mmy_gene_tpm_table.tsv | cut -f3,4 > ensg_gene_list.tsv
 wget https://www.cell.com/cms/10.1016/j.celrep.2018.03.050/attachment/41b9158b-96f6-457e-8837-551b91c40e67/mmc2.xlsx
 mv mmc2.xlsx tcga_pancancer_fusions.xlsx
 
+rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/results/27522_1/5000.discordant_reads.tsv' scRNA.discordant_reads.27522_1.tsv
 
 #wxs_bm_data.withmutect.merged.maf.rc.caller.renamed.Bone_Marrow.tsv is a filtered,
 #edited version of MGI:/gscmnt/gc2737/ding/Analysis/MMRF_MTP/SomaticWrapper/wxs_bm_data_merged/wxs_bm_data.withmutect.merged.maf.rc.caller

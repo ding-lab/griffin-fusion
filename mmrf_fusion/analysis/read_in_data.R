@@ -186,4 +186,6 @@ drivers_kinases_oncogenes_mmy_genes <- unique(sort(c(drivers$X1, kinases2$X1, on
 # ==============================================================================
 cell_types <- read_tsv("data/scRNA.cell_types.27522_1.tsv")
 tsne_coords <- read_tsv("data/scRNA.tSNE_coordinates.27522_1.tsv")
-seurat_object <- read_rds("data/scRNA.seurat_object.27522_1.rds")
+seurat_object <- UpdateSeuratObject(read_rds("data/scRNA.seurat_object.27522_1.rds"))
+dis_reads <- read_tsv("data/scRNA.discordant_reads.27522_1.tsv") %>% 
+  mutate(fusion = str_remove(fusion, "@"))
