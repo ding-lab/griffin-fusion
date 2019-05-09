@@ -184,8 +184,14 @@ drivers_kinases_oncogenes_mmy_genes <- unique(sort(c(drivers$X1, kinases2$X1, on
 # ==============================================================================
 # scRNA analysis
 # ==============================================================================
-cell_types <- read_tsv("data/scRNA.cell_types.27522_1.tsv")
-tsne_coords <- read_tsv("data/scRNA.tSNE_coordinates.27522_1.tsv")
-seurat_object <- UpdateSeuratObject(read_rds("data/scRNA.seurat_object.27522_1.rds"))
-dis_reads <- read_tsv("data/scRNA.discordant_reads.27522_1.tsv") %>% 
+cell_types_27522_1 <- read_tsv("data/scRNA.cell_types.27522_1.tsv")
+tsne_coords_27522_1 <- read_tsv("data/scRNA.tSNE_coordinates.27522_1.tsv")
+seurat_object_27522_1 <- UpdateSeuratObject(read_rds("data/scRNA.seurat_object.27522_1.rds"))
+dis_reads_27522_1_fusion <- read_tsv("data/scRNA.discordant_reads.27522_1.tsv") %>% 
   mutate(fusion = str_remove(fusion, "@"))
+dis_reads_27522_1_discover <- read_tsv("data/scRNA.discordant_reads.discover.27522_1.tsv")
+
+cell_types_56203_1 <- read_tsv("data/scRNA.cell_types.56203_1.tsv")
+tsne_coords_56203_1 <- read_tsv("data/scRNA.tSNE_coordinates.56203_1.tsv")
+seurat_object_56203_1 <- UpdateSeuratObject(read_rds("data/scRNA.seurat_object.56203_1.rds"))
+dis_reads_56203_1_discover <- read_tsv("data/scRNA.discordant_reads.discover.56203_1.tsv")
