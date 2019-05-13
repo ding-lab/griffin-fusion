@@ -8,7 +8,7 @@ import sys
 def extract_read_info(read):
   # Given a read from region A, extract relevant information if mate maps to region B, else None
   # Relevant information includes: cell barcode (CB), molecular barcode (UB), and sample index read (BC)
-  if False: #read.is_duplicate or read.is_qcfail or read.is_secondary: #or not read.is_proper_pair:
+  if read.is_duplicate or read.is_qcfail or read.is_secondary: #or not read.is_proper_pair:
     return(None)
   elif read.has_tag("CB") and read.has_tag("UB"): #and read.has_tag("BC"):
     return(return_read_info(read))
