@@ -29,6 +29,11 @@ wget https://www.cell.com/cms/10.1016/j.celrep.2018.03.050/attachment/41b9158b-9
 mv mmc2.xlsx tcga_pancancer_fusions.xlsx
 
 rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/results/27522_1/5000.discordant_reads.tsv' scRNA.discordant_reads.27522_1.tsv
+rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/results/27522_1/chr4chr14.discovered_discordant_reads.tsv ' scRNA.discordant_reads.discover.27522_1.tsv
+rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/results/56203_1/chr8chr14.discovered_discordant_reads.tsv ' scRNA.discordant_reads.discover.56203_1.tsv
+
+rsync -avh 'sfoltz@denali.wusm.wustl.edu:/diskmnt/Projects/Users/qgao/Priority/Gao_scRNA_cell_type/2.Prefiltered_celltype/backup_object_cell_type_in_sample_27522_1.rds ' scRNA.seurat_object.27522_1.rds
+rsync -avh 'sfoltz@denali.wusm.wustl.edu:/diskmnt/Projects/Users/qgao/Priority/Gao_scRNA_cell_type/2.Prefiltered_celltype/backup_object_cell_type_in_sample_56203_1.rds ' scRNA.seurat_object.56203_1.rds
 
 #wxs_bm_data.withmutect.merged.maf.rc.caller.renamed.Bone_Marrow.tsv is a filtered,
 #edited version of MGI:/gscmnt/gc2737/ding/Analysis/MMRF_MTP/SomaticWrapper/wxs_bm_data_merged/wxs_bm_data.withmutect.merged.maf.rc.caller
