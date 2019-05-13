@@ -282,12 +282,32 @@ if (TRUE) {
   # Transcript breakpoints
   # ==============================================================================
   
+  reported_fusion_breakpoints <- tribble(      ~fusion,   ~chrom,      ~pos, ~fusion_n,
+                                         "IGHJ1--NSD2",  "chr14", 105865407,         1,
+                                         "IGHJ1--NSD2",   "chr4",   1900626,         1,
+                                         "IGHJ6--NSD2",  "chr14", 105863198,         2,
+                                         "IGHJ6--NSD2",   "chr4",   1900626,         2,
+                                          "NSD2--IGHM",   "chr4",   1871542,         3,
+                                          "NSD2--IGHM",  "chr14", 105856217,         3,
+                                         "IGHJ5--NSD2",  "chr14", 105863814,         4,
+                                         "IGHJ5--NSD2",   "chr4",   1900626,         4,
+                                         "IGHJ3--NSD2",  "chr14", 105864587,         5,
+                                         "IGHJ3--NSD2",   "chr4",   1900626,         5,
+                                          "IGH@--NSD2",  "chr14", 105864215,         6,
+                                          "IGH@--NSD2",   "chr4",   1900626,         6,
+                                          "IGH@--NSD2",  "chr14", 105865199,         7,
+                                          "IGH@--NSD2",   "chr4",   1900626,         7) %>%
+    mutate(label_fusion = str_c(fusion_n, fusion, sep = ": "),
+           chrom = str_remove_all(chrom, "chr"))
+    
   dis_reads_27522_1_discover %>% 
     #filter(end - start < 1000) %>% 
     unique() %>% 
     mutate(combo = str_c(cell_barcode, molecular_barcode, sep = ":")) %>% 
     ggplot(aes(x = start, xend = end, y = combo, yend = combo)) + 
-    geom_segment(alpha = 1, color = "red") + 
+    geom_vline(data = reported_fusion_breakpoints,
+               aes(xintercept = pos, color = label_fusion)) +
+    geom_segment(alpha = 1, color = "red") +
     facet_wrap(~ chrom, nrow = 1, scales = "free_x") +
     theme_bw() +
     theme(panel.background = element_blank(),
@@ -475,4 +495,87 @@ if (FALSE) {
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 10))
   
+}
+
+
+
+# Draw genes
+if (TRUE) {
+  library(biomaRt) # 06_single_cell.R
+  library(Gviz) # 06_single_cell.R
+  # from Bioconductor http://bioconductor.org/packages/release/bioc/html/Gviz.html
+  bm <- useMart(biomart = "ENSEMBL_MART_ENSEMBL",
+                dataset = "hsapiens_gene_ensembl")
+  
+  # WHSC1 (aka NSD2)
+  if (TRUE) {
+    gene = "WHSC1"
+    this_chrom = "chr4"
+    this_start = 1.7e6
+    this_end = 2.0e6
+    
+    pdf(str_c(paper_main, gene, ".gene_region.pdf"), width = 20, height = 10)
+    axisTrack <- GenomeAxisTrack()
+    biomTrack <- BiomartGeneRegionTrack(genome = "hg38",
+                                        name = "ENSEMBL",
+                                        chromosome = this_chrom,
+                                        start = this_start,
+                                        end = this_end,
+                                        biomart = bm,
+                                        protein_coding = "#1b9e77",
+                                        utr3 = "#7570b3",
+                                        utr5 = "#e7298a")
+    plotTracks(list(axisTrack, biomTrack),
+               col.line = NULL,
+               col = NULL,
+               stackHeight = 0.3,
+               collapseTranscripts = "meta",
+               transcriptAnnotation = "symbol")
+    dev.off()
+    
+    pdf(str_c(paper_main, this_chrom, ".ideogram.pdf"), width = 7.5, height = 0.5)
+    ideoTrack <- IdeogramTrack(genome = "hg38", chromosome = this_chrom)
+    plotTracks(ideoTrack,
+               from = this_start, 
+               to = this_end, 
+               showId = FALSE, 
+               showBandId = FALSE, 
+               cex.bands = 0.5)
+    dev.off()
+  }
+  
+  # IGH super locus
+  if (TRUE) {
+    gene = "IGH"
+    this_chrom = "chr14"
+    this_start = 105500000
+    this_end = 107000000
+    
+    pdf(str_c(paper_main, gene, ".gene_region.pdf"), width = 20, height = 20)
+    axisTrack <- GenomeAxisTrack()
+    biomTrack <- BiomartGeneRegionTrack(genome = "hg38",
+                                        name = "ENSEMBL",
+                                        chromosome = this_chrom,
+                                        start = this_start,
+                                        end = this_end,
+                                        biomart = bm)
+    plotTracks(list(axisTrack, biomTrack),
+               col.line = NULL,
+               col = NULL,
+               stackHeight = 0.2,
+               #collapseTranscripts = "meta",
+               transcriptAnnotation = "symbol")
+    dev.off()
+    
+    pdf(str_c(paper_main, this_chrom, ".ideogram.pdf"), width = 7.5, height = 0.5)
+    ideoTrack <- IdeogramTrack(genome = "hg38", chromosome = this_chrom)
+    plotTracks(ideoTrack,
+               from = this_start, 
+               to = this_end, 
+               showId = FALSE, 
+               showBandId = FALSE, 
+               cex.bands = 0.5)
+    dev.off()
+  }
+
 }
