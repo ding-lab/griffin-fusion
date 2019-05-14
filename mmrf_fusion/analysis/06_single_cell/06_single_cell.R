@@ -28,35 +28,51 @@ if (TRUE) {
   # WHSC1/FGFR3/CSNK1E expression, t(4;14) fusion, other fusion
   # ==============================================================================
   
+  tsne_coords_27522_1 <- Embeddings(object = seurat_object_27522_1, 
+                                    reduction = "tsne") %>% 
+    as_tibble() %>% 
+    mutate(barcode = row.names(Embeddings(object = seurat_object_27522_1, 
+                                               reduction = "tsne"))) %>% 
+    select(barcode, tSNE_1, tSNE_2)
+  
+  umap_coords_27522_1 <- Embeddings(object = seurat_object_27522_1, 
+                                    reduction = "umap") %>% 
+    as_tibble() %>% 
+    mutate(barcode = row.names(Embeddings(object = seurat_object_27522_1, 
+                                               reduction = "umap"))) %>% 
+    select(barcode, UMAP_1, UMAP_2)
+  
+  
   key_gene_expression <- tibble(barcode = seurat_object_27522_1@assays$RNA@data@Dimnames[[2]],
                                 WHSC1 = seurat_object_27522_1@assays$RNA@data["ENSG00000109685",] %>% as.vector(),
                                 FGFR3 = seurat_object_27522_1@assays$RNA@data["ENSG00000068078",] %>% as.vector(),
                                 CSNK1E = seurat_object_27522_1@assays$RNA@data["ENSG00000213923",] %>% as.vector())
   
-  plot_df <- cell_types_27522_1 %>% left_join(tsne_coords_27522_1, 
-                                              by = c("barcode" = "Barcode")) %>%
+  plot_df <- cell_types_27522_1 %>% 
+    left_join(tsne_coords_27522_1, by = "barcode") %>%
+    left_join(umap_coords_27522_1, by = "barcode") %>%
     left_join(cell_barcodes_with_fusions, 
               by = c("barcode" = "cell_barcode")) %>%
     replace_na(list(fusions = "None Detected")) %>%
     left_join(key_gene_expression, by = "barcode") %>%
     arrange(cell_type)
   
-  cell_type_positions <- tribble(~cell_type,    ~cell_type_long, ~tSNE_1, ~tSNE_2,
-                                 "B",                  "B Cells",      -5,      30,
-                                 "CD4+T",        "CD4+\nT Cells",     -40,      15,
-                                 "CD8+T",        "CD8+\nT Cells",     -42,     -20,
-                                 "DC",        "Dendritic\nCells",      34,     -20,
-                                 "CD16+Mono",      "Macrophages",      NA,      NA,
-                                 "CD14+Mono",        "Monocytes",      25,      30,
-                                 "NK",   "Natural Killer\nCells",      NA,      NA,
-                                 "Plasma",       "Plasma\nCells",      18,     -32)
+  cell_type_positions <- tribble(~cell_type,     ~cell_type_long, ~tSNE_1, ~tSNE_2, ~UMAP_1, ~UMAP_2,
+                                 "B",                  "B Cells",      -5,      30,       1,      10,
+                                 "CD4+T",        "CD4+\nT Cells",     -40,      15,      -6,      -9,
+                                 "CD8+T",        "CD8+\nT Cells",     -42,     -20,    -0.5,    -9.5,
+                                 "DC",        "Dendritic\nCells",      34,     -20,      12,       5,
+                                 "CD16+Mono",      "Macrophages",      NA,      NA,      NA,      NA,
+                                 "CD14+Mono",        "Monocytes",      25,      30,      13,      -4,
+                                 "NK",   "Natural Killer\nCells",      NA,      NA,      NA,      NA,
+                                 "Plasma",       "Plasma\nCells",      18,     -32,    -0.5,      -1)
   
   # ==============================================================================
   # Plot cell types
   # ==============================================================================
   
   ggplot(data = plot_df, aes(x = tSNE_1, y = tSNE_2)) + 
-    geom_point(aes(color = cell_type), shape = 16, size = 1.5, show.legend = FALSE) +
+    geom_point(aes(color = cell_type), shape = 16, size = 1.5, show.legend = FALSE, alpha = 0.25) +
     geom_text(data = cell_type_positions, aes(x = tSNE_1, y = tSNE_2, 
                                               label = cell_type_long, 
                                               color = cell_type),
@@ -80,19 +96,47 @@ if (TRUE) {
           axis.title = element_text(size = 12),
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 10)) +
-    ggsave(str_c(paper_main, "cell_types.27522_1.pdf"),
+    ggsave(str_c(paper_supp, "cell_types.27522_1.tsne.pdf"),
+           width = 3.5, height = 3.5, useDingbats = FALSE)
+  
+  ggplot(data = plot_df, aes(x = UMAP_1, y = UMAP_2)) + 
+    geom_point(aes(color = cell_type), shape = 16, size = 1.5, show.legend = FALSE, alpha = 0.25) +
+    geom_text(data = cell_type_positions, aes(x = UMAP_1, y = UMAP_2, 
+                                              label = cell_type_long, 
+                                              color = cell_type),
+              size = 3.5,
+              show.legend = FALSE) +
+    annotate("text", label = "Cell Types", x = -Inf, y = Inf, 
+             vjust = 1, hjust = 0, 
+             size = 3.5) + 
+    labs(x = "UMAP 1", y = "UMAP 2") +
+    theme_bw() +
+    coord_equal() +
+    scale_color_brewer(palette = "Paired", drop = FALSE, direction = -1) +
+    scale_x_continuous(expand = c(0.01, 0.01)) +
+    scale_y_continuous(expand = c(0.01, 0.01)) +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          plot.background = element_blank(),
+          panel.grid = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text = element_blank(),
+          axis.title = element_text(size = 12),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10)) +
+    ggsave(str_c(paper_main, "cell_types.27522_1.umap.pdf"),
            width = 3.5, height = 3.5, useDingbats = FALSE)
   
   # ==============================================================================
   # WHSC1 expression
   # ==============================================================================
   
-  ggplot(data = plot_df %>% arrange(WHSC1), aes(x = tSNE_1, y = tSNE_2)) + 
-    geom_point(aes(color = WHSC1), shape = 16, size = 1.5, show.legend = FALSE) +
+  ggplot(data = plot_df %>% arrange(WHSC1), aes(x = UMAP_1, y = UMAP_2)) + 
+    geom_point(aes(color = WHSC1), shape = 16, size = 1.5, show.legend = FALSE, alpha = 0.25) +
     annotate("text", label = "WHSC1", x = -Inf, y = Inf, 
              vjust = 1, hjust = 0,
              size = 3.5, fontface = "italic") + 
-    labs(x = "t-SNE 1", y = "t-SNE 2") +
+    labs(x = "UMAP 1", y = "UMAP 2") +
     theme_bw() +
     coord_fixed() +
     scale_color_continuous(low = "grey", high = "red") +
@@ -114,12 +158,12 @@ if (TRUE) {
   # FGFR3 expression
   # ==============================================================================
   
-  ggplot(data = plot_df %>% arrange(FGFR3), aes(x = tSNE_1, y = tSNE_2)) + 
-    geom_point(aes(color = FGFR3), shape = 16, size = 1.5, show.legend = FALSE) +
+  ggplot(data = plot_df %>% arrange(FGFR3), aes(x = UMAP_1, y = UMAP_2)) + 
+    geom_point(aes(color = FGFR3), shape = 16, size = 1.5, show.legend = FALSE, alpha = 0.25) +
     annotate("text", label = "FGFR3", x = -Inf, y = Inf, 
              vjust = 1, hjust = 0, 
              size = 3.5, fontface = "italic") + 
-    labs(x = "t-SNE 1", y = "t-SNE 2") +
+    labs(x = "UMAP 1", y = "UMAP 2") +
     theme_bw() +
     coord_fixed() +
     scale_color_continuous(low = "grey", high = "red") +
@@ -141,12 +185,12 @@ if (TRUE) {
   # CSNK1E expression
   # ==============================================================================
   
-  ggplot(data = plot_df %>% arrange(CSNK1E), aes(x = tSNE_1, y = tSNE_2)) + 
-    geom_point(aes(color = CSNK1E), shape = 16, size = 1.5, show.legend = FALSE) +
+  ggplot(data = plot_df %>% arrange(CSNK1E), aes(x = UMAP_1, y = UMAP_2)) + 
+    geom_point(aes(color = CSNK1E), shape = 16, size = 1.5, show.legend = FALSE, alpha = 0.25) +
     annotate("text", label = "CSNK1E", x = -Inf, y = Inf, 
              vjust = 1, hjust = 0,
              size = 3.5, fontface = "italic") + 
-    labs(x = "t-SNE 1", y = "t-SNE 2") +
+    labs(x = "UMAP 1", y = "UMAP 2") +
     theme_bw() +
     coord_fixed() +
     scale_color_continuous(low = "grey", high = "red") +
@@ -164,57 +208,6 @@ if (TRUE) {
     ggsave(str_c(paper_supp, "expression.CSNK1E.27522_1.pdf"),
            width = 3.5, height = 3.5, useDingbats = FALSE)
   
-  # ==============================================================================
-  # Cells with fusion
-  # ==============================================================================
-  
-  p <- ggplot(data = plot_df %>% arrange(fusions != "None Detected"), 
-         aes(x = tSNE_1, y = tSNE_2)) + 
-    geom_point(aes(color = fusions != "None Detected"), 
-               shape = 16, size = 1.5) +
-    annotate("text", label = "Chimeric Transcripts", x = -Inf, y = Inf, 
-             vjust = 1, hjust = 0, 
-             size = 3.5) + 
-    labs(x = "t-SNE 1", y = "t-SNE 2", color = "Fusion Detected") +
-    theme_bw() +
-    coord_fixed() +
-    scale_color_manual(values = c("#bcbddc", "#756bb1")) +
-    scale_x_continuous(expand = c(0.01, 0.01)) +
-    scale_y_continuous(expand = c(0.01, 0.01)) +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank(),
-          plot.background = element_blank(),
-          panel.grid = element_blank(),
-          axis.ticks = element_blank(),
-          axis.text = element_blank(),
-          axis.title = element_text(size = 12),
-          legend.title = element_text(size = 12),
-          legend.text = element_text(size = 10)) 
-  ggsave(str_c(paper_main, "fusions_detected.27522_1.pdf"), p,
-         width = 3.5, height = 3.5, useDingbats = FALSE)
-  ggsave(str_c(paper_main, "fusions_detected.27522_1.no_legend.pdf"), p + guides(color = FALSE),
-         width = 3.5, height = 3.5, useDingbats = FALSE)
-  
-  # ==============================================================================
-  # Transcript breakpoints
-  # ==============================================================================
-  
-  dis_reads_27522_1_fusion %>% 
-    filter(str_detect(fusion, "NSD2"),
-           end - start < 1000) %>% 
-    select(-fusion) %>% unique() %>% 
-    mutate(combo = str_c(cell_barcode, molecular_barcode, sep = ":")) %>% 
-    ggplot(aes(x = start, xend = end, y = combo, yend = combo)) + 
-    geom_segment(alpha = 0.5) + 
-    facet_wrap(~ chrom, nrow = 1, scales = "free_x") +
-    theme_bw() +
-    theme(panel.background = element_blank(),
-          panel.grid = element_blank(),
-          panel.border = element_blank(),
-          plot.background = element_blank()) +
-    ggsave(str_c(paper_main, "reads.27522_1.pdf"), 
-           height = 10, width = 10, useDingbats = FALSE)
-  
 }
 
 
@@ -224,41 +217,56 @@ if (TRUE) {
   # ==============================================================================
   # Remove redundancy in discordant reads data
   # ==============================================================================
+  
   cell_barcodes_with_fusions <- dis_reads_27522_1_discover %>%
     select(cell_barcode) %>%
     unique() %>%
     mutate(fusions = "IGH--WHSC1")
-
+  
   # ==============================================================================
   # Smartly combine relevant data in single tibble
   # Relevant data: cell barcode, tSNE-coords, cell type,
   # WHSC1/FGFR3/CSNK1E expression, t(4;14) fusion, other fusion
   # ==============================================================================
   
+  tsne_coords_27522_1 <- Embeddings(object = seurat_object_27522_1, 
+                                    reduction = "tsne") %>% 
+    as_tibble() %>% 
+    mutate(barcode = row.names(Embeddings(object = seurat_object_27522_1, 
+                                          reduction = "tsne"))) %>% 
+    select(barcode, tSNE_1, tSNE_2)
+  
+  umap_coords_27522_1 <- Embeddings(object = seurat_object_27522_1, 
+                                    reduction = "umap") %>% 
+    as_tibble() %>% 
+    mutate(barcode = row.names(Embeddings(object = seurat_object_27522_1, 
+                                          reduction = "umap"))) %>% 
+    select(barcode, UMAP_1, UMAP_2)
+  
+  
   key_gene_expression <- tibble(barcode = seurat_object_27522_1@assays$RNA@data@Dimnames[[2]],
                                 WHSC1 = seurat_object_27522_1@assays$RNA@data["ENSG00000109685",] %>% as.vector(),
                                 FGFR3 = seurat_object_27522_1@assays$RNA@data["ENSG00000068078",] %>% as.vector(),
                                 CSNK1E = seurat_object_27522_1@assays$RNA@data["ENSG00000213923",] %>% as.vector())
   
-  plot_df <- cell_types_27522_1 %>% left_join(tsne_coords_27522_1, 
-                                              by = c("barcode" = "Barcode")) %>%
+  plot_df <- cell_types_27522_1 %>% 
+    left_join(tsne_coords_27522_1, by = "barcode") %>%
+    left_join(umap_coords_27522_1, by = "barcode") %>%
     left_join(cell_barcodes_with_fusions, 
               by = c("barcode" = "cell_barcode")) %>%
     replace_na(list(fusions = "None Detected")) %>%
-    left_join(key_gene_expression, by = "barcode")
+    left_join(key_gene_expression, by = "barcode") %>%
+    arrange(cell_type)
   
   # ==============================================================================
   # Cells with fusion
   # ==============================================================================
   
-  p <- ggplot(data = plot_df %>% arrange(fusions != "None Detected"), 
-              aes(x = tSNE_1, y = tSNE_2)) + 
+  p <- ggplot(data = plot_df %>% arrange(fusions != "None Detected", cell_type), 
+              aes(x = UMAP_1, y = UMAP_2)) + 
     geom_point(aes(color = fusions != "None Detected"), 
                shape = 16, size = 1.5) +
-    annotate("text", label = "Chimeric Transcripts", x = -Inf, y = Inf, 
-             vjust = 1, hjust = 0, 
-             size = 3.5) + 
-    labs(x = "t-SNE 1", y = "t-SNE 2", color = "Fusion Detected") +
+    labs(x = "UMAP 1", y = "UMAP 2", color = "Chimeric Transcripts Detected") +
     theme_bw() +
     coord_fixed() +
     scale_color_manual(values = c("#bcbddc", "#756bb1")) +
@@ -273,14 +281,18 @@ if (TRUE) {
           axis.title = element_text(size = 12),
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 10)) 
-  ggsave(str_c(paper_main, "fusions_discovered.27522_1.pdf"), p,
+  ggsave(str_c(paper_main, "chimeric_transcripts.27522_1.pdf"), p,
          width = 3.5, height = 3.5, useDingbats = FALSE)
-  ggsave(str_c(paper_main, "fusions_discovered.27522_1.no_legend.pdf"), p + guides(color = FALSE),
+  ggsave(str_c(paper_main, "chimeric_transcripts.27522_1.no_legend.pdf"), p + guides(color = FALSE),
          width = 3.5, height = 3.5, useDingbats = FALSE)
   
   # ==============================================================================
   # Transcript breakpoints
   # ==============================================================================
+  
+  reported_translocation_breakpoints <- tribble(~translocation, ~chrom,      ~pos,
+                                                     "t(4;14)",      4,   1871964,
+                                                     "t(4;14)",     14, 105858090)
   
   reported_fusion_breakpoints <- tribble(      ~fusion,   ~chrom,      ~pos, ~fusion_n,
                                          "IGHJ1--NSD2",  "chr14", 105865407,         1,
@@ -299,16 +311,35 @@ if (TRUE) {
                                           "IGH@--NSD2",   "chr4",   1900626,         7) %>%
     mutate(label_fusion = str_c(fusion_n, fusion, sep = ": "),
            chrom = str_remove_all(chrom, "chr"))
-    
+
+  reciprocal_barcodes <- dis_reads_27522_1_discover %>% 
+    mutate(combo = str_c(cell_barcode, molecular_barcode, sep = ":")) %>%
+    filter(chrom == 4, 
+           end <= reported_translocation_breakpoints %>% filter(chrom == 4) %>% pull(pos)) %>% 
+    select(combo)
+  
   dis_reads_27522_1_discover %>% 
-    #filter(end - start < 1000) %>% 
-    unique() %>% 
+    mutate(read_length = end - start) %>%
+    filter(read_length < 100) %>%
+    group_by(cell_barcode, molecular_barcode) %>% 
+    summarize(n_barcode = n()) %>% 
+    filter(n_barcode > 1) %>% 
+    ungroup() %>% 
+    select(cell_barcode, molecular_barcode) %>% 
+    left_join(dis_reads_27522_1_discover, 
+              by = c("cell_barcode", "molecular_barcode")) %>%
+    mutate(read_length = end - start) %>%
+    filter(read_length < 100) %>%
     mutate(combo = str_c(cell_barcode, molecular_barcode, sep = ":")) %>% 
+    mutate(reciprocal = case_when(combo %in% reciprocal_barcodes$combo ~ TRUE,
+                                  TRUE ~ FALSE)) %>%
     ggplot(aes(x = start, xend = end, y = combo, yend = combo)) + 
     geom_vline(data = reported_fusion_breakpoints,
                aes(xintercept = pos, color = label_fusion)) +
+    geom_vline(data = reported_translocation_breakpoints,
+               aes(xintercept = pos), linetype = 2) +
     geom_segment(alpha = 1, color = "red") +
-    facet_wrap(~ chrom, nrow = 1, scales = "free_x") +
+    facet_grid(reciprocal ~ chrom, scales = "free") +
     theme_bw() +
     theme(panel.background = element_blank(),
           panel.grid.minor = element_blank(),
@@ -500,7 +531,7 @@ if (FALSE) {
 
 
 # Draw genes
-if (TRUE) {
+if (FALSE) {
   library(biomaRt) # 06_single_cell.R
   library(Gviz) # 06_single_cell.R
   # from Bioconductor http://bioconductor.org/packages/release/bioc/html/Gviz.html
