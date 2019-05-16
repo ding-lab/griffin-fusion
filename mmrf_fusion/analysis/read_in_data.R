@@ -8,7 +8,6 @@
 # ==============================================================================
 library(tidyverse)
 library(readxl)
-#source("analysis/common_functions.R")
 
 # Other R pacakges used in downstream scripts
 library(ggrepel) # 02_expression.R
