@@ -214,20 +214,11 @@ if (TRUE) {
 # 27552_1_discover
 if (TRUE) {
   
-  # ==============================================================================
-  # Remove redundancy in discordant reads data
-  # ==============================================================================
-  
-  cell_barcodes_with_fusions <- dis_reads_27522_1_discover %>%
-    select(cell_barcode) %>%
-    unique() %>%
-    mutate(fusions = "IGH--WHSC1")
-  
-  # ==============================================================================
+  # ============================================================================
   # Smartly combine relevant data in single tibble
   # Relevant data: cell barcode, tSNE-coords, cell type,
   # WHSC1/FGFR3/CSNK1E expression, t(4;14) fusion, other fusion
-  # ==============================================================================
+  # ============================================================================
   
   tsne_coords_27522_1 <- Embeddings(object = seurat_object_27522_1, 
                                     reduction = "tsne") %>% 
@@ -243,56 +234,16 @@ if (TRUE) {
                                           reduction = "umap"))) %>% 
     select(barcode, UMAP_1, UMAP_2)
   
-  
-  key_gene_expression <- tibble(barcode = seurat_object_27522_1@assays$RNA@data@Dimnames[[2]],
-                                WHSC1 = seurat_object_27522_1@assays$RNA@data["ENSG00000109685",] %>% as.vector(),
-                                FGFR3 = seurat_object_27522_1@assays$RNA@data["ENSG00000068078",] %>% as.vector(),
-                                CSNK1E = seurat_object_27522_1@assays$RNA@data["ENSG00000213923",] %>% as.vector())
-  
-  plot_df <- cell_types_27522_1 %>% 
-    left_join(tsne_coords_27522_1, by = "barcode") %>%
-    left_join(umap_coords_27522_1, by = "barcode") %>%
-    left_join(cell_barcodes_with_fusions, 
-              by = c("barcode" = "cell_barcode")) %>%
-    replace_na(list(fusions = "None Detected")) %>%
-    left_join(key_gene_expression, by = "barcode") %>%
-    arrange(cell_type)
-  
-  # ==============================================================================
-  # Cells with fusion
-  # ==============================================================================
-  
-  p <- ggplot(data = plot_df %>% arrange(fusions != "None Detected", cell_type), 
-              aes(x = UMAP_1, y = UMAP_2)) + 
-    geom_point(aes(color = fusions != "None Detected"), 
-               shape = 16, size = 1.5) +
-    labs(x = "UMAP 1", y = "UMAP 2", color = "Chimeric Transcripts Detected") +
-    theme_bw() +
-    coord_fixed() +
-    scale_color_manual(values = c("#bcbddc", "#756bb1")) +
-    scale_x_continuous(expand = c(0.01, 0.01)) +
-    scale_y_continuous(expand = c(0.01, 0.01)) +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank(),
-          plot.background = element_blank(),
-          panel.grid = element_blank(),
-          axis.ticks = element_blank(),
-          axis.text = element_blank(),
-          axis.title = element_text(size = 12),
-          legend.title = element_text(size = 12),
-          legend.text = element_text(size = 10)) 
-  ggsave(str_c(paper_main, "chimeric_transcripts.27522_1.pdf"), p,
-         width = 3.5, height = 3.5, useDingbats = FALSE)
-  ggsave(str_c(paper_main, "chimeric_transcripts.27522_1.no_legend.pdf"), p + guides(color = FALSE),
-         width = 3.5, height = 3.5, useDingbats = FALSE)
-  
-  # ==============================================================================
+  # ============================================================================
   # Transcript breakpoints
-  # ==============================================================================
+  # ============================================================================
   
   reported_translocation_breakpoints <- tribble(~translocation, ~chrom,      ~pos,
                                                      "t(4;14)",      4,   1871964,
                                                      "t(4;14)",     14, 105858090)
+  
+  chr4_breakpoint <- 1871964
+  chr14_breakpoint <- 105858090
   
   reported_fusion_breakpoints <- tribble(      ~fusion,   ~chrom,      ~pos, ~fusion_n,
                                          "IGHJ1--NSD2",  "chr14", 105865407,         1,
@@ -312,42 +263,94 @@ if (TRUE) {
     mutate(label_fusion = str_c(fusion_n, fusion, sep = ": "),
            chrom = str_remove_all(chrom, "chr"))
 
-  reciprocal_barcodes <- dis_reads_27522_1_discover %>% 
-    mutate(combo = str_c(cell_barcode, molecular_barcode, sep = ":")) %>%
-    filter(chrom == 4, 
-           end <= reported_translocation_breakpoints %>% filter(chrom == 4) %>% pull(pos)) %>% 
-    select(combo)
-  
-  dis_reads_27522_1_discover %>% 
-    mutate(read_length = end - start) %>%
-    filter(read_length < 100) %>%
+  chr14_min_max <- dis_reads_27522_1_discover %>% 
+    filter(chrom == 14) %>% 
+    filter(end - start < 100) %>% 
     group_by(cell_barcode, molecular_barcode) %>% 
-    summarize(n_barcode = n()) %>% 
-    filter(n_barcode > 1) %>% 
-    ungroup() %>% 
-    select(cell_barcode, molecular_barcode) %>% 
-    left_join(dis_reads_27522_1_discover, 
-              by = c("cell_barcode", "molecular_barcode")) %>%
-    mutate(read_length = end - start) %>%
-    filter(read_length < 100) %>%
-    mutate(combo = str_c(cell_barcode, molecular_barcode, sep = ":")) %>% 
-    mutate(reciprocal = case_when(combo %in% reciprocal_barcodes$combo ~ TRUE,
-                                  TRUE ~ FALSE)) %>%
-    ggplot(aes(x = start, xend = end, y = combo, yend = combo)) + 
-    geom_vline(data = reported_fusion_breakpoints,
-               aes(xintercept = pos, color = label_fusion)) +
-    geom_vline(data = reported_translocation_breakpoints,
-               aes(xintercept = pos), linetype = 2) +
-    geom_segment(alpha = 1, color = "red") +
-    facet_grid(reciprocal ~ chrom, scales = "free") +
+    summarize(min_start = min(start), max_start = max(start), 
+              min_end = min(end), max_end = max(end), 
+              n_reads = n())
+  
+  chr4_min_max <- dis_reads_27522_1_discover %>% 
+    filter(chrom == 4) %>% 
+    filter(end - start < 100) %>% 
+    group_by(cell_barcode, molecular_barcode) %>% 
+    summarize(min_start = min(start), max_start = max(start), 
+              min_end = min(end), max_end = max(end), 
+              n_reads = n())
+  
+  plot_df_breakpoints <- chr14_min_max %>% full_join(chr4_min_max, 
+                              by = c("cell_barcode", "molecular_barcode")) %>%
+    filter(!any(is.na(min_start.x), is.na(min_start.y))) %>%
+    mutate(cell_molecular_barcode = str_c(cell_barcode, molecular_barcode, sep = ":"),
+           category = case_when(min_start.y > chr4_breakpoint & min_start.x > chr14_breakpoint ~ "Canonical IGH--WHSC1",
+                                max_end.y < chr4_breakpoint & max_end.x < chr14_breakpoint ~ "Reciprocal WHSC1--IGH",
+                                TRUE ~ "Something else?")) %>%
+    mutate(chr14_bp = case_when(category == "Canonical IGH--WHSC1" ~ min_start.x - 105600000,
+                                category == "Reciprocal WHSC1--IGH" ~ max_end.x - 105600000,
+                                category == "Something else?" ~ min_start.x - 105600000),
+           chr4_bp = case_when(category == "Canonical IGH--WHSC1" ~ min_start.y - 1800000 + 2e5,
+                               category == "Reciprocal WHSC1--IGH" ~ max_end.y - 1800000 + 2e5,
+                               category == "Something else?" ~ min_start.y - 1800000 + 2e5))
+  
+  ggplot(data = plot_df_breakpoints,
+         aes(x = chr14_bp, xend = chr4_bp, y = 14, yend = 4)) +
+    scale_y_continuous(breaks = c(4,14), labels = c("chr4", "chr14")) +
+    geom_segment(aes(color = category), 
+                 show.legend = FALSE) + 
+    geom_segment(aes(x = 1871964 - 1800000 + 2e5, xend = 1871964 - 1800000 + 2e5,
+                     y = 3.5, yend = 4.5), linetype = 1) +
+    geom_segment(aes(x = 105858090 - 105600000, xend = 105858090 - 105600000,
+                     y = 13.5, yend = 14.5), linetype = 1) +
+    annotate("text", x = 0, y = 14.5, label = "105.6 Mb") +
+    annotate("text", x = 200000, y = 14.5, label = "105.8 Mb") +
+    annotate("text", x = 400000, y = 14.5, label = "106.0 Mb") +
+    annotate("text", x = 600000, y = 14.5, label = "106.2 Mb") +
+    annotate("text", x = 200000, y = 3.5, label = "1.8 Mb") +
+    annotate("text", x = 400000, y = 3.5, label = "2.0 Mb") +
+    facet_wrap(~ category, ncol = 1, strip.position = "right") +
+    labs(x = NULL, y = NULL) +
     theme_bw() +
     theme(panel.background = element_blank(),
-          panel.grid.minor = element_blank(),
           panel.border = element_blank(),
-          plot.background = element_blank()) +
-    ggsave(str_c(paper_main, "reads.discovered.27522_1.pdf"), 
-           height = 10, width = 10, useDingbats = FALSE)
-
+          panel.grid.minor = element_blank(),
+          axis.text.x = element_blank(),
+          axis.ticks = element_blank(),
+          strip.background = element_blank()) +
+    ggsave(str_c(paper_main, "reads.discovered.27522_1.pdf"),
+           width = 7.25, height = 5, useDingbats = FALSE)
+  
+  # ============================================================================
+  # Cells with fusion
+  # ============================================================================
+  
+  p <- plot_df_cells <- plot_df_breakpoints %>% group_by(cell_barcode) %>% 
+    summarize(cats = str_c(sort(unique(category)), collapse = "; ")) %>%
+    right_join(umap_coords_27522_1, by = c("cell_barcode" = "barcode")) %>%
+    filter(!is.na(UMAP_1)) %>%
+    arrange(!is.na(cats)) %>%
+    ggplot(aes(x = UMAP_1, y = UMAP_2)) + 
+    geom_point(aes(color = !is.na(cats)), shape = 16, size = 1.5, show.legend = FALSE) + #, alpha = 0.5) +
+    labs(x = "UMAP 1", y = "UMAP 2") +
+    theme_bw() +
+    coord_equal() +
+    #scale_color_brewer(palette = "Purples", drop = FALSE, direction = 1) +
+    scale_color_manual(values = c("#a6bddb", "#1c9099")) +
+    scale_x_continuous(expand = c(0.01, 0.01)) +
+    scale_y_continuous(expand = c(0.01, 0.01)) +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          plot.background = element_blank(),
+          panel.grid = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text = element_blank(),
+          axis.title = element_text(size = 12),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10))
+  
+  ggsave(str_c(paper_main, "chimeric_transcripts.27522_1.umap.pdf"), p,
+         width = 3.5, height = 3.5, useDingbats = FALSE)
+  
 }
 
 
@@ -594,7 +597,7 @@ if (FALSE) {
                col.line = NULL,
                col = NULL,
                stackHeight = 0.2,
-               #collapseTranscripts = "meta",
+               collapseTranscripts = "meta",
                transcriptAnnotation = "symbol")
     dev.off()
     
