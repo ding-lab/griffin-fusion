@@ -324,13 +324,13 @@ if (TRUE) {
   # Cells with fusion
   # ============================================================================
   
-  p <- plot_df_cells <- plot_df_breakpoints %>% group_by(cell_barcode) %>% 
+  p <- plot_df_breakpoints %>% group_by(cell_barcode) %>% 
     summarize(cats = str_c(sort(unique(category)), collapse = "; ")) %>%
     right_join(umap_coords_27522_1, by = c("cell_barcode" = "barcode")) %>%
     filter(!is.na(UMAP_1)) %>%
     arrange(!is.na(cats)) %>%
     ggplot(aes(x = UMAP_1, y = UMAP_2)) + 
-    geom_point(aes(color = !is.na(cats)), shape = 16, size = 1.5, show.legend = FALSE) + #, alpha = 0.5) +
+    geom_point(aes(color = !is.na(cats)), shape = 16, size = 1.5) +
     labs(x = "UMAP 1", y = "UMAP 2") +
     theme_bw() +
     coord_equal() +
@@ -349,6 +349,8 @@ if (TRUE) {
           legend.text = element_text(size = 10))
   
   ggsave(str_c(paper_main, "chimeric_transcripts.27522_1.umap.pdf"), p,
+         width = 3.5, height = 3.5, useDingbats = FALSE)
+  ggsave(str_c(paper_main, "chimeric_transcripts.27522_1.umap.no_legend.pdf"), p + guides(color = FALSE),
          width = 3.5, height = 3.5, useDingbats = FALSE)
   
 }
