@@ -1,3 +1,5 @@
+*gene_spans
+*junction
 *.rds
 nohup.out
 results
