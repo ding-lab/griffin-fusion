@@ -245,33 +245,65 @@ if (TRUE) {
   chr4_breakpoint <- 1871964
   chr14_breakpoint <- 105858090
   
-  reported_fusion_breakpoints <- tribble(      ~fusion,   ~chrom,      ~pos, ~fusion_n,
-                                         "IGHJ1--NSD2",  "chr14", 105865407,         1,
-                                         "IGHJ1--NSD2",   "chr4",   1900626,         1,
-                                         "IGHJ6--NSD2",  "chr14", 105863198,         2,
-                                         "IGHJ6--NSD2",   "chr4",   1900626,         2,
-                                          "NSD2--IGHM",   "chr4",   1871542,         3,
-                                          "NSD2--IGHM",  "chr14", 105856217,         3,
-                                         "IGHJ5--NSD2",  "chr14", 105863814,         4,
-                                         "IGHJ5--NSD2",   "chr4",   1900626,         4,
-                                         "IGHJ3--NSD2",  "chr14", 105864587,         5,
-                                         "IGHJ3--NSD2",   "chr4",   1900626,         5,
-                                          "IGH@--NSD2",  "chr14", 105864215,         6,
-                                          "IGH@--NSD2",   "chr4",   1900626,         6,
-                                          "IGH@--NSD2",  "chr14", 105865199,         7,
-                                          "IGH@--NSD2",   "chr4",   1900626,         7) %>%
-    mutate(label_fusion = str_c(fusion_n, fusion, sep = ": "),
-           chrom = str_remove_all(chrom, "chr"))
+  #reported_fusion_breakpoints <- tribble(      ~fusion,   ~chrom,      ~pos, ~fusion_n,
+  #                                       "IGHJ1--NSD2",  "chr14", 105865407,         1,
+  #                                       "IGHJ1--NSD2",   "chr4",   1900626,         1,
+  #                                       "IGHJ6--NSD2",  "chr14", 105863198,         2,
+  #                                       "IGHJ6--NSD2",   "chr4",   1900626,         2,
+  #                                        "NSD2--IGHM",   "chr4",   1871542,         3,
+  #                                        "NSD2--IGHM",  "chr14", 105856217,         3,
+  #                                       "IGHJ5--NSD2",  "chr14", 105863814,         4,
+  #                                       "IGHJ5--NSD2",   "chr4",   1900626,         4,
+  #                                       "IGHJ3--NSD2",  "chr14", 105864587,         5,
+  #                                       "IGHJ3--NSD2",   "chr4",   1900626,         5,
+  #                                        "IGH@--NSD2",  "chr14", 105864215,         6,
+  #                                        "IGH@--NSD2",   "chr4",   1900626,         6,
+  #                                        "IGH@--NSD2",  "chr14", 105865199,         7,
+  #                                        "IGH@--NSD2",   "chr4",   1900626,         7) %>%
+  #  mutate(label_fusion = str_c(fusion_n, fusion, sep = ": "),
+  #         chrom = str_remove_all(chrom, "chr"))
 
-  chr14_min_max <- dis_reads_27522_1_discover %>% 
+  
+  return_fusion <- function(this_read, star_fusion_output){
+    star_fusion_output %>% 
+      filter(str_detect(JunctionReads, this_read) | 
+               str_detect(SpanningFrags, this_read)) %>%
+      pull(`#FusionName`) %>%
+      unique() %>%
+      str_c(collapse = ", ")
+  }
+  
+  bulk_fusion_reads <- star_fusion_reads_27522_1 %>%
+    filter(chromosome_donor %in% c("chr4", "chr14"), 
+           chromosome_acceptor %in% c("chr4", "chr14")) %>%
+    select(read_name, 
+           chromosome_donor, first_base_donor, 
+           chromosome_acceptor, first_base_acceptor) %>% 
+    unique() %>% 
+    mutate(chr14_position = case_when(chromosome_donor == "chr14" ~ first_base_donor,
+                                      TRUE ~ first_base_acceptor),
+           chr4_position = case_when(chromosome_donor == "chr4" ~ first_base_donor,
+                                    TRUE ~ first_base_acceptor)) %>%
+    select(read_name, chr14_position, chr4_position) %>%
+    rowwise() %>%
+    mutate(fusion = return_fusion(read_name, star_fusion_calls_27522_1)) %>%
+    ungroup()
+  
+  bulk_chr14_min <- bulk_fusion_reads %>% pull(chr14_position) %>% min()
+  bulk_chr14_max <- bulk_fusion_reads %>% pull(chr14_position) %>% max()
+  bulk_chr4_min <- bulk_fusion_reads %>% pull(chr4_position) %>% min()
+  bulk_chr4_max <- bulk_fusion_reads %>% pull(chr4_position) %>% max()
+  
+  sc_chr14_min_max <- dis_reads_27522_1_discover %>% 
     filter(chrom == 14) %>% 
     filter(end - start < 100) %>% 
+    filter(start < 106e6) %>%
     group_by(cell_barcode, molecular_barcode) %>% 
     summarize(min_start = min(start), max_start = max(start), 
               min_end = min(end), max_end = max(end), 
               n_reads = n())
   
-  chr4_min_max <- dis_reads_27522_1_discover %>% 
+  sc_chr4_min_max <- dis_reads_27522_1_discover %>% 
     filter(chrom == 4) %>% 
     filter(end - start < 100) %>% 
     group_by(cell_barcode, molecular_barcode) %>% 
@@ -279,46 +311,193 @@ if (TRUE) {
               min_end = min(end), max_end = max(end), 
               n_reads = n())
   
-  plot_df_breakpoints <- chr14_min_max %>% full_join(chr4_min_max, 
-                              by = c("cell_barcode", "molecular_barcode")) %>%
-    filter(!any(is.na(min_start.x), is.na(min_start.y))) %>%
-    mutate(cell_molecular_barcode = str_c(cell_barcode, molecular_barcode, sep = ":"),
-           category = case_when(min_start.y > chr4_breakpoint & min_start.x > chr14_breakpoint ~ "Canonical IGH--WHSC1",
-                                max_end.y < chr4_breakpoint & max_end.x < chr14_breakpoint ~ "Reciprocal WHSC1--IGH",
-                                TRUE ~ "Something else?")) %>%
-    mutate(chr14_bp = case_when(category == "Canonical IGH--WHSC1" ~ min_start.x - 105600000,
-                                category == "Reciprocal WHSC1--IGH" ~ max_end.x - 105600000,
-                                category == "Something else?" ~ min_start.x - 105600000),
-           chr4_bp = case_when(category == "Canonical IGH--WHSC1" ~ min_start.y - 1800000 + 2e5,
-                               category == "Reciprocal WHSC1--IGH" ~ max_end.y - 1800000 + 2e5,
-                               category == "Something else?" ~ min_start.y - 1800000 + 2e5))
+  sc_chimeric_transcripts <- sc_chr14_min_max %>% 
+    full_join(sc_chr4_min_max, 
+              by = c("cell_barcode", "molecular_barcode")) %>%
+    filter(!any(is.na(min_start.x), is.na(min_start.y)))
   
-  ggplot(data = plot_df_breakpoints,
-         aes(x = chr14_bp, xend = chr4_bp, y = 14, yend = 4)) +
-    scale_y_continuous(breaks = c(4,14), labels = c("chr4", "chr14")) +
-    geom_segment(aes(color = category), 
-                 show.legend = FALSE) + 
-    geom_segment(aes(x = 1871964 - 1800000 + 2e5, xend = 1871964 - 1800000 + 2e5,
-                     y = 3.5, yend = 4.5), linetype = 1) +
-    geom_segment(aes(x = 105858090 - 105600000, xend = 105858090 - 105600000,
-                     y = 13.5, yend = 14.5), linetype = 1) +
-    annotate("text", x = 0, y = 14.5, label = "105.6 Mb") +
-    annotate("text", x = 200000, y = 14.5, label = "105.8 Mb") +
-    annotate("text", x = 400000, y = 14.5, label = "106.0 Mb") +
-    annotate("text", x = 600000, y = 14.5, label = "106.2 Mb") +
-    annotate("text", x = 200000, y = 3.5, label = "1.8 Mb") +
-    annotate("text", x = 400000, y = 3.5, label = "2.0 Mb") +
-    facet_wrap(~ category, ncol = 1, strip.position = "right") +
+  sc_chr14_min <- sc_chimeric_transcripts %>% pull(min_start.x) %>% min()
+  sc_chr14_max <- sc_chimeric_transcripts %>% pull(max_start.x) %>% max()
+  sc_chr4_min <- sc_chimeric_transcripts %>% pull(min_start.y) %>% min()
+  sc_chr4_max <- sc_chimeric_transcripts %>% pull(max_start.y) %>% max()
+  
+  overall_chr14_min <- min(bulk_chr14_min, sc_chr14_min)
+  overall_chr14_max <- max(bulk_chr14_max, sc_chr14_max)
+  overall_chr4_min <- min(bulk_chr4_min, sc_chr4_min)
+  overall_chr4_max <- max(bulk_chr4_max, sc_chr4_max)
+  
+  between_genes <- 0.2e6
+  
+  shifted_chr4_breakpoint = chr4_breakpoint - overall_chr4_min + overall_chr14_max - overall_chr14_min + between_genes
+  shifted_chr14_breakpoint = chr14_breakpoint - overall_chr14_min
+  
+  bulk_plot_df <- bulk_fusion_reads %>% 
+    mutate(shifted_chr14 = chr14_position - overall_chr14_min, 
+           shifted_chr4 = chr4_position - overall_chr4_min + overall_chr14_max - overall_chr14_min + between_genes) %>%
+    mutate(recip = str_detect(fusion, "NSD2--"))
+    
+  
+  sc_plot_df <- sc_chimeric_transcripts %>% 
+    mutate(shifted_chr14 = min_start.x - overall_chr14_min,
+           shifted_chr4 = min_start.y - overall_chr4_min + overall_chr14_max - overall_chr14_min + between_genes) %>%
+    mutate(cats = case_when(shifted_chr4 <= shifted_chr4_breakpoint & shifted_chr14 <= shifted_chr14_breakpoint ~ "Cat 1",
+                            shifted_chr4 > shifted_chr4_breakpoint & shifted_chr14 <= shifted_chr14_breakpoint ~ "Cat 2",
+                            shifted_chr4 <= shifted_chr4_breakpoint & shifted_chr14 > shifted_chr14_breakpoint ~ "Cat 3",
+                            shifted_chr4 > shifted_chr4_breakpoint & shifted_chr14 > shifted_chr14_breakpoint ~ "Cat 4"))
+  
+  chr14_gene_spans <- gene_spans %>% 
+    filter(chromosome == "chr14") %>% 
+    filter( (start <= overall_chr14_min & end >= overall_chr14_min) | 
+              (start >= overall_chr14_min & end <= overall_chr14_max) | 
+              (start <= overall_chr14_max & end >= overall_chr14_max) ) %>% 
+    filter(str_detect(gene_name, "IGH")) %>%
+    filter(!str_detect(gene_name, "@")) %>%
+    mutate(shifted_chr14_start = start - overall_chr14_min,
+           shifted_chr14_end = end - overall_chr14_min)
+  
+  chr4_gene_spans <- gene_spans %>% 
+    filter(chromosome == "chr4") %>% 
+    filter( (start <= overall_chr4_min & end >= overall_chr4_min) | 
+              (start >= overall_chr4_min & end <= overall_chr4_max) | 
+              (start <= overall_chr4_max & end >= overall_chr4_max) ) %>% 
+    filter(strand == "+", type == "protein_coding") %>%
+    mutate(shifted_chr4_start = start - overall_chr4_min + overall_chr14_max - overall_chr14_min + between_genes,
+           shifted_chr4_end = end - overall_chr4_min + overall_chr14_max - overall_chr14_min + between_genes)
+  
+  ggplot() +
+    scale_y_continuous(limits = c(-2, 2)) +
+    scale_x_continuous(breaks = c(chr14_gene_spans %>% pull(shifted_chr14_start) %>% min(),
+                                  chr14_gene_spans %>% pull(shifted_chr14_end) %>% max(),
+                                  chr4_gene_spans %>% pull(shifted_chr4_start) %>% min(),
+                                  chr4_gene_spans %>% pull(shifted_chr4_start) %>% max(),
+                                  chr4_gene_spans %>% pull(shifted_chr4_end) %>% max()),
+                       labels = c(chr14_gene_spans %>% pull(start) %>% min(),
+                                  chr14_gene_spans %>% pull(end) %>% max(),
+                                  chr4_gene_spans %>% pull(start) %>% min(),
+                                  chr4_gene_spans %>% pull(start) %>% max(),
+                                  chr4_gene_spans %>% pull(end) %>% max())) +
+                                  
+                                  
+    #geom_segment(x = 0, xend = overall_chr14_max - overall_chr14_min,
+    #             y = 0, yend = 0,
+    #             size = 2) +
+    #geom_segment(x = overall_chr14_max - overall_chr14_min + between_genes, xend = overall_chr14_max - overall_chr14_min + between_genes + overall_chr4_max,
+    #             y = 0, yend = 0,
+    #             size = 2) +
+    #chr14 genes
+    geom_rect(data = chr14_gene_spans,
+              aes(xmin = shifted_chr14_start, xmax = shifted_chr14_end,
+                  ymin = 0, ymax = 1),
+              alpha = 0.5,
+              fill = "#66c2a5") + 
+    
+    #chr4 genes
+    geom_rect(data = chr4_gene_spans,
+              aes(xmin = shifted_chr4_start, xmax = shifted_chr4_end,
+                  ymin = -0.5, ymax = 0.5), 
+              alpha = 0.5,
+              fill = "#fc8d62") + 
+    
+    #bulk reads
+    geom_curve(data = bulk_plot_df,
+               aes(x = shifted_chr14, xend = shifted_chr4,
+                   color = recip,
+                   y = 1, yend = 0.5),
+               curvature = -0.25, alpha = 0.25, show.legend = FALSE) +
+    
+    #single cell reads
+    geom_curve(data = sc_plot_df,
+               aes(x = shifted_chr14, xend = shifted_chr4,
+                   color = fct_reorder(cats, desc(cats)),
+                   y = 0, yend = -0.5),
+               curvature = 0.25, alpha = 0.25) + 
+    
+    geom_text(data = chr4_gene_spans,
+              aes(x = (shifted_chr4_end + shifted_chr4_start)/2,
+                  y = 0,
+                  label = gene_name)) +
+    
+    # translocation breakpoints 
+    geom_vline(xintercept = shifted_chr4_breakpoint,
+               linetype = 2) +
+    geom_vline(xintercept = shifted_chr14_breakpoint,
+               linetype = 2) +
+    
+    annotate(geom = "text", x = shifted_chr4_breakpoint, y = -1, label = chr4_breakpoint, hjust = 0) +
+    annotate(geom = "text", x = shifted_chr14_breakpoint, y = -1, label = chr14_breakpoint, hjust = 1) +
+    
     labs(x = NULL, y = NULL) +
     theme_bw() +
     theme(panel.background = element_blank(),
-          panel.border = element_blank(),
           panel.grid.minor = element_blank(),
-          axis.text.x = element_blank(),
-          axis.ticks = element_blank(),
-          strip.background = element_blank()) +
-    ggsave(str_c(paper_main, "reads.discovered.27522_1.pdf"),
-           width = 7.25, height = 5, useDingbats = FALSE)
+          panel.grid.major.y = element_blank(),
+          panel.border = element_blank(),
+          plot.background = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks = element_blank()) +
+    
+    ggsave("~/Desktop/x.pdf", width = 7.25, height = 3)
+  
+  
+  # if (FALSE) { # first method of plotting chimeric reads
+  #   chr14_min_max <- dis_reads_27522_1_discover %>% 
+  #     filter(chrom == 14) %>% 
+  #     filter(end - start < 100) %>% 
+  #     group_by(cell_barcode, molecular_barcode) %>% 
+  #     summarize(min_start = min(start), max_start = max(start), 
+  #               min_end = min(end), max_end = max(end), 
+  #               n_reads = n())
+  #   
+  #   chr4_min_max <- dis_reads_27522_1_discover %>% 
+  #     filter(chrom == 4) %>% 
+  #     filter(end - start < 100) %>% 
+  #     group_by(cell_barcode, molecular_barcode) %>% 
+  #     summarize(min_start = min(start), max_start = max(start), 
+  #               min_end = min(end), max_end = max(end), 
+  #               n_reads = n())
+  #   
+  #   plot_df_breakpoints <- chr14_min_max %>% full_join(chr4_min_max, 
+  #                                                      by = c("cell_barcode", "molecular_barcode")) %>%
+  #     filter(!any(is.na(min_start.x), is.na(min_start.y))) %>%
+  #     mutate(cell_molecular_barcode = str_c(cell_barcode, molecular_barcode, sep = ":"),
+  #            category = case_when(min_start.y > chr4_breakpoint & min_start.x > chr14_breakpoint ~ "Canonical IGH--WHSC1",
+  #                                 max_end.y < chr4_breakpoint & max_end.x < chr14_breakpoint ~ "Reciprocal WHSC1--IGH",
+  #                                 TRUE ~ "Something else?")) %>%
+  #     mutate(chr14_bp = case_when(category == "Canonical IGH--WHSC1" ~ min_start.x - 105600000,
+  #                                 category == "Reciprocal WHSC1--IGH" ~ max_end.x - 105600000,
+  #                                 category == "Something else?" ~ min_start.x - 105600000),
+  #            chr4_bp = case_when(category == "Canonical IGH--WHSC1" ~ min_start.y - 1800000 + 2e5,
+  #                                category == "Reciprocal WHSC1--IGH" ~ max_end.y - 1800000 + 2e5,
+  #                                category == "Something else?" ~ min_start.y - 1800000 + 2e5))
+  #   
+  #   ggplot(data = plot_df_breakpoints,
+  #          aes(x = chr14_bp, xend = chr4_bp, y = 14, yend = 4)) +
+  #     scale_y_continuous(breaks = c(4,14), labels = c("chr4", "chr14")) +
+  #     geom_segment(aes(color = category), 
+  #                  show.legend = FALSE) + 
+  #     geom_segment(aes(x = 1871964 - 1800000 + 2e5, xend = 1871964 - 1800000 + 2e5,
+  #                      y = 3.5, yend = 4.5), linetype = 1) +
+  #     geom_segment(aes(x = 105858090 - 105600000, xend = 105858090 - 105600000,
+  #                      y = 13.5, yend = 14.5), linetype = 1) +
+  #     annotate("text", x = 0, y = 14.5, label = "105.6 Mb") +
+  #     annotate("text", x = 200000, y = 14.5, label = "105.8 Mb") +
+  #     annotate("text", x = 400000, y = 14.5, label = "106.0 Mb") +
+  #     annotate("text", x = 600000, y = 14.5, label = "106.2 Mb") +
+  #     annotate("text", x = 200000, y = 3.5, label = "1.8 Mb") +
+  #     annotate("text", x = 400000, y = 3.5, label = "2.0 Mb") +
+  #     facet_wrap(~ category, ncol = 1, strip.position = "right") +
+  #     labs(x = NULL, y = NULL) +
+  #     theme_bw() +
+  #     theme(panel.background = element_blank(),
+  #           panel.border = element_blank(),
+  #           panel.grid.minor = element_blank(),
+  #           axis.text.x = element_blank(),
+  #           axis.ticks = element_blank(),
+  #           strip.background = element_blank()) +
+  #     ggsave(str_c(paper_main, "reads.discovered.27522_1.pdf"),
+  #            width = 7.25, height = 5, useDingbats = FALSE)
+  #   
+  # }
   
   # ============================================================================
   # Cells with fusion
