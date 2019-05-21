@@ -31,9 +31,13 @@ mv mmc2.xlsx tcga_pancancer_fusions.xlsx
 rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/results/27522_1/5000.discordant_reads.tsv' scRNA.discordant_reads.27522_1.tsv
 rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/results/27522_1/chr4chr14.discovered_discordant_reads.tsv ' scRNA.discordant_reads.discover.27522_1.tsv
 rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/results/56203_1/chr8chr14.discovered_discordant_reads.tsv ' scRNA.discordant_reads.discover.56203_1.tsv
-
+rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/lyao/Tools/GRCh38_gencode_v29_CTAT_lib_Mar272019.plug-n-play/ctat_genome_lib_build_dir/ref_annot.gtf.gene_spans' .
 rsync -avh 'sfoltz@denali.wusm.wustl.edu:/diskmnt/Projects/Users/qgao/Priority/Gao_scRNA_cell_type/2.Prefiltered_celltype/backup_object_cell_type_in_sample_27522_1.rds ' scRNA.seurat_object.27522_1.rds
 rsync -avh 'sfoltz@denali.wusm.wustl.edu:/diskmnt/Projects/Users/qgao/Priority/Gao_scRNA_cell_type/2.Prefiltered_celltype/backup_object_cell_type_in_sample_56203_1.rds ' scRNA.seurat_object.56203_1.rds
+
+rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/scRNA.27522_1.bulk.Chimeric.out.junction' .
+rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/lyao/MMY_RNAseq/STAR-Fusion/27522_1.ANNOTATS/star-fusion.fusion_predictions.tsv' scRNA.27522_1.bulk.star-fusion.fusion_predictions.tsv
+
 
 #wxs_bm_data.withmutect.merged.maf.rc.caller.renamed.Bone_Marrow.tsv is a filtered,
 #edited version of MGI:/gscmnt/gc2737/ding/Analysis/MMRF_MTP/SomaticWrapper/wxs_bm_data_merged/wxs_bm_data.withmutect.merged.maf.rc.caller
