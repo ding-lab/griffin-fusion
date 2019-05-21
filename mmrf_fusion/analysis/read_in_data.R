@@ -192,3 +192,25 @@ dis_reads_27522_1_discover <- read_tsv("data/scRNA.discordant_reads.discover.275
 cell_types_56203_1 <- read_tsv("data/scRNA.cell_types.56203_1.tsv")
 seurat_object_56203_1 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.56203_1.rds")), dims = 1:20)
 dis_reads_56203_1_discover <- read_tsv("data/scRNA.discordant_reads.discover.56203_1.tsv")
+
+gene_spans <- read_tsv("data/ref_annot.gtf.gene_spans",
+                       col_names = c("ENSG", "chromosome", "start", "end", "strand", "gene_name", "type"))
+star_fusion_calls_27522_1 <- read_tsv("data/scRNA.27522_1.bulk.star-fusion.fusion_predictions.tsv")
+star_fusion_reads_27522_1 <- read_tsv("data/scRNA.27522_1.bulk.Chimeric.out.junction",
+                                      col_names = c("chromosome_donor",
+                                                    "first_base_intron_donor",
+                                                    "strand_donor",
+                                                    "chromosome_acceptor",
+                                                    "first_base_intron_acceptor",
+                                                    "strand_acceptor",
+                                                    "junction_type",
+                                                    "repeat_length_left",
+                                                    "repeat_length_right",
+                                                    "read_name",
+                                                    "first_base_donor",
+                                                    "CIGAR_donor",
+                                                    "first_base_acceptor",
+                                                    "CIGAR_acceptor",
+                                                    "V15", "V16"))
+#Chimeric.out.junction column names from:
+#https://groups.google.com/forum/#!msg/rna-star/HUxFCaHSX6c/iSudPgceUXkJ
