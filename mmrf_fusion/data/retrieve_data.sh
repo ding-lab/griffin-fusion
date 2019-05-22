@@ -37,7 +37,7 @@ rsync -avh 'sfoltz@denali.wusm.wustl.edu:/diskmnt/Projects/Users/qgao/Priority/G
 
 rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/scRNA.27522_1.bulk.Chimeric.out.junction' .
 rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/lyao/MMY_RNAseq/STAR-Fusion/27522_1.ANNOTATS/star-fusion.fusion_predictions.tsv' scRNA.27522_1.bulk.star-fusion.fusion_predictions.tsv
-
+rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/scRNA.27522_1.bulk.chr414.Chimeric.out.junction' .
 
 #wxs_bm_data.withmutect.merged.maf.rc.caller.renamed.Bone_Marrow.tsv is a filtered,
 #edited version of MGI:/gscmnt/gc2737/ding/Analysis/MMRF_MTP/SomaticWrapper/wxs_bm_data_merged/wxs_bm_data.withmutect.merged.maf.rc.caller
