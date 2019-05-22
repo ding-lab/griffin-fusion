@@ -364,7 +364,7 @@ if (TRUE) {
     mutate(shifted_chr4_start = start - overall_chr4_min + overall_chr14_max - overall_chr14_min + between_genes,
            shifted_chr4_end = end - overall_chr4_min + overall_chr14_max - overall_chr14_min + between_genes)
   
-  ggplot() +
+  ggplot(data = sc_plot_df) +
     scale_y_continuous(limits = c(-2, 2)) +
     scale_x_continuous(breaks = c(chr14_gene_spans %>% pull(shifted_chr14_start) %>% min(),
                                   chr14_gene_spans %>% pull(shifted_chr14_end) %>% max(),
@@ -427,6 +427,9 @@ if (TRUE) {
     annotate(geom = "text", x = shifted_chr14_breakpoint, y = -1, label = chr14_breakpoint, hjust = 1) +
     
     labs(x = NULL, y = NULL) +
+    
+    facet_wrap(~ cats, ncol = 1) +
+    
     theme_bw() +
     theme(panel.background = element_blank(),
           panel.grid.minor = element_blank(),
@@ -436,7 +439,7 @@ if (TRUE) {
           axis.text.y = element_blank(),
           axis.ticks = element_blank()) +
     
-    ggsave("~/Desktop/x.pdf", width = 7.25, height = 3)
+    ggsave("~/Desktop/x.pdf", width = 7.25, height = 12)
   
   
   # if (FALSE) { # first method of plotting chimeric reads
