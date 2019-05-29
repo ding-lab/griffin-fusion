@@ -183,36 +183,65 @@ drivers_kinases_oncogenes_mmy_genes <- unique(sort(c(drivers$X1, kinases2$X1, on
 # ==============================================================================
 # scRNA analysis
 # ==============================================================================
-cell_types_27522_1 <- read_tsv("data/scRNA.cell_types.27522_1.tsv")
-seurat_object_27522_1 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.27522_1.rds")), dims = 1:20)
-dis_reads_27522_1_fusion <- read_tsv("data/scRNA.discordant_reads.27522_1.tsv") %>% 
-  mutate(fusion = str_remove(fusion, "@"))
-dis_reads_27522_1_discover <- read_tsv("data/scRNA.discordant_reads.discover.27522_1.tsv")
 
+#scRNA.sample_barcode_celltype.txt
 gene_spans <- read_tsv("data/ref_annot.gtf.gene_spans",
-                       col_names = c("ENSG", "chromosome", "start", "end", "strand", "gene_name", "type"))
+                       col_names = c("ENSG", "chromosome", "start", "end", 
+                                     "strand", "gene_name", "type"))
 
-star_fusion_calls_27522_1 <- read_tsv("data/scRNA.27522_1.bulk.star-fusion.fusion_predictions.tsv")
-star_fusion_reads_27522_1 <- read_tsv("data/scRNA.27522_1.bulk.Chimeric.out.junction",
-                                      col_names = c("chromosome_donor",
-                                                    "first_base_intron_donor",
-                                                    "strand_donor",
-                                                    "chromosome_acceptor",
-                                                    "first_base_intron_acceptor",
-                                                    "strand_acceptor",
-                                                    "junction_type",
-                                                    "repeat_length_left",
-                                                    "repeat_length_right",
-                                                    "read_name",
-                                                    "first_base_donor",
-                                                    "CIGAR_donor",
-                                                    "first_base_acceptor",
-                                                    "CIGAR_acceptor",
-                                                    "V15", "V16"))
+# Chimeric reads from bulk RNA
+Chimeric.out.junction.column_names <- c("chromosome_donor",
+                                        "first_base_intron_donor",
+                                        "strand_donor",
+                                        "chromosome_acceptor",
+                                        "first_base_intron_acceptor",
+                                        "strand_acceptor",
+                                        "junction_type",
+                                        "repeat_length_left",
+                                        "repeat_length_right",
+                                        "read_name",
+                                        "first_base_donor",
+                                        "CIGAR_donor",
+                                        "first_base_acceptor",
+                                        "CIGAR_acceptor",
+                                        "V15", "V16")
 #Chimeric.out.junction column names from:
 #https://groups.google.com/forum/#!msg/rna-star/HUxFCaHSX6c/iSudPgceUXkJ
 
-cell_types_56203_1 <- read_tsv("data/scRNA.cell_types.56203_1.tsv")
-seurat_object_56203_1 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.56203_1.rds")), dims = 1:20)
-dis_reads_56203_1_discover <- read_tsv("data/scRNA.discordant_reads.discover.56203_1.tsv")
+bulk_reads_27522_1 <- read_tsv("data/scRNA.27522_1.bulk.chr414.Chimeric.out.junction",
+                               col_names = Chimeric.out.junction.column_names)
+bulk_reads_27522_4 <- read_tsv("data/scRNA.27522_4.bulk.chr414.Chimeric.out.junction",
+                               col_names = Chimeric.out.junction.column_names)
+bulk_reads_56203_2 <- read_tsv("data/scRNA.56203_2.bulk.chr8chr21422.Chimeric.out.junction",
+                               col_names = Chimeric.out.junction.column_names)
 
+# STAR-Fusion calls (only 27522_1 relevant fusions detected)
+star_fusion_calls_27522_1 <- read_tsv("data/scRNA.27522_1.bulk.star-fusion.fusion_predictions.tsv")
+
+# scRNA inferCNV results
+scRNA.27522_1.infercnv.observations.txt <- read_tsv("data/scRNA.27522_1.infercnv.observations.txt")
+scRNA.27522_4.infercnv.observations.txt <- read_tsv("data/scRNA.27522_4.infercnv.observations.txt")
+scRNA.56203_1.infercnv.observations.txt <- read_tsv("data/scRNA.56203_1.infercnv.observations.txt")
+scRNA.56203_2.infercnv.observations.txt <- read_tsv("data/scRNA.56203_2.infercnv.observations.txt")
+
+# scRNA cell types
+cell_types_27522_1 <- read_tsv("data/scRNA.cell_types.27522_1.tsv")
+cell_types_27522_4 <- read_tsv("data/scRNA.cell_types.27522_4.tsv")
+cell_types_56203_1 <- read_tsv("data/scRNA.cell_types.56203_1.tsv")
+cell_types_56203_2 <- read_tsv("data/scRNA.cell_types.56203_2.tsv")
+
+# discordant reads
+dis_reads_27522_1_discover <- read_tsv("data/scRNA.discordant_reads.discover.27522_1.tsv") %>% mutate(supports = "t(4;14)")
+dis_reads_27522_4_discover <- read_tsv("data/scRNA.discordant_reads.discover.27522_4.tsv") %>% mutate(supports = "t(4;14)")
+dis_reads_56203_1_discover <- bind_rows(read_tsv("data/scRNA.discordant_reads.discover.56203_1.MYC_IGH.tsv") %>% mutate(supports = "t(8;14)"),
+                                        read_tsv("data/scRNA.discordant_reads.discover.56203_1.MYC_IGK.tsv") %>% mutate(supports = "t(2;14)"),
+                                        read_tsv("data/scRNA.discordant_reads.discover.56203_1.MYC_IGL.tsv") %>% mutate(supports = "t(22;14)"))
+dis_reads_56203_2_discover <- bind_rows(read_tsv("data/scRNA.discordant_reads.discover.56203_2.MYC_IGH.tsv") %>% mutate(supports = "t(8;14)"),
+                                        read_tsv("data/scRNA.discordant_reads.discover.56203_2.MYC_IGK.tsv") %>% mutate(supports = "t(2;14)"),
+                                        read_tsv("data/scRNA.discordant_reads.discover.56203_2.MYC_IGL.tsv") %>% mutate(supports = "t(22;14)"))
+
+# Seurat objects, run UMAP
+seurat_object_27522_1 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.27522_1.rds")), dims = 1:20)
+seurat_object_27522_4 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.27522_4.rds")), dims = 1:20)
+seurat_object_56203_1 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.56203_1.rds")), dims = 1:20)
+seurat_object_56203_2 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.56203_2.rds")), dims = 1:20)
