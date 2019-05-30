@@ -79,9 +79,9 @@ get_gene_cnv <- function(infercnv, tsne_umap, this_gene){
 # ==============================================================================
 # Get mean CNV of one chromosome and match with barcode tsne and umap
 # ==============================================================================
-get_chr_cnv <- function(chr, infercnv, tsne_umap){
+get_chr_cnv <- function(chr, infercnv, tsne_umap, genes = gene_spans){
   
-  gene_spans %>% 
+  genes %>% 
     filter(chromosome == chr) %>% 
     left_join(infercnv, by = c("gene_name" = "gene")) %>% 
     arrange(start) %>% 
@@ -367,6 +367,277 @@ plot_chr_cnv <- function(infercnv, tsne_umap, reduction = "UMAP", id, chr, dir =
 }
 
 # ==============================================================================
+# Work with 27522 reads
+# ==============================================================================
+get_bulk_fusion_reads_27522 <- function(bulk_reads, star_fusion = NULL, use_SF_only = TRUE){
+  
+  return_fusions <- function(this_read, star_fusion){
+    if (identical(star_fusion, NULL)) {
+      return("No STAR-Fusion Results Provided")
+    }
+    
+    fusions <- star_fusion %>%
+      filter(str_detect(JunctionReads, this_read) | 
+               str_detect(SpanningFrags, this_read)) %>%
+      pull(`#FusionName`) %>%
+      unique() %>%
+      str_c(collapse = ", ")
+    if (identical(fusions, character(0))) {
+      return("Not Associated With Any Fusion")
+    } else {
+      return(fusions)
+    }
+  }
+  
+  all_reads <- bulk_reads %>%
+    filter(chromosome_donor %in% c("chr4", "chr14"), 
+           chromosome_acceptor %in% c("chr4", "chr14")) %>%
+    select(read_name, 
+           chromosome_donor, first_base_donor, 
+           chromosome_acceptor, first_base_acceptor) %>% 
+    unique() %>% 
+    mutate(chr14_position = case_when(chromosome_donor == "chr14" ~ first_base_donor,
+                                      TRUE ~ first_base_acceptor),
+           chr4_position = case_when(chromosome_donor == "chr4" ~ first_base_donor,
+                                     TRUE ~ first_base_acceptor)) %>%
+    filter(chr14_position > 105500000,
+           chr14_position < 107000000) %>%
+    filter(chr4_position > 1800000,
+           chr4_position < 2000000) %>%
+    select(read_name, chr14_position, chr4_position) %>%
+    rowwise() %>%
+    mutate(fusion = return_fusions(read_name, star_fusion)) %>%
+    ungroup()
+  
+  if (use_SF_only) {
+    all_reads %>%
+      filter(fusion != "Not Associated With Any Fusion") %>%
+      return()
+  } else {
+    return(all_reads)
+  }
+}
+get_sc_chimeric_transcripts_27522 <- function(dis_reads){
+  
+  sc_chr14_min_max <- dis_reads %>% 
+    filter(chrom == 14) %>% 
+    filter(end - start < 100) %>% 
+    #filter(start < 106e6) %>%
+    group_by(cell_barcode, molecular_barcode) %>% 
+    summarize(min_start = min(start), max_start = max(start), 
+              min_end = min(end), max_end = max(end), 
+              n_reads = n())
+  
+  sc_chr4_min_max <- dis_reads %>% 
+    filter(chrom == 4) %>% 
+    filter(end - start < 100) %>% 
+    group_by(cell_barcode, molecular_barcode) %>% 
+    summarize(min_start = min(start), max_start = max(start), 
+              min_end = min(end), max_end = max(end), 
+              n_reads = n())
+  
+  sc_chr14_min_max %>% 
+    full_join(sc_chr4_min_max, 
+              by = c("cell_barcode", "molecular_barcode")) %>%
+    filter(!any(is.na(min_start.x), is.na(min_start.y))) %>%
+    return()
+}
+get_bulk_sc_plot_df_27522 <- function(bulk_fusion_reads, sc_chimeric_transcripts){
+  
+  chr4_breakpoint <- 1871964
+  chr14_breakpoint <- 105858090
+  between_genes <- 0.2e6
+  
+  bulk_chr14_min <- bulk_fusion_reads %>% pull(chr14_position) %>% min()
+  bulk_chr14_max <- bulk_fusion_reads %>% pull(chr14_position) %>% max()
+  bulk_chr4_min <- bulk_fusion_reads %>% pull(chr4_position) %>% min()
+  bulk_chr4_max <- bulk_fusion_reads %>% pull(chr4_position) %>% max()
+  
+  sc_chr14_min <- sc_chimeric_transcripts %>% pull(min_start.x) %>% min()
+  sc_chr14_max <- sc_chimeric_transcripts %>% pull(max_start.x) %>% max()
+  sc_chr4_min <- sc_chimeric_transcripts %>% pull(min_start.y) %>% min()
+  sc_chr4_max <- sc_chimeric_transcripts %>% pull(max_start.y) %>% max()
+  
+  overall_chr14_min <- min(bulk_chr14_min, sc_chr14_min)
+  overall_chr14_max <- max(bulk_chr14_max, sc_chr14_max)
+  overall_chr4_min <- min(bulk_chr4_min, sc_chr4_min)
+  overall_chr4_max <- max(bulk_chr4_max, sc_chr4_max)
+  
+  chr4_shift = 0 - overall_chr4_min + overall_chr14_max - overall_chr14_min + between_genes
+  chr14_shift = 0 - overall_chr14_min
+  
+  shifted_chr4_breakpoint = chr4_breakpoint + chr4_shift
+  shifted_chr14_breakpoint = chr14_breakpoint + chr14_shift
+  
+  bulk_plot_df <- bulk_fusion_reads %>% 
+    mutate(shifted_chr4 = chr4_position + chr4_shift,
+           shifted_chr14 = chr14_position + chr14_shift) %>%
+    mutate(category = case_when(chr4_position <= chr4_breakpoint & chr14_position <= chr14_breakpoint ~ "Category 1",
+                                chr4_position > chr4_breakpoint & chr14_position <= chr14_breakpoint ~ "Category 2",
+                                chr4_position <= chr4_breakpoint & chr14_position > chr14_breakpoint ~ "Category 3",
+                                chr4_position > chr4_breakpoint & chr14_position > chr14_breakpoint ~ "Category 4")) %>%
+    mutate(identifier = read_name,
+           data_type = "Bulk Spanning/Junction Read Pair",
+           y_position_offset = 0,
+           curvature = -0.25) %>%
+    select(identifier, data_type, y_position_offset, curvature, chr14_position, chr4_position, shifted_chr14, shifted_chr4, category, fusion)
+  
+  sc_plot_df <- sc_chimeric_transcripts %>%
+    mutate(chr4_position = min_start.y,
+           chr14_position = min_start.x) %>%
+    mutate(shifted_chr4 = chr4_position + chr4_shift,
+           shifted_chr14 = chr14_position + chr14_shift) %>%
+    mutate(category = case_when(chr4_position <= chr4_breakpoint & chr14_position <= chr14_breakpoint ~ "Category 1",
+                                chr4_position > chr4_breakpoint & chr14_position <= chr14_breakpoint ~ "Category 2",
+                                chr4_position <= chr4_breakpoint & chr14_position > chr14_breakpoint ~ "Category 3",
+                                chr4_position > chr4_breakpoint & chr14_position > chr14_breakpoint ~ "Category 4")) %>%
+    mutate(identifier = str_c(cell_barcode, ":", molecular_barcode),
+           data_type = "Single Cell Chimeric Transcript",
+           y_position_offset = -0.5,
+           curvature = 0.25,
+           fusion = NA) %>%
+    ungroup() %>%
+    select(identifier, data_type, chr14_position, chr4_position, shifted_chr14, shifted_chr4, category, fusion) #, y_position_offset, curvature)
+  
+  bind_rows(bulk_plot_df, sc_plot_df) %>% return()
+}
+plot_bulk_sc_27522 <- function(bulk_sc_plot_df, genes = gene_spans, dir, id){
+  
+  reported_translocation_breakpoints <- tribble(~trans, ~chrom,      ~pos,
+                                             "t(4;14)",      4,   1871964,
+                                             "t(4;14)",     14, 105858090)
+  chr4_breakpoint <- 1871964
+  chr14_breakpoint <- 105858090
+  between_genes <- 0.2e6
+  chr4_offset_y <- 0.5
+  
+  overall_chr14_min <- bulk_sc_plot_df %>% pull(chr14_position) %>% min()
+  overall_chr14_max <- bulk_sc_plot_df %>% pull(chr14_position) %>% max() 
+  overall_chr4_min <- bulk_sc_plot_df %>% pull(chr4_position) %>% min()
+  overall_chr4_max <- bulk_sc_plot_df %>% pull(chr4_position) %>% max()
+  
+  chr4_shift = 0 - overall_chr4_min + overall_chr14_max - overall_chr14_min + between_genes
+  chr14_shift = 0 - overall_chr14_min
+  
+  chr14_gene_spans <- genes %>% 
+    filter(chromosome == "chr14") %>% 
+    filter( (start <= overall_chr14_min & end >= overall_chr14_min) | 
+              (start >= overall_chr14_min & end <= overall_chr14_max) | 
+              (start <= overall_chr14_max & end >= overall_chr14_max) ) %>% 
+    filter(str_detect(gene_name, "IGH")) %>%
+    filter(!str_detect(gene_name, "@")) %>%
+    mutate(shifted_chr14_start = start + chr14_shift,
+           shifted_chr14_end = end + chr14_shift)
+  
+  chr4_gene_spans <- genes %>% 
+    filter(chromosome == "chr4") %>% 
+    filter( (start <= overall_chr4_min & end >= overall_chr4_min) | 
+              (start >= overall_chr4_min & end <= overall_chr4_max) | 
+              (start <= overall_chr4_max & end >= overall_chr4_max) ) %>% 
+    filter(strand == "+", type == "protein_coding") %>%
+    mutate(shifted_chr4_start = start + chr4_shift,
+           shifted_chr4_end = end + chr4_shift) %>%
+    mutate(gene_name = case_when(gene_name == "NSD2" ~ "WHSC1",
+                                 TRUE ~ gene_name))
+  
+  shifted_gene_boundaries <- c(chr14_gene_spans %>% pull(shifted_chr14_start) %>% min(),
+    chr14_gene_spans %>% pull(shifted_chr14_end) %>% max(),
+    chr4_gene_spans %>% pull(shifted_chr4_start) %>% min(),
+    chr4_gene_spans %>% pull(shifted_chr4_start) %>% max(),
+    chr4_gene_spans %>% pull(shifted_chr4_end) %>% max())
+  
+  gene_boundaries <- c(chr14_gene_spans %>% pull(start) %>% min(),
+    chr14_gene_spans %>% pull(end) %>% max(),
+    chr4_gene_spans %>% pull(start) %>% min(),
+    chr4_gene_spans %>% pull(start) %>% max(),
+    chr4_gene_spans %>% pull(end) %>% max())
+  
+  p <- ggplot(data = bulk_sc_plot_df) +
+    scale_y_continuous(limits = c(-1.5, 2)) +
+    scale_x_continuous(breaks = shifted_gene_boundaries,
+                       labels = gene_boundaries) +
+    #chr14 genes
+    geom_rect(data = chr14_gene_spans,
+              aes(xmin = shifted_chr14_start, xmax = shifted_chr14_end,
+                  ymin = 0, ymax = 1),
+              alpha = 0.5,
+              fill = "#66c2a5") +
+    #chr4 genes
+    geom_rect(data = chr4_gene_spans,
+              aes(xmin = shifted_chr4_start, 
+                  xmax = shifted_chr4_end,
+                  ymin = 0 - chr4_offset_y, 
+                  ymax = 1 - chr4_offset_y), 
+              alpha = 0.5,
+              fill = "#fc8d62") + 
+    # draw bulk read curves
+    geom_curve(data = bulk_sc_plot_df %>% 
+                 filter(data_type == "Bulk Spanning/Junction Read Pair") %>%
+                 arrange(str_detect(fusion, "IGH")),
+               aes(x = shifted_chr14, 
+                   xend = shifted_chr4,
+                   color = str_detect(fusion, "IGH"),
+                   y = 1,
+                   yend = 1 - chr4_offset_y),
+               curvature = -0.25,
+               #show.legend = FALSE,
+               alpha = 0.25) +
+    # draw sc read curves
+    geom_curve(data = bulk_sc_plot_df %>% 
+                 filter(data_type == "Single Cell Chimeric Transcript"),
+               aes(x = shifted_chr14, 
+                   xend = shifted_chr4,
+                   y = 0,
+                   yend = 0 - chr4_offset_y),
+               curvature = 0.25,
+               show.legend = FALSE,
+               alpha = 0.25) +
+    # label chr4 genes
+    geom_text(data = chr4_gene_spans,
+              aes(x = (shifted_chr4_end + shifted_chr4_start)/2,
+                  y = 1 - chr4_offset_y - 0.5,
+                  label = gene_name),
+              fontface = "italic") +
+    # translocation breakpoints 
+    geom_vline(xintercept = shifted_chr4_breakpoint,
+               linetype = 2) +
+    geom_vline(xintercept = shifted_chr14_breakpoint,
+               linetype = 2) +
+    annotate(geom = "text", x = shifted_chr4_breakpoint, y = -1.5, label = chr4_breakpoint, hjust = 0, vjust = 1) +
+    annotate(geom = "text", x = shifted_chr14_breakpoint, y = -1.5, label = chr14_breakpoint, hjust = 1, vjust = 1) +
+    # facets
+    facet_wrap(~ category, ncol = 1) + 
+    
+    labs(color = "Read Pair Used\nby STAR-Fusion",
+         linetype = "Read Pair Used\nby STAR-Fusion") +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.grid.major.y = element_blank(),
+          panel.border = element_blank(),
+          plot.background = element_blank(),
+          axis.title = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks = element_blank(),
+          legend.background = element_blank(),
+          legend.position = "bottom")
+    
+    ggsave(str_c(dir, id, "discordant_read_positions.pdf"),
+           p,
+           width = 7.25, height = 12)
+}
+
+
+bulk_fusion_reads_27522_1 <- get_bulk_fusion_reads_27522(bulk_reads_27522_1, star_fusion_calls_27522_1, use_SF_only = FALSE)
+sc_chimeric_transcripts_27522_1 <- get_sc_chimeric_transcripts_27522(dis_reads_27522_1_discover)
+bulk_sc_plot_df_27522_1 <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_1, sc_chimeric_transcripts_27522_1)
+plot_bulk_sc_27522(bulk_sc_plot_df_27522_1, dir = paper_main, id = "27522_1")
+
+#ANALYSIS
+if (TRUE) {
+  
+
+# ==============================================================================
 # ANALYSIS
 # ==============================================================================
 
@@ -443,184 +714,14 @@ plot_chr_cnv(infercnv_27522_1,
              get_tsne_umap(cell_types = cell_types_27522_1, 
                            seurat_object = seurat_object_27522_1), 
              id = "27522_1", chr = "chr4")
+}
 
 
-{
-  bulk_fusion_reads <- star_fusion_reads_27522_1 %>%
-    filter(chromosome_donor %in% c("chr4", "chr14"), 
-           chromosome_acceptor %in% c("chr4", "chr14")) %>%
-    select(read_name, 
-           chromosome_donor, first_base_donor, 
-           chromosome_acceptor, first_base_acceptor) %>% 
-    unique() %>% 
-    mutate(chr14_position = case_when(chromosome_donor == "chr14" ~ first_base_donor,
-                                      TRUE ~ first_base_acceptor),
-           chr4_position = case_when(chromosome_donor == "chr4" ~ first_base_donor,
-                                     TRUE ~ first_base_acceptor)) %>%
-    select(read_name, chr14_position, chr4_position) %>%
-    rowwise() %>%
-    mutate(fusion = return_fusion(read_name, star_fusion_calls_27522_1)) %>%
-    ungroup()
-  
-  bulk_chr14_min <- bulk_fusion_reads %>% pull(chr14_position) %>% min()
-  bulk_chr14_max <- bulk_fusion_reads %>% pull(chr14_position) %>% max()
-  bulk_chr4_min <- bulk_fusion_reads %>% pull(chr4_position) %>% min()
-  bulk_chr4_max <- bulk_fusion_reads %>% pull(chr4_position) %>% max()
-  
-  sc_chr14_min_max <- dis_reads_27522_1_discover %>% 
-    filter(chrom == 14) %>% 
-    filter(end - start < 100) %>% 
-    filter(start < 106e6) %>%
-    group_by(cell_barcode, molecular_barcode) %>% 
-    summarize(min_start = min(start), max_start = max(start), 
-              min_end = min(end), max_end = max(end), 
-              n_reads = n())
-  
-  sc_chr4_min_max <- dis_reads_27522_1_discover %>% 
-    filter(chrom == 4) %>% 
-    filter(end - start < 100) %>% 
-    group_by(cell_barcode, molecular_barcode) %>% 
-    summarize(min_start = min(start), max_start = max(start), 
-              min_end = min(end), max_end = max(end), 
-              n_reads = n())
-  
-  sc_chimeric_transcripts <- sc_chr14_min_max %>% 
-    full_join(sc_chr4_min_max, 
-              by = c("cell_barcode", "molecular_barcode")) %>%
-    filter(!any(is.na(min_start.x), is.na(min_start.y)))
-  
-  sc_chr14_min <- sc_chimeric_transcripts %>% pull(min_start.x) %>% min()
-  sc_chr14_max <- sc_chimeric_transcripts %>% pull(max_start.x) %>% max()
-  sc_chr4_min <- sc_chimeric_transcripts %>% pull(min_start.y) %>% min()
-  sc_chr4_max <- sc_chimeric_transcripts %>% pull(max_start.y) %>% max()
-  
-  overall_chr14_min <- min(bulk_chr14_min, sc_chr14_min)
-  overall_chr14_max <- max(bulk_chr14_max, sc_chr14_max)
-  overall_chr4_min <- min(bulk_chr4_min, sc_chr4_min)
-  overall_chr4_max <- max(bulk_chr4_max, sc_chr4_max)
-  
-  between_genes <- 0.2e6
-  
-  shifted_chr4_breakpoint = chr4_breakpoint - overall_chr4_min + overall_chr14_max - overall_chr14_min + between_genes
-  shifted_chr14_breakpoint = chr14_breakpoint - overall_chr14_min
-  
-  bulk_plot_df <- bulk_fusion_reads %>% 
-    mutate(shifted_chr14 = chr14_position - overall_chr14_min, 
-           shifted_chr4 = chr4_position - overall_chr4_min + overall_chr14_max - overall_chr14_min + between_genes) %>%
-    mutate(recip = str_detect(fusion, "NSD2--"))
-  
-  
-  sc_plot_df <- sc_chimeric_transcripts %>% 
-    mutate(shifted_chr14 = min_start.x - overall_chr14_min,
-           shifted_chr4 = min_start.y - overall_chr4_min + overall_chr14_max - overall_chr14_min + between_genes) %>%
-    mutate(cats = case_when(shifted_chr4 <= shifted_chr4_breakpoint & shifted_chr14 <= shifted_chr14_breakpoint ~ "Cat 1",
-                            shifted_chr4 > shifted_chr4_breakpoint & shifted_chr14 <= shifted_chr14_breakpoint ~ "Cat 2",
-                            shifted_chr4 <= shifted_chr4_breakpoint & shifted_chr14 > shifted_chr14_breakpoint ~ "Cat 3",
-                            shifted_chr4 > shifted_chr4_breakpoint & shifted_chr14 > shifted_chr14_breakpoint ~ "Cat 4"))
 
   
   
 
-# ==============================================================================
-# 27522_1
-# ==============================================================================
-reported_translocation_breakpoints <- tribble(~translocation, ~chrom,      ~pos,
-                                                   "t(4;14)",      4,   1871964,
-                                                   "t(4;14)",     14, 105858090)
-chr4_breakpoint <- 1871964
-chr14_breakpoint <- 105858090
 
-return_fusion <- function(this_read, star_fusion_output){
-  star_fusion_output %>%
-    filter(str_detect(JunctionReads, this_read) | 
-             str_detect(SpanningFrags, this_read)) %>%
-    pull(`#FusionName`) %>%
-    unique() %>%
-    str_c(collapse = ", ")
-  }
-  
-chr14_gene_spans <- gene_spans %>% 
-  filter(chromosome == "chr14") %>% 
-  filter( (start <= overall_chr14_min & end >= overall_chr14_min) | 
-            (start >= overall_chr14_min & end <= overall_chr14_max) | 
-            (start <= overall_chr14_max & end >= overall_chr14_max) ) %>% 
-  filter(str_detect(gene_name, "IGH")) %>%
-  filter(!str_detect(gene_name, "@")) %>%
-  mutate(shifted_chr14_start = start - overall_chr14_min,
-         shifted_chr14_end = end - overall_chr14_min)
-  
-chr4_gene_spans <- gene_spans %>% 
-  filter(chromosome == "chr4") %>% 
-  filter( (start <= overall_chr4_min & end >= overall_chr4_min) | 
-            (start >= overall_chr4_min & end <= overall_chr4_max) | 
-            (start <= overall_chr4_max & end >= overall_chr4_max) ) %>% 
-  filter(strand == "+", type == "protein_coding") %>%
-  mutate(shifted_chr4_start = start - overall_chr4_min + overall_chr14_max - overall_chr14_min + between_genes,
-         shifted_chr4_end = end - overall_chr4_min + overall_chr14_max - overall_chr14_min + between_genes)
-  
-ggplot(data = sc_plot_df) +
-  scale_y_continuous(limits = c(-2, 2)) +
-  scale_x_continuous(breaks = c(chr14_gene_spans %>% pull(shifted_chr14_start) %>% min(),
-                                chr14_gene_spans %>% pull(shifted_chr14_end) %>% max(),
-                                chr4_gene_spans %>% pull(shifted_chr4_start) %>% min(),
-                                chr4_gene_spans %>% pull(shifted_chr4_start) %>% max(),
-                                chr4_gene_spans %>% pull(shifted_chr4_end) %>% max()),
-                     labels = c(chr14_gene_spans %>% pull(start) %>% min(),
-                                chr14_gene_spans %>% pull(end) %>% max(),
-                                chr4_gene_spans %>% pull(start) %>% min(),
-                                chr4_gene_spans %>% pull(start) %>% max(),
-                                chr4_gene_spans %>% pull(end) %>% max())) +
-  geom_rect(data = chr14_gene_spans,
-            aes(xmin = shifted_chr14_start, xmax = shifted_chr14_end,
-                ymin = 0, ymax = 1),
-            alpha = 0.5,
-            fill = "#66c2a5") +
-  #chr4 genes
-  geom_rect(data = chr4_gene_spans,
-            aes(xmin = shifted_chr4_start, xmax = shifted_chr4_end,
-                ymin = -0.5, ymax = 0.5), 
-            alpha = 0.5,
-            fill = "#fc8d62") + 
-    
-  #bulk reads
-  geom_curve(data = bulk_plot_df,
-             aes(x = shifted_chr14, xend = shifted_chr4,
-                 color = recip,
-                 y = 1, yend = 0.5),
-             curvature = -0.25, alpha = 0.25, show.legend = FALSE) +
-  #single cell reads
-  geom_curve(data = sc_plot_df,
-             aes(x = shifted_chr14, xend = shifted_chr4,
-                 color = fct_reorder(cats, desc(cats)),
-                 y = 0, yend = -0.5),
-             curvature = 0.25, alpha = 0.25) + 
-    
-  geom_text(data = chr4_gene_spans,
-            aes(x = (shifted_chr4_end + shifted_chr4_start)/2,
-                y = 0,
-                label = gene_name)) +
-    
-  # translocation breakpoints 
-  geom_vline(xintercept = shifted_chr4_breakpoint,
-             linetype = 2) +
-  geom_vline(xintercept = shifted_chr14_breakpoint,
-             linetype = 2) +
-    
-  annotate(geom = "text", x = shifted_chr4_breakpoint, y = -1, label = chr4_breakpoint, hjust = 0) +
-  annotate(geom = "text", x = shifted_chr14_breakpoint, y = -1, label = chr14_breakpoint, hjust = 1) +
-    
-  labs(x = NULL, y = NULL) +
-  facet_wrap(~ cats, ncol = 1) + 
-  theme_bw() +
-  theme(panel.background = element_blank(),
-        panel.grid.minor = element_blank(),
-        panel.grid.major.y = element_blank(),
-        panel.border = element_blank(),
-        plot.background = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks = element_blank()) +
-    
-  ggsave("~/Desktop/x.pdf", width = 7.25, height = 12)
   
 # ============================================================================
 # Cells with fusion
