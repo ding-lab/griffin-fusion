@@ -369,7 +369,7 @@ plot_chr_cnv <- function(infercnv, tsne_umap, reduction = "UMAP", id, chr, dir =
 # ==============================================================================
 # Work with 27522 reads
 # ==============================================================================
-get_bulk_fusion_reads_27522 <- function(bulk_reads, star_fusion = NULL, use_SF_only = TRUE){
+get_bulk_fusion_reads_27522 <- function(bulk_reads, star_fusion = NULL, use_SF_only = FALSE){
   
   return_fusions <- function(this_read, star_fusion){
     if (identical(star_fusion, NULL)) {
@@ -454,9 +454,9 @@ get_bulk_sc_plot_df_27522 <- function(bulk_fusion_reads, sc_chimeric_transcripts
   bulk_chr4_max <- bulk_fusion_reads %>% pull(chr4_position) %>% max()
   
   sc_chr14_min <- sc_chimeric_transcripts %>% pull(min_start.x) %>% min()
-  sc_chr14_max <- sc_chimeric_transcripts %>% pull(max_start.x) %>% max()
+  sc_chr14_max <- sc_chimeric_transcripts %>% pull(min_start.x) %>% max()
   sc_chr4_min <- sc_chimeric_transcripts %>% pull(min_start.y) %>% min()
-  sc_chr4_max <- sc_chimeric_transcripts %>% pull(max_start.y) %>% max()
+  sc_chr4_max <- sc_chimeric_transcripts %>% pull(min_start.y) %>% max()
   
   overall_chr14_min <- min(bulk_chr14_min, sc_chr14_min)
   overall_chr14_max <- max(bulk_chr14_max, sc_chr14_max)
@@ -480,7 +480,7 @@ get_bulk_sc_plot_df_27522 <- function(bulk_fusion_reads, sc_chimeric_transcripts
            data_type = "Bulk Spanning/Junction Read Pair",
            y_position_offset = 0,
            curvature = -0.25) %>%
-    select(identifier, data_type, y_position_offset, curvature, chr14_position, chr4_position, shifted_chr14, shifted_chr4, category, fusion)
+    select(identifier, data_type, chr14_position, chr4_position, shifted_chr14, shifted_chr4, category, fusion) #, y_position_offset, curvature)
   
   sc_plot_df <- sc_chimeric_transcripts %>%
     mutate(chr4_position = min_start.y,
@@ -518,6 +518,9 @@ plot_bulk_sc_27522 <- function(bulk_sc_plot_df, genes = gene_spans, dir, id){
   
   chr4_shift = 0 - overall_chr4_min + overall_chr14_max - overall_chr14_min + between_genes
   chr14_shift = 0 - overall_chr14_min
+  
+  shifted_chr4_breakpoint = chr4_breakpoint + chr4_shift
+  shifted_chr14_breakpoint = chr14_breakpoint + chr14_shift
   
   chr14_gene_spans <- genes %>% 
     filter(chromosome == "chr14") %>% 
@@ -558,8 +561,10 @@ plot_bulk_sc_27522 <- function(bulk_sc_plot_df, genes = gene_spans, dir, id){
                        labels = gene_boundaries) +
     #chr14 genes
     geom_rect(data = chr14_gene_spans,
-              aes(xmin = shifted_chr14_start, xmax = shifted_chr14_end,
-                  ymin = 0, ymax = 1),
+              aes(xmin = shifted_chr14_start, 
+                  xmax = shifted_chr14_end,
+                  ymin = 0, 
+                  ymax = 1),
               alpha = 0.5,
               fill = "#66c2a5") +
     #chr4 genes
@@ -622,16 +627,21 @@ plot_bulk_sc_27522 <- function(bulk_sc_plot_df, genes = gene_spans, dir, id){
           legend.background = element_blank(),
           legend.position = "bottom")
     
-    ggsave(str_c(dir, id, "discordant_read_positions.pdf"),
+    ggsave(str_c(dir, id, ".discordant_read_positions.pdf"),
            p,
            width = 7.25, height = 12)
 }
 
 
-bulk_fusion_reads_27522_1 <- get_bulk_fusion_reads_27522(bulk_reads_27522_1, star_fusion_calls_27522_1, use_SF_only = FALSE)
+bulk_fusion_reads_27522_1 <- get_bulk_fusion_reads_27522(bulk_reads_27522_1, star_fusion_calls_27522_1)
 sc_chimeric_transcripts_27522_1 <- get_sc_chimeric_transcripts_27522(dis_reads_27522_1_discover)
 bulk_sc_plot_df_27522_1 <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_1, sc_chimeric_transcripts_27522_1)
 plot_bulk_sc_27522(bulk_sc_plot_df_27522_1, dir = paper_main, id = "27522_1")
+
+bulk_fusion_reads_27522_4 <- get_bulk_fusion_reads_27522(bulk_reads_27522_4)
+sc_chimeric_transcripts_27522_4 <- get_sc_chimeric_transcripts_27522(dis_reads_27522_4_discover)
+bulk_sc_plot_df_27522_4 <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_4, sc_chimeric_transcripts_27522_4)
+plot_bulk_sc_27522(bulk_sc_plot_df_27522_4, dir = paper_main, id = "27522_4")
 
 #ANALYSIS
 if (TRUE) {
