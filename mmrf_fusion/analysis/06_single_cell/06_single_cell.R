@@ -46,7 +46,7 @@ get_tsne_umap <- function(cell_types, seurat_object){
                                          "Macrophages", 
                                          "Monocytes", 
                                          "Natural Killer Cells", 
-                                         "Plasma\nCells"))) %>% 
+                                         "Plasma Cells"))) %>% 
     left_join(tsne_coords, by = "barcode") %>%
     left_join(umap_coords, by = "barcode") %>%
     arrange(cell_type) %>%
@@ -63,6 +63,39 @@ get_gene_expression <- function(seurat_object, tsne_umap, ensg){
     left_join(gene_expression, by = "barcode") %>%
     return()
 }
+
+# ==============================================================================
+# Get CNV of one gene and match with barcode tsne and umap
+# ==============================================================================
+get_gene_cnv <- function(infercnv, tsne_umap, this_gene){
+  cnv_level <- tibble(barcode = infercnv %>% select(-gene) %>% colnames(),
+                      cnv = infercnv %>% filter(gene == this_gene) %>% 
+                        select(-gene) %>% t() %>% as.vector())
+  tsne_umap %>%
+    left_join(cnv_level, by = "barcode") %>%
+    return()
+}
+
+# ==============================================================================
+# Get mean CNV of one chromosome and match with barcode tsne and umap
+# ==============================================================================
+get_chr_cnv <- function(chr, infercnv, tsne_umap){
+  
+  gene_spans %>% 
+    filter(chromosome == chr) %>% 
+    left_join(infercnv, by = c("gene_name" = "gene")) %>% 
+    arrange(start) %>% 
+    select(ends_with("-1")) %>% 
+    t() %>% as.data.frame() %>% 
+    rownames_to_column(var = "barcode") %>% 
+    gather(starts_with("V"), key = "gene", value = "cnv") %>% 
+    filter(!is.na(cnv)) %>% 
+    group_by(barcode) %>% 
+    summarize(mean_cnv = mean(cnv)) %>% 
+    arrange(mean_cnv) %>%
+    right_join(tsne_umap, by = "barcode") %>%
+    return()
+  }
 
 # ==============================================================================
 # Get expression of two genes and match with barcode tsne and umap
@@ -94,7 +127,7 @@ plot_cell_types <- function(cell_types, seurat_object, reduction = "UMAP", id, d
   stop("Reduction parameter reduction must be 'UMAP' or 't-SNE'.")
   }
   
-  cell_type_positions <- cell_types %>% group_by(cell_type) %>%
+  cell_type_positions <- plot_df %>% group_by(cell_type) %>%
     summarize(mean_tSNE_1 = mean(tSNE_1),
               mean_tSNE_2 = mean(tSNE_2),
               mean_UMAP_1 = mean(UMAP_1),
@@ -106,7 +139,7 @@ plot_cell_types <- function(cell_types, seurat_object, reduction = "UMAP", id, d
                       show.legend = FALSE, 
                       alpha = 0.25)
   
-  if (reduction == "umap") {
+  if (reduction == "UMAP") {
     p <- p + geom_text(data = cell_type_positions,
                        aes(x = mean_UMAP_1, y = mean_UMAP_2,
                            label = cell_type,
@@ -230,16 +263,186 @@ plot_two_genes_expression <- function(seurat_object, tsne_umap, ensg1, ensg2, id
 }
 
 # ==============================================================================
+# Plot single gene CNV
+# ==============================================================================
+plot_gene_cnv <- function(infercnv, tsne_umap, reduction = "UMAP", id, gene, dir = paper_supp) {
+  
+  if (reduction %in% c("UMAP", "t-SNE")) {
+    #plot_df <- get_gene_cnv(infercnv, tsne_umap, this_gene = gene) %>% arrange(desc(cnv))
+    plot_df <- get_gene_cnv(infercnv, tsne_umap, this_gene = gene) %>% arrange(!is.na(cnv), cnv)
+    if (reduction == "UMAP") {
+      p <- ggplot(data = plot_df, aes(x = UMAP_1, y = UMAP_2))
+      p <- p + labs(x = "UMAP 1", y = "UMAP 2")
+    } else {
+      p <- ggplot(data = plot_df, aes(x = tSNE_1, y = tSNE_2))
+      p <- p + labs(x = "t-SNE 1", y = "t-SNE 2")
+    }  
+  } else {
+    stop("Reduction parameter reduction must be 'UMAP' or 't-SNE'.")
+  }
+  
+  p <- p + geom_point(aes(color = cnv),
+                      shape = 16,
+                      size = 1.5,
+                      #show.legend = FALSE,
+                      alpha = 0.25) +
+    annotate("text", label = gene,
+             x = -Inf, y = Inf, 
+             vjust = 1, hjust = 0,
+             size = 3.5,
+             fontface = "italic") + 
+    theme_bw() +
+    coord_fixed() +
+    scale_color_gradient2(high = "#d73027", mid = "#ffffbf",
+                         low = "#4575b4", na.value = "grey",
+                         midpoint = 1,
+                         limits = c(0,NA)) +
+  labs(color = "CNV Ratio") +
+    scale_x_continuous(expand = c(0.01, 0.01)) +
+    scale_y_continuous(expand = c(0.01, 0.01)) +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          plot.background = element_blank(),
+          panel.grid = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text = element_blank(),
+          axis.title = element_text(size = 12),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10))
+  
+  ggsave(str_c(dir, id, ".copy_number.", gene, ".pdf"),
+         p, 
+         width = 3.5, height = 3.5, useDingbats = FALSE)
+}
+
+# ==============================================================================
+# Plot chromosome CNV
+# ==============================================================================
+plot_chr_cnv <- function(infercnv, tsne_umap, reduction = "UMAP", id, chr, dir = paper_supp) {
+  
+  if (reduction %in% c("UMAP", "t-SNE")) {
+    plot_df <- get_chr_cnv(chr, infercnv, tsne_umap) %>% arrange(!is.na(mean_cnv), mean_cnv)
+    if (reduction == "UMAP") {
+      p <- ggplot(data = plot_df, aes(x = UMAP_1, y = UMAP_2))
+      p <- p + labs(x = "UMAP 1", y = "UMAP 2")
+    } else {
+      p <- ggplot(data = plot_df, aes(x = tSNE_1, y = tSNE_2))
+      p <- p + labs(x = "t-SNE 1", y = "t-SNE 2")
+    }  
+  } else {
+    stop("Reduction parameter reduction must be 'UMAP' or 't-SNE'.")
+  }
+  
+  p <- p + geom_point(aes(color = mean_cnv),
+                      shape = 16,
+                      size = 1.5,
+                      #show.legend = FALSE,
+                      alpha = 0.25) +
+    annotate("text", label = chr,
+             x = -Inf, y = Inf, 
+             vjust = 1, hjust = 0,
+             size = 3.5) + 
+    theme_bw() +
+    coord_fixed() +
+    scale_color_gradient2(high = "#d73027", mid = "#ffffbf",
+                          low = "#4575b4", na.value = "grey",
+                          midpoint = 1,
+                          limits = c(0,NA)) +
+    labs(color = "Mean\nCNV Ratio") +
+    scale_x_continuous(expand = c(0.01, 0.01)) +
+    scale_y_continuous(expand = c(0.01, 0.01)) +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          plot.background = element_blank(),
+          panel.grid = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text = element_blank(),
+          axis.title = element_text(size = 12),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10))
+  
+  ggsave(str_c(dir, id, ".copy_number.", chr, ".pdf"),
+         p, 
+         width = 3.5, height = 3.5, useDingbats = FALSE)
+}
+
+# ==============================================================================
 # ANALYSIS
 # ==============================================================================
 
 # ==============================================================================
 # Plot cell types of each sample (4)
+# UMAP in paper_main; t-SNE in paper_supp
 # ==============================================================================
+if (TRUE) {
+  plot_cell_types(cell_types_27522_1, seurat_object_27522_1, id = "27522_1")
+  plot_cell_types(cell_types_27522_4, seurat_object_27522_4, id = "27522_4")
+  plot_cell_types(cell_types_56203_1, seurat_object_56203_1, id = "56203_1")
+  plot_cell_types(cell_types_56203_2, seurat_object_56203_2, id = "56203_2")
+  
+  plot_cell_types(cell_types_27522_1, seurat_object_27522_1, id = "27522_1", reduction = "t-SNE", dir = paper_supp)
+  plot_cell_types(cell_types_27522_4, seurat_object_27522_4, id = "27522_4", reduction = "t-SNE", dir = paper_supp)
+  plot_cell_types(cell_types_56203_1, seurat_object_56203_1, id = "56203_1", reduction = "t-SNE", dir = paper_supp)
+  plot_cell_types(cell_types_56203_2, seurat_object_56203_2, id = "56203_2", reduction = "t-SNE", dir = paper_supp)  
+}
 
+# ==============================================================================
+# Plot interesting gene expressions
+# 27522: WHSC1 (ENSG00000109685) and FGFR3 (ENSG00000068078)
+# 56203: MYC (ENSG00000136997) and PVT1 (ENSG00000249859)
+# ==============================================================================
+if (TRUE) {
+  plot_gene_expression(seurat_object_27522_1, 
+                       get_tsne_umap(cell_types = cell_types_27522_1, 
+                                     seurat_object = seurat_object_27522_1), 
+                       ensg = "ENSG00000109685", id = "27522_1", gene = "WHSC1")
+  plot_gene_expression(seurat_object_27522_1, 
+                       get_tsne_umap(cell_types = cell_types_27522_1, 
+                                     seurat_object = seurat_object_27522_1), 
+                       ensg = "ENSG00000068078", id = "27522_1", gene = "FGFR3")
+  plot_gene_expression(seurat_object_27522_4, 
+                       get_tsne_umap(cell_types = cell_types_27522_4, 
+                                     seurat_object = seurat_object_27522_4), 
+                       ensg = "ENSG00000109685", id = "27522_4", gene = "WHSC1")
+  plot_gene_expression(seurat_object_27522_4, 
+                       get_tsne_umap(cell_types = cell_types_27522_4, 
+                                     seurat_object = seurat_object_27522_4), 
+                       ensg = "ENSG00000068078", id = "27522_4", gene = "FGFR3")
+  
+  plot_gene_expression(seurat_object_56203_1, 
+                       get_tsne_umap(cell_types = cell_types_56203_1, 
+                                     seurat_object = seurat_object_56203_1), 
+                       ensg = "ENSG00000136997", id = "56203_1", gene = "MYC")
+  plot_gene_expression(seurat_object_56203_1, 
+                       get_tsne_umap(cell_types = cell_types_56203_1, 
+                                     seurat_object = seurat_object_56203_1), 
+                       ensg = "ENSG00000249859", id = "56203_1", gene = "PVT1")
+  plot_gene_expression(seurat_object_56203_2, 
+                       get_tsne_umap(cell_types = cell_types_56203_2, 
+                                     seurat_object = seurat_object_56203_2), 
+                       ensg = "ENSG00000136997", id = "56203_2", gene = "MYC")
+  plot_gene_expression(seurat_object_56203_2, 
+                       get_tsne_umap(cell_types = cell_types_56203_2, 
+                                     seurat_object = seurat_object_56203_2), 
+                       ensg = "ENSG00000249859", id = "56203_2", gene = "PVT1")
+}
 
+# ==============================================================================
+# Plot FGFR3 CNV in 25722_1
+# Misleading because FGFR3 is upregulated in plasma cells, values nonsense
+# ==============================================================================
+plot_gene_cnv(scRNA.27522_1.infercnv.observations, 
+              get_tsne_umap(cell_types = cell_types_27522_1, 
+                            seurat_object = seurat_object_27522_1), 
+              id = "27522_1", gene = "FGFR3")
 
-
+# ==============================================================================
+# Plot chr4 CNV in 25722_1
+# ==============================================================================
+plot_chr_cnv(scRNA.27522_1.infercnv.observations, 
+             get_tsne_umap(cell_types = cell_types_27522_1, 
+                           seurat_object = seurat_object_27522_1), 
+             id = "27522_1", chr = "chr4")
 
 
 {
