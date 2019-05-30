@@ -53,7 +53,9 @@ get_tsne_umap <- function(cell_types, seurat_object){
     return()
 }
 
+# ==============================================================================
 # Get expression of one gene and match with barcode tsne and umap
+# ==============================================================================
 get_gene_expression <- function(seurat_object, tsne_umap, ensg){
   gene_expression <- tibble(barcode = seurat_object@assays$RNA@data@Dimnames[[2]],
                             expression = seurat_object@assays$RNA@data[ensg,] %>% as.vector())
@@ -77,7 +79,7 @@ get_two_genes_expression <- function(seurat_object, tsne_umap, ensg1, engs2){
 # ==============================================================================
 # Plot cell types
 # ==============================================================================
-plot_cell_types <- function(cell_types, seurat_object, reduction = "UMAP", id){
+plot_cell_types <- function(cell_types, seurat_object, reduction = "UMAP", id, dir = paper_main){
   
   if (reduction %in% c("UMAP", "t-SNE")) {
     plot_df = get_tsne_umap(cell_types, seurat_object)
@@ -138,7 +140,7 @@ plot_cell_types <- function(cell_types, seurat_object, reduction = "UMAP", id){
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 10))
   
-  ggsave(str_c(paper_supp, "cell_types.", id, ".", reduction, ".pdf"),
+  ggsave(str_c(dir, id, ".cell_types.", reduction, ".pdf"),
          p,
          width = 3.5, height = 3.5, useDingbats = FALSE)
 
@@ -147,7 +149,7 @@ plot_cell_types <- function(cell_types, seurat_object, reduction = "UMAP", id){
 # ==============================================================================
 # Plot single gene expression
 # ==============================================================================
-plot_gene_expression <- function(seurat_object, tsne_umap, ensg, reduction = "UMAP", id, gene) {
+plot_gene_expression <- function(seurat_object, tsne_umap, ensg, reduction = "UMAP", id, gene, dir = paper_supp) {
   
   if (reduction %in% c("UMAP", "t-SNE")) {
     plot_df <- get_gene_expression(seurat_object, tsne_umap, ensg) %>% arrange(expression)
@@ -187,7 +189,7 @@ plot_gene_expression <- function(seurat_object, tsne_umap, ensg, reduction = "UM
         legend.title = element_text(size = 12),
         legend.text = element_text(size = 10))
   
-  ggsave(str_c(paper_supp, "expression.", gene, ".", id, ".pdf"),
+  ggsave(str_c(dir, id, ".expression.", gene, ".pdf"),
          p, 
          width = 3.5, height = 3.5, useDingbats = FALSE)
 }
@@ -195,7 +197,7 @@ plot_gene_expression <- function(seurat_object, tsne_umap, ensg, reduction = "UM
 # ==============================================================================
 # Plot two genes expression
 # ==============================================================================
-plot_two_genes_expression <- function(seurat_object, tsne_umap, ensg1, ensg2, id, gene1, gene2) {
+plot_two_genes_expression <- function(seurat_object, tsne_umap, ensg1, ensg2, id, gene1, gene2, dir = paper_main) {
   
   plot_df <- get_two_genes_expression(seurat_object, tsne_umap, ensg1, ensg2)
   
@@ -222,13 +224,25 @@ plot_two_genes_expression <- function(seurat_object, tsne_umap, ensg1, ensg2, id
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 10))
   
-  ggsave(str_c(paper_supp, "joint_expression.", id, ".", gene1, ".", gene2, ".pdf"),
+  ggsave(str_c(dir, id, ".joint_expression.", gene1, ".", gene2, ".pdf"),
          p, 
          width = 3.5, height = 3.5, useDingbats = FALSE)
 }
-  
-  
-  {
+
+# ==============================================================================
+# ANALYSIS
+# ==============================================================================
+
+# ==============================================================================
+# Plot cell types of each sample (4)
+# ==============================================================================
+
+
+
+
+
+
+{
   bulk_fusion_reads <- star_fusion_reads_27522_1 %>%
     filter(chromosome_donor %in% c("chr4", "chr14"), 
            chromosome_acceptor %in% c("chr4", "chr14")) %>%
@@ -300,11 +314,13 @@ plot_two_genes_expression <- function(seurat_object, tsne_umap, ensg1, ensg2, id
                             shifted_chr4 > shifted_chr4_breakpoint & shifted_chr14 <= shifted_chr14_breakpoint ~ "Cat 2",
                             shifted_chr4 <= shifted_chr4_breakpoint & shifted_chr14 > shifted_chr14_breakpoint ~ "Cat 3",
                             shifted_chr4 > shifted_chr4_breakpoint & shifted_chr14 > shifted_chr14_breakpoint ~ "Cat 4"))
-}
+
   
   
 
-
+# ==============================================================================
+# 27522_1
+# ==============================================================================
 reported_translocation_breakpoints <- tribble(~translocation, ~chrom,      ~pos,
                                                    "t(4;14)",      4,   1871964,
                                                    "t(4;14)",     14, 105858090)
@@ -437,7 +453,6 @@ ggplot(data = sc_plot_df) +
          width = 3.5, height = 3.5, useDingbats = FALSE)
   
 }
-
 
 # Draw genes
 if (FALSE) {
