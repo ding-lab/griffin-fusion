@@ -429,9 +429,9 @@ if (TRUE) {
 
 # ==============================================================================
 # Plot FGFR3 CNV in 25722_1
-# Misleading because FGFR3 is upregulated in plasma cells, values nonsense
+# Misleading because FGFR3 is upregulated in plasma cells, values dont' make sense
 # ==============================================================================
-plot_gene_cnv(scRNA.27522_1.infercnv.observations, 
+plot_gene_cnv(infercnv_27522_1, 
               get_tsne_umap(cell_types = cell_types_27522_1, 
                             seurat_object = seurat_object_27522_1), 
               id = "27522_1", gene = "FGFR3")
@@ -439,7 +439,7 @@ plot_gene_cnv(scRNA.27522_1.infercnv.observations,
 # ==============================================================================
 # Plot chr4 CNV in 25722_1
 # ==============================================================================
-plot_chr_cnv(scRNA.27522_1.infercnv.observations, 
+plot_chr_cnv(infercnv_27522_1, 
              get_tsne_umap(cell_types = cell_types_27522_1, 
                            seurat_object = seurat_object_27522_1), 
              id = "27522_1", chr = "chr4")
