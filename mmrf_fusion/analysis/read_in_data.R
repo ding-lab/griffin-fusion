@@ -219,10 +219,10 @@ bulk_reads_56203_2 <- read_tsv("data/scRNA.56203_2.bulk.chr8chr21422.Chimeric.ou
 star_fusion_calls_27522_1 <- read_tsv("data/scRNA.27522_1.bulk.star-fusion.fusion_predictions.tsv")
 
 # scRNA inferCNV results
-scRNA.27522_1.infercnv.observations.txt <- read_tsv("data/scRNA.27522_1.infercnv.observations.txt")
-scRNA.27522_4.infercnv.observations.txt <- read_tsv("data/scRNA.27522_4.infercnv.observations.txt")
-scRNA.56203_1.infercnv.observations.txt <- read_tsv("data/scRNA.56203_1.infercnv.observations.txt")
-scRNA.56203_2.infercnv.observations.txt <- read_tsv("data/scRNA.56203_2.infercnv.observations.txt")
+infercnv_27522_1 <- read_tsv("data/scRNA.27522_1.infercnv.observations.txt")
+infercnv_27522_4 <- read_tsv("data/scRNA.27522_4.infercnv.observations.txt")
+infercnv_56203_1 <- read_tsv("data/scRNA.56203_1.infercnv.observations.txt")
+infercnv_56203_2 <- read_tsv("data/scRNA.56203_2.infercnv.observations.txt")
 
 # scRNA cell types
 cell_types_27522_1 <- read_tsv("data/scRNA.cell_types.27522_1.tsv")
