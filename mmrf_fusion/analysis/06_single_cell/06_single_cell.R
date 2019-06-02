@@ -426,14 +426,12 @@ plot_sc_read_length_distribution <- function(dis_reads, cutoff = 1024, id, dir =
   
   ggsave(str_c(dir, id, ".read_length_distribution.pdf"),
          width = 3.5, height = 3.5, useDingbats = FALSE)
-  
-  
 }
 
 # ==============================================================================
 # Work with 27522 reads
 # ==============================================================================
-get_bulk_fusion_reads_27522 <- function(bulk_reads, star_fusion = NULL, use_SF_only = FALSE){
+get_bulk_fusion_reads_27522 <- function(bulk_reads, star_fusion = NULL, use_SF_only = TRUE){
   
   return_fusions <- function(this_read, star_fusion){
     if (identical(star_fusion, NULL)) {
