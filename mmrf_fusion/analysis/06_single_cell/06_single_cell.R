@@ -269,7 +269,11 @@ plot_gene_cnv <- function(infercnv, tsne_umap, reduction = "UMAP", id, gene, dir
   
   if (reduction %in% c("UMAP", "t-SNE")) {
     #plot_df <- get_gene_cnv(infercnv, tsne_umap, this_gene = gene) %>% arrange(desc(cnv))
-    plot_df <- get_gene_cnv(infercnv, tsne_umap, this_gene = gene) %>% arrange(!is.na(cnv), cnv)
+    plot_df <- get_gene_cnv(infercnv, tsne_umap, this_gene = gene) %>% 
+      rowwise() %>%
+      mutate(diff = max(1, cnv) - min(1, cnv)) %>% 
+      ungroup() %>% 
+      arrange(!is.na(cnv), diff)
     if (reduction == "UMAP") {
       p <- ggplot(data = plot_df, aes(x = UMAP_1, y = UMAP_2))
       p <- p + labs(x = "UMAP 1", y = "UMAP 2")
@@ -296,7 +300,7 @@ plot_gene_cnv <- function(infercnv, tsne_umap, reduction = "UMAP", id, gene, dir
     scale_color_gradient2(high = "#d73027", mid = "#ffffbf",
                          low = "#4575b4", na.value = "grey",
                          midpoint = 1,
-                         limits = c(0,NA)) +
+                         limits = c(0,2)) +
   labs(color = "CNV Ratio") +
     scale_x_continuous(expand = c(0.01, 0.01)) +
     scale_y_continuous(expand = c(0.01, 0.01)) +
@@ -321,7 +325,11 @@ plot_gene_cnv <- function(infercnv, tsne_umap, reduction = "UMAP", id, gene, dir
 plot_chr_cnv <- function(infercnv, tsne_umap, reduction = "UMAP", id, chr, dir = paper_supp) {
   
   if (reduction %in% c("UMAP", "t-SNE")) {
-    plot_df <- get_chr_cnv(chr, infercnv, tsne_umap) %>% arrange(!is.na(mean_cnv), mean_cnv)
+    plot_df <- get_chr_cnv(chr, infercnv, tsne_umap) %>% 
+      rowwise() %>%
+      mutate(diff = max(1, mean_cnv) - min(1, mean_cnv)) %>% 
+      ungroup() %>% 
+      arrange(!is.na(mean_cnv), diff)
     if (reduction == "UMAP") {
       p <- ggplot(data = plot_df, aes(x = UMAP_1, y = UMAP_2))
       p <- p + labs(x = "UMAP 1", y = "UMAP 2")
@@ -347,7 +355,7 @@ plot_chr_cnv <- function(infercnv, tsne_umap, reduction = "UMAP", id, chr, dir =
     scale_color_gradient2(high = "#d73027", mid = "#ffffbf",
                           low = "#4575b4", na.value = "grey",
                           midpoint = 1,
-                          limits = c(0,NA)) +
+                          limits = c(0,2)) +
     labs(color = "Mean\nCNV Ratio") +
     scale_x_continuous(expand = c(0.01, 0.01)) +
     scale_y_continuous(expand = c(0.01, 0.01)) +
@@ -364,6 +372,62 @@ plot_chr_cnv <- function(infercnv, tsne_umap, reduction = "UMAP", id, chr, dir =
   ggsave(str_c(dir, id, ".copy_number.", chr, ".pdf"),
          p, 
          width = 3.5, height = 3.5, useDingbats = FALSE)
+}
+
+# ==============================================================================
+# Plot read length distribution for reads supporting scRNA chimeric transcripts
+# ==============================================================================
+plot_sc_read_length_distribution <- function(dis_reads, cutoff = 1024, id, dir = paper_supp){
+  
+  diff <- dis_reads %>% 
+    mutate(diff = log2(end - start)) %>% 
+    pull(diff)
+  max_length <- max(diff) %>% ceiling()
+  line_x = log2(cutoff)
+  line_y = mean(line_x > diff)
+  
+  
+  plot_df <- tibble(log2length = seq(1, max_length)) %>% 
+    rowwise() %>% 
+    mutate(proportion = mean(log2length > diff))
+  
+  p <- ggplot(data = plot_df, aes(x = log2length, y = proportion)) +
+    geom_line(size = 2, color = "grey50") +
+    geom_segment(x = line_x, xend = line_x, y = 0, yend = line_y,
+                 linetype = 2) +
+    geom_segment(x = 0, xend = line_x, y = line_y, yend = line_y,
+                 linetype = 2) +
+    annotate(geom = "text", x = line_x + 0.5, y = 0.01 , 
+             label = "Discard",
+             vjust = 0, hjust = 0) +
+    annotate(geom = "text", x = line_x - 0.5, y = 0.01 , 
+             label = "Keep",
+             vjust = 0, hjust = 1) +
+    annotate(geom = "text", x = 1.1, y = line_y - 0.01, 
+             label = round(line_y, 4),
+             vjust = 1, hjust = 0) +
+    scale_x_continuous(breaks = seq(1, max_length),
+                       labels = seq(1, max_length),
+                       expand = c(0,0)) +
+    scale_y_continuous(breaks = seq(0, 1, by = 0.1),
+                       labels = seq(0, 1, by = 0.1),
+                       expand = c(0,0)) +
+    labs(x = "Read length (base pairs, log2 scale)",
+         y = "Cumulative Proportion of Reads") +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          plot.background = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.ticks = element_blank(),
+          axis.title = element_text(size = 12),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10))
+  
+  ggsave(str_c(dir, id, ".read_length_distribution.pdf"),
+         width = 3.5, height = 3.5, useDingbats = FALSE)
+  
+  
 }
 
 # ==============================================================================
@@ -417,12 +481,12 @@ get_bulk_fusion_reads_27522 <- function(bulk_reads, star_fusion = NULL, use_SF_o
     return(all_reads)
   }
 }
+plot_read_length_distribution(dis_reads = dis_reads_27522_1_discover, cutoff = 1024, id = "27522_1")
 get_sc_chimeric_transcripts_27522 <- function(dis_reads){
   
   sc_chr14_min_max <- dis_reads %>% 
     filter(chrom == 14) %>% 
-    filter(end - start < 100) %>% 
-    #filter(start < 106e6) %>%
+    filter(end - start < 1024) %>% 
     group_by(cell_barcode, molecular_barcode) %>% 
     summarize(min_start = min(start), max_start = max(start), 
               min_end = min(end), max_end = max(end), 
@@ -430,7 +494,7 @@ get_sc_chimeric_transcripts_27522 <- function(dis_reads){
   
   sc_chr4_min_max <- dis_reads %>% 
     filter(chrom == 4) %>% 
-    filter(end - start < 100) %>% 
+    filter(end - start < 1024) %>% 
     group_by(cell_barcode, molecular_barcode) %>% 
     summarize(min_start = min(start), max_start = max(start), 
               min_end = min(end), max_end = max(end), 
@@ -629,16 +693,19 @@ plot_bulk_sc_27522 <- function(bulk_sc_plot_df, genes = gene_spans, dir, id){
     
     ggsave(str_c(dir, id, ".discordant_read_positions.pdf"),
            p,
-           width = 7.25, height = 12)
+           width = 7.25, height = 12,
+           useDingbats = FALSE)
 }
 
 
 bulk_fusion_reads_27522_1 <- get_bulk_fusion_reads_27522(bulk_reads_27522_1, star_fusion_calls_27522_1)
+plot_sc_read_length_distribution(dis_reads = dis_reads_27522_1_discover, cutoff = 1024, id = "27522_1")
 sc_chimeric_transcripts_27522_1 <- get_sc_chimeric_transcripts_27522(dis_reads_27522_1_discover)
 bulk_sc_plot_df_27522_1 <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_1, sc_chimeric_transcripts_27522_1)
 plot_bulk_sc_27522(bulk_sc_plot_df_27522_1, dir = paper_main, id = "27522_1")
 
 bulk_fusion_reads_27522_4 <- get_bulk_fusion_reads_27522(bulk_reads_27522_4)
+plot_sc_read_length_distribution(dis_reads = dis_reads_27522_4_discover, cutoff = 1024, id = "27522_4")
 sc_chimeric_transcripts_27522_4 <- get_sc_chimeric_transcripts_27522(dis_reads_27522_4_discover)
 bulk_sc_plot_df_27522_4 <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_4, sc_chimeric_transcripts_27522_4)
 plot_bulk_sc_27522(bulk_sc_plot_df_27522_4, dir = paper_main, id = "27522_4")
