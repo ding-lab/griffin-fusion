@@ -5,10 +5,10 @@ import os
 import pysam
 import sys
 
-def extract_read_info(read):
+def extract_read_info(read, min_mapq):
   # Given a read from region A, extract relevant information if mate maps to region B, else None
   # Relevant information includes: cell barcode (CB), molecular barcode (UB), and sample index read (BC)
-  if read.is_duplicate or read.is_qcfail or read.is_secondary: #or not read.is_proper_pair:
+  if read.is_duplicate or read.is_qcfail or read.is_secondary or read.mapping_quality < min_mapq: #or not read.is_proper_pair:
     return(None)
   elif read.has_tag("CB") and read.has_tag("UB"): #and read.has_tag("BC"):
     return(return_read_info(read))
@@ -34,6 +34,7 @@ chrA_range = sys.argv[2]
 chrB_range = sys.argv[3]
 output_dir = sys.argv[4]
 output_prefix = sys.argv[5]
+min_mapq = int(sys.argv[6])
 
 chrA = str(chrA_range.split(":")[0])
 chrA_minpos = int(chrA_range.split(":")[1].split("-")[0])
@@ -48,7 +49,7 @@ chrB_reads = {}
 # iterate over chrA
 samfile = pysam.AlignmentFile(bam_filename, "rb")
 for read in samfile.fetch(chrA, chrA_minpos, chrA_maxpos):
-  read_info = extract_read_info(read)
+  read_info = extract_read_info(read, min_mapq)
   if read_info == None:
     next
   else:
@@ -68,7 +69,7 @@ print("through chrA first time")
 # iterate over chrB
 samfile = pysam.AlignmentFile(bam_filename, "rb")
 for read in samfile.fetch(chrB, chrB_minpos, chrB_maxpos):
-  read_info = extract_read_info(read)
+  read_info = extract_read_info(read, min_mapq)
   if read_info == None:
     next
   else:
@@ -101,7 +102,7 @@ discordant_reads_list = []
 # iterate over chrA (again)
 samfile = pysam.AlignmentFile(bam_filename, "rb")
 for read in samfile.fetch(chrA, chrA_minpos, chrA_maxpos):
-  read_info = extract_read_info(read)
+  read_info = extract_read_info(read, min_mapq)
   if read_info == None:
     next
   else:
@@ -116,7 +117,7 @@ print("through chrA second time")
 # iterate over chrB
 samfile = pysam.AlignmentFile(bam_filename, "rb")
 for read in samfile.fetch(chrB, chrB_minpos, chrB_maxpos):
-  read_info = extract_read_info(read)
+  read_info = extract_read_info(read, min_mapq)
   if read_info == None:
     next
   else:
