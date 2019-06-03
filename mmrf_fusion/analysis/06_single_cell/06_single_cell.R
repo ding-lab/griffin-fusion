@@ -647,6 +647,8 @@ plot_bulk_sc_27522 <- function(bulk_sc_plot_df, genes = gene_spans, dir, id){
                    y = 1,
                    yend = 1 - chr4_offset_y),
                curvature = -0.25,
+               ncp = 10,
+               lineend = "round",
                #show.legend = FALSE,
                alpha = 0.25) +
     # draw sc read curves
@@ -657,6 +659,8 @@ plot_bulk_sc_27522 <- function(bulk_sc_plot_df, genes = gene_spans, dir, id){
                    y = 0,
                    yend = 0 - chr4_offset_y),
                curvature = 0.25,
+               ncp = 10,
+               lineend = "round",
                show.legend = FALSE,
                alpha = 0.25) +
     # label chr4 genes
