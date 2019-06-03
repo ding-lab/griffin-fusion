@@ -100,12 +100,13 @@ get_chr_cnv <- function(chr, infercnv, tsne_umap, genes = gene_spans){
 # ==============================================================================
 # Get expression of two genes and match with barcode tsne and umap
 # ==============================================================================
-get_two_genes_expression <- function(seurat_object, tsne_umap, ensg1, engs2){
+get_two_genes_expression <- function(seurat_object, tsne_umap, ensg1, ensg2){
+  
   two_genes_expression <- tibble(barcode = seurat_object@assays$RNA@data@Dimnames[[2]],
                                  expression1 = seurat_object@assays$RNA@data[ensg1,] %>% as.vector(),
                                  expression2 = seurat_object@assays$RNA@data[ensg2,] %>% as.vector())
   tsne_umap %>%
-    left_join(gene_expression, by = "barcode") %>%
+    left_join(two_genes_expression, by = "barcode") %>%
     return()
 }
 
@@ -776,7 +777,54 @@ plot_bulk_sc_27522 <- function(bulk_sc_plot_df, genes = gene_spans, dir, id, use
          width = 7.25, height = 12,
          useDingbats = FALSE)
 }
-
+plot_correlation_FGFR3_WHSC1_27522 <- function(two_genes_expression, bulk_sc, dir = paper_main, id, gene1, gene2){
+  
+  plot_df <- bulk_sc %>% 
+    filter(data_type == "Single Cell Chimeric Transcript") %>%
+    separate(identifier, 
+             into = c("cell_barcode", "molecular_barcode"), 
+             sep = ":") %>% 
+    group_by(cell_barcode, category, data_type, chr14_position, chr4_position) %>%
+    summarize(categories = str_c(sort(unique(category)), collapse = ", "),
+              molecular_barcodes = str_c(molecular_barcode, collapse = ", ")) %>%
+    right_join(two_genes_expression, by = c("cell_barcode" = "barcode")) %>%
+    filter(cell_type == "Plasma Cells") %>%
+    mutate(chimeric_transcript_detected = !is.na(data_type)) %>%
+    arrange(chimeric_transcript_detected) %>%
+    ungroup()
+  
+  gene12_correlation <- plot_df %>%
+    filter(expression1 > 0, expression2 > 0) %>%
+    #filter(chimeric_transcript_detected == FALSE) %>%
+    select(expression1, expression2) %>%
+    as.matrix() %>%
+    cor()
+  
+  print(gene12_correlation)
+  
+  p <- ggplot(data = plot_df, aes(x = expression1, y = expression2)) 
+  p <- p + geom_point(aes(color = chimeric_transcript_detected),
+                      shape = 16, 
+                      size = 1.5, 
+                      show.legend = FALSE, 
+                      alpha = 1) +
+    theme_bw() +
+    coord_equal() +
+    scale_x_continuous(expand = c(0.01, 0.01)) +
+    scale_y_continuous(expand = c(0.01, 0.01)) +
+    #facet_wrap(~ category, nrow = 1) +
+    theme(panel.background = element_blank(),
+          plot.background = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.title = element_text(size = 12),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10))
+  
+  ggsave(str_c(dir, id, ".", gene1, ".", gene2, ".correlation.pdf"),
+         p,
+         width = 7.25, height = 3.5, useDingbats = FALSE)
+  
+}
 
 #ANALYSIS (all)
 if (FALSE) {
