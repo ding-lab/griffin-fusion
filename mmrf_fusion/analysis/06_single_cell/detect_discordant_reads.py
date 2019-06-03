@@ -5,10 +5,10 @@ import os
 import pysam
 import sys
 
-def extract_read_info(read):
+def extract_read_info(read, min_mapq):
   # Given a read from region A, extract relevant information if mate maps to region B, else None
   # Relevant information includes: cell barcode (CB), molecular barcode (UB), and sample index read (BC)
-  if read.is_duplicate or read.is_qcfail or read.is_secondary: #or not read.is_proper_pair:
+  if read.is_duplicate or read.is_qcfail or read.is_secondary or read.mapping_quality < min_mapq: #or not read.is_proper_pair:
     return(None)
   elif read.has_tag("CB") and read.has_tag("UB"): #and read.has_tag("BC"):
     return(return_read_info(read))
@@ -34,6 +34,7 @@ bam_filename = sys.argv[2]
 output_dir = sys.argv[3]
 output_prefix = sys.argv[4]
 plusminus = int(sys.argv[5])
+min_mapq = int(sys.argv[6])
 
 star_fusion = open(star_fusion_file, "r")
 discordant_reads_list = []
@@ -56,7 +57,7 @@ for line in star_fusion:
     # iterate over rangeA
     samfile = pysam.AlignmentFile(bam_filename, "rb")
     for read in samfile.fetch(chromA, min_posA, max_posA):
-      read_info = extract_read_info(read)
+      read_info = extract_read_info(read, min_mapq)
       if read_info == None:
         next
       else:
@@ -71,7 +72,7 @@ for line in star_fusion:
     # iterate over rangeB
     samfile = pysam.AlignmentFile(bam_filename, "rb")
     for read in samfile.fetch(chromB, min_posB, max_posB):
-      read_info = extract_read_info(read)
+      read_info = extract_read_info(read, min_mapq)
       if read_info == None:
         next
       else:
