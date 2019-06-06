@@ -229,6 +229,8 @@ cell_types_27522_1 <- read_tsv("data/scRNA.cell_types.27522_1.tsv")
 cell_types_27522_4 <- read_tsv("data/scRNA.cell_types.27522_4.tsv")
 cell_types_56203_1 <- read_tsv("data/scRNA.cell_types.56203_1.tsv")
 cell_types_56203_2 <- read_tsv("data/scRNA.cell_types.56203_2.tsv")
+cell_types_81012_1 <- read_tsv("data/scRNA.cell_types.81012_1.tsv")
+cell_types_81012_2 <- read_tsv("data/scRNA.cell_types.81012_2.tsv")
 
 # discordant reads
 dis_reads_27522_1_discover <- read_tsv("data/scRNA.discordant_reads.discover.27522_1.tsv") %>% mutate(supports = "t(4;14)")
@@ -239,9 +241,13 @@ dis_reads_56203_1_discover <- bind_rows(read_tsv("data/scRNA.discordant_reads.di
 dis_reads_56203_2_discover <- bind_rows(read_tsv("data/scRNA.discordant_reads.discover.56203_2.MYC_IGH.tsv") %>% mutate(supports = "t(8;14)"),
                                         read_tsv("data/scRNA.discordant_reads.discover.56203_2.MYC_IGK.tsv") %>% mutate(supports = "t(2;14)"),
                                         read_tsv("data/scRNA.discordant_reads.discover.56203_2.MYC_IGL.tsv") %>% mutate(supports = "t(22;14)"))
+dis_reads_81012_1_discover <- read_tsv("data/scRNA.discordant_reads.discover.81012_1.tsv") %>% mutate(supports = "t(11;14)")
+dis_reads_81012_2_discover <- read_tsv("data/scRNA.discordant_reads.discover.81012_2.tsv") %>% mutate(supports = "t(11;14)")
 
 # Seurat objects, run UMAP
 seurat_object_27522_1 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.27522_1.rds")), dims = 1:20)
 seurat_object_27522_4 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.27522_4.rds")), dims = 1:20)
 seurat_object_56203_1 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.56203_1.rds")), dims = 1:20)
 seurat_object_56203_2 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.56203_2.rds")), dims = 1:20)
+seurat_object_81012_1 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.81012_1.rds")), dims = 1:20)
+seurat_object_81012_2 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.81012_2.rds")), dims = 1:20)
