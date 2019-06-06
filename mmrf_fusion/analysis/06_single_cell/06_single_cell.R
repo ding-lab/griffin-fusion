@@ -160,7 +160,7 @@ plot_cell_types <- function(cell_types, seurat_object, reduction = "UMAP", id, d
                 vjust = 1, hjust = 0,
                 size = 3.5) +
     theme_bw() +
-    coord_equal() +
+    coord_fixed() +
     scale_color_brewer(palette = "Paired", drop = FALSE, direction = -1) +
     scale_x_continuous(expand = c(0.01, 0.01)) +
     scale_y_continuous(expand = c(0.01, 0.01)) +
@@ -235,6 +235,10 @@ plot_two_genes_expression <- function(seurat_object, tsne_umap, ensg1, ensg2, id
   
   plot_df <- get_two_genes_expression(seurat_object, tsne_umap, ensg1, ensg2)
   
+  max_x <- plot_df %>% pull(expression_1) %>% max()
+  may_y <- plot_df %>% pull(expression_2) %>% max()
+  max_xy <- max(max_x, max_y)
+  
   p <- ggplot(data = plot_df, aes(x = expression_1, y = expression_2))
   
   p <- p + labs(x = str_c(gene1, " Expression"), y = str_c(gene2, " Expression"))
@@ -246,8 +250,8 @@ plot_two_genes_expression <- function(seurat_object, tsne_umap, ensg1, ensg2, id
                       alpha = 0.25) +
     theme_bw() +
     coord_fixed() +
-    scale_x_continuous(expand = c(0.01, 0.01)) +
-    scale_y_continuous(expand = c(0.01, 0.01)) +
+    scale_x_continuous(limits = c(0, max_xy), expand = c(0.01, 0.01)) +
+    scale_y_continuous(limits = c(0, max_xy), expand = c(0.01, 0.01)) +
     theme(panel.background = element_blank(),
           panel.border = element_blank(),
           plot.background = element_blank(),
@@ -491,7 +495,7 @@ plot_cell_chimeric_transcripts <- function(bulk_sc, tsne_umap, reduction = "UMAP
 }
 
 #General analysis (all 4 samples)
-if (FALSE) {
+if (TRUE) {
   
   # ==============================================================================
   # ANALYSIS
@@ -506,17 +510,22 @@ if (FALSE) {
     plot_cell_types(cell_types_27522_4, seurat_object_27522_4, id = "27522_4")
     plot_cell_types(cell_types_56203_1, seurat_object_56203_1, id = "56203_1")
     plot_cell_types(cell_types_56203_2, seurat_object_56203_2, id = "56203_2")
+    plot_cell_types(cell_types_81012_1, seurat_object_81012_1, id = "81012_1")
+    plot_cell_types(cell_types_81012_2, seurat_object_81012_2, id = "81012_2")
     
     plot_cell_types(cell_types_27522_1, seurat_object_27522_1, id = "27522_1", reduction = "t-SNE", dir = paper_supp)
     plot_cell_types(cell_types_27522_4, seurat_object_27522_4, id = "27522_4", reduction = "t-SNE", dir = paper_supp)
     plot_cell_types(cell_types_56203_1, seurat_object_56203_1, id = "56203_1", reduction = "t-SNE", dir = paper_supp)
     plot_cell_types(cell_types_56203_2, seurat_object_56203_2, id = "56203_2", reduction = "t-SNE", dir = paper_supp)  
+    plot_cell_types(cell_types_81012_1, seurat_object_81012_1, id = "81012_1", reduction = "t-SNE", dir = paper_supp)
+    plot_cell_types(cell_types_81012_2, seurat_object_81012_2, id = "81012_2", reduction = "t-SNE", dir = paper_supp)
   }
   
   # ==============================================================================
   # Plot interesting gene expressions
   # 27522: WHSC1 (ENSG00000109685) and FGFR3 (ENSG00000068078)
   # 56203: MYC (ENSG00000136997) and PVT1 (ENSG00000249859)
+  # 81012: CCND1 (ENSG00000110092)
   # ==============================================================================
   if (TRUE) {
     plot_gene_expression(seurat_object_27522_1, 
@@ -552,6 +561,14 @@ if (FALSE) {
                          get_tsne_umap(cell_types = cell_types_56203_2, 
                                        seurat_object = seurat_object_56203_2), 
                          ensg = "ENSG00000249859", id = "56203_2", gene = "PVT1")
+    plot_gene_expression(seurat_object_81012_1, 
+                         get_tsne_umap(cell_types = cell_types_81012_1, 
+                                       seurat_object = seurat_object_81012_1), 
+                         ensg = "ENSG00000110092", id = "81012_1", gene = "CCND1")
+    plot_gene_expression(seurat_object_81012_2, 
+                         get_tsne_umap(cell_types = cell_types_81012_2, 
+                                       seurat_object = seurat_object_81012_2), 
+                         ensg = "ENSG00000110092", id = "81012_2", gene = "CCND1")
   }
 
 }
