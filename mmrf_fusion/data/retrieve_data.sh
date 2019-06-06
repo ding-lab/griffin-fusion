@@ -71,6 +71,10 @@ rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-
 rsync -avh 'sfoltz@denali.wusm.wustl.edu:/diskmnt/Projects/Users/qgao/Priority/Gao_scRNA_cell_type/2.Prefiltered_celltype/backup_object_cell_type_in_sample_81012_2.rds ' scRNA.seurat_object.81012_2.rds
 rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/results/81012_2/chr11chr14.discovered_discordant_reads.tsv' scRNA.discordant_reads.discover.81012_2.tsv
 
+#47499
+rsync -avh 'sfoltz@denali.wusm.wustl.edu:/diskmnt/Projects/Users/qgao/Priority/Gao_scRNA_cell_type/2.Prefiltered_celltype/backup_object_cell_type_in_sample_47499_p.rds ' scRNA.seurat_object.47499.rds
+rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/results/47499/chr11chr14.discovered_discordant_reads.tsv' scRNA.discordant_reads.discover.47499.tsv
+
 # convert inferCNV data to better format
 for x in 27522_1 27522_4 56203_1 56203_2; do
   sed -i '1s/^/gene /g' scRNA.$x\.infercnv.observations.txt
