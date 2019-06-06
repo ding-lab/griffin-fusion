@@ -63,6 +63,14 @@ rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-
 rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/scRNA.56203_2.bulk.chr8chr21422.Chimeric.out.junction' .
 rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/lyao/MMY_scRNA/inferCNV/56203_2_subcluster/56203_2_raw_counts.cutoff.0.1/infercnv.observations.txt' scRNA.56203_2.infercnv.observations.txt
 
+#81012_1
+rsync -avh 'sfoltz@denali.wusm.wustl.edu:/diskmnt/Projects/Users/qgao/Priority/Gao_scRNA_cell_type/2.Prefiltered_celltype/backup_object_cell_type_in_sample_81012_1.rds ' scRNA.seurat_object.81012_1.rds
+rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/results/81012_1/chr11chr14.discovered_discordant_reads.tsv' scRNA.discordant_reads.discover.81012_1.tsv
+
+#81012_2
+rsync -avh 'sfoltz@denali.wusm.wustl.edu:/diskmnt/Projects/Users/qgao/Priority/Gao_scRNA_cell_type/2.Prefiltered_celltype/backup_object_cell_type_in_sample_81012_2.rds ' scRNA.seurat_object.81012_2.rds
+rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/results/81012_2/chr11chr14.discovered_discordant_reads.tsv' scRNA.discordant_reads.discover.81012_2.tsv
+
 # convert inferCNV data to better format
 for x in 27522_1 27522_4 56203_1 56203_2; do
   sed -i '1s/^/gene /g' scRNA.$x\.infercnv.observations.txt
