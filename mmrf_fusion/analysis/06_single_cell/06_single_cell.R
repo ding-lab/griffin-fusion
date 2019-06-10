@@ -223,7 +223,7 @@ plot_gene_expression <- function(seurat_object, tsne_umap, ensg, reduction = "UM
         legend.title = element_text(size = 12),
         legend.text = element_text(size = 10))
   
-  ggsave(str_c(dir, id, ".expression.", gene, ".pdf"),
+  ggsave(str_c(dir, id, ".expression.", gene, ".", reduction, ".pdf"),
          p, 
          width = 3.5, height = 3.5, useDingbats = FALSE)
 }
@@ -544,6 +544,23 @@ if (TRUE) {
                          get_tsne_umap(cell_types = cell_types_27522_4, 
                                        seurat_object = seurat_object_27522_4), 
                          ensg = "ENSG00000068078", id = "27522_4", gene = "FGFR3")
+    
+    plot_gene_expression(seurat_object_27522_1, 
+                         get_tsne_umap(cell_types = cell_types_27522_1, 
+                                       seurat_object = seurat_object_27522_1), 
+                         ensg = "ENSG00000109685", id = "27522_1", gene = "WHSC1", reduction = "t-SNE", dir = paper_supp)
+    plot_gene_expression(seurat_object_27522_1, 
+                         get_tsne_umap(cell_types = cell_types_27522_1, 
+                                       seurat_object = seurat_object_27522_1), 
+                         ensg = "ENSG00000068078", id = "27522_1", gene = "FGFR3", reduction = "t-SNE", dir = paper_supp)
+    plot_gene_expression(seurat_object_27522_4, 
+                         get_tsne_umap(cell_types = cell_types_27522_4, 
+                                       seurat_object = seurat_object_27522_4), 
+                         ensg = "ENSG00000109685", id = "27522_4", gene = "WHSC1", reduction = "t-SNE", dir = paper_supp)
+    plot_gene_expression(seurat_object_27522_4, 
+                         get_tsne_umap(cell_types = cell_types_27522_4, 
+                                       seurat_object = seurat_object_27522_4), 
+                         ensg = "ENSG00000068078", id = "27522_4", gene = "FGFR3", reduction = "t-SNE", dir = paper_supp)
     
     plot_gene_expression(seurat_object_56203_1, 
                          get_tsne_umap(cell_types = cell_types_56203_1, 
