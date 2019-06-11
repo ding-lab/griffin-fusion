@@ -229,6 +229,64 @@ plot_gene_expression <- function(seurat_object, tsne_umap, ensg, reduction = "UM
 }
 
 # ==============================================================================
+# Plot single gene expression -- violin
+# ==============================================================================
+plot_gene_expression_violin <- function(bulk_sc, seurat_object, tsne_umap, ensg, id, gene, dir = paper_supp, max = NULL) {
+  set.seed(10)
+  
+  gene_df <- get_gene_expression(seurat_object, tsne_umap, ensg) %>% arrange(expression)
+  
+  if (identical(max, NULL)) {
+    max <- gene_df %>% pull(expression) %>% max(na.rm = TRUE)
+  }
+  
+  plot_df <- bulk_sc %>% 
+    filter(data_type == "Single Cell Chimeric Transcript") %>% 
+    separate(identifier, 
+             into = c("cell_barcode", "molecular_barcode"), 
+             sep = ":") %>% 
+    select(cell_barcode, data_type) %>% 
+    unique() %>%
+    right_join(gene_df, by = c("cell_barcode" = "barcode")) %>%
+    filter(cell_type == "Plasma Cells")
+  
+  p <- ggplot(data = plot_df, aes(x = !is.na(data_type), y = expression)) +
+    geom_violin(scale = "width",
+                color = "black",
+                draw_quantiles = 0.5) +
+    geom_jitter(#aes(color = expression),
+                #width = 0.5,
+                height = 0,
+                shape = 16,
+                size = 1.5,
+                show.legend = FALSE,
+                alpha = 0.25) +
+    annotate("text", label = gene,
+             x = -Inf, y = Inf, 
+             vjust = 1, hjust = 0,
+             size = 3.5,
+             fontface = "italic") + 
+    theme_bw() +
+    coord_equal() +
+    labs(x = NULL, y = "Scaled Expression") +
+    scale_color_continuous(low = "grey", high = "red") +
+    scale_x_discrete(labels = c("No CT\nDetected", "CT Detected")) +
+    scale_y_continuous(expand = c(0.01, 0.01), limits = c(0, max)) +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          plot.background = element_blank(),
+          panel.grid = element_blank(),
+          axis.ticks = element_blank(),
+          axis.title = element_text(size = 12),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10))
+  
+  ggsave(str_c(dir, id, ".expression_violin.", gene, ".pdf"),
+         p, 
+         width = 3.5, height = 3.5, useDingbats = FALSE)
+}
+
+# ==============================================================================
 # Plot two genes expression
 # ==============================================================================
 plot_two_genes_expression <- function(seurat_object, tsne_umap, ensg1, ensg2, id, gene1, gene2, dir = paper_main) {
@@ -943,6 +1001,41 @@ if (TRUE) {
   plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_1, tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1), id = "27522_1")
   plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_1, tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1), id = "27522_1", reduction = "t-SNE", dir = paper_supp)
   
+  plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_27522_1, 
+                              seurat_object = seurat_object_27522_1, 
+                              tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, 
+                                                        seurat_object = seurat_object_27522_1), 
+                              ensg = "ENSG00000068078", 
+                              id = "27522_1", 
+                              gene = "FGFR3", 
+                              dir = paper_supp,
+                              max = 4.4)
+  plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_27522_1, 
+                              seurat_object = seurat_object_27522_1, 
+                              tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1), 
+                              ensg = "ENSG00000109685", 
+                              id = "27522_1", 
+                              gene = "WHSC1", 
+                              dir = paper_supp, 
+                              max = 4.4)
+  # https://www.nature.com/articles/nrc2780/figures/2
+  plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_27522_1, 
+                              seurat_object = seurat_object_27522_1, 
+                              tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1), 
+                              ensg = "ENSG00000142208", 
+                              id = "27522_1", 
+                              gene = "AKT1", 
+                              dir = paper_supp, 
+                              max = 4.4)
+  plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_27522_1, 
+                              seurat_object = seurat_object_27522_1, 
+                              tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1), 
+                              ensg = "ENSG00000100030", 
+                              id = "27522_1",
+                              gene = "MAPK1", 
+                              dir = paper_supp, 
+                              max = 4.4)
+
   plot_correlation_FGFR3_WHSC1_27522(two_genes_expression = get_two_genes_expression(seurat_object = seurat_object_27522_1,
                                                                                      tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1),
                                                                                      ensg1 = "ENSG00000109685",
