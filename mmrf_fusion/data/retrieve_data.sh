@@ -79,6 +79,7 @@ rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-
 #77570
 rsync -avh 'sfoltz@denali.wusm.wustl.edu:/diskmnt/Projects/Users/qgao/Priority/Gao_scRNA_cell_type/2.Prefiltered_celltype/backup_object_cell_type_in_sample_77570.rds ' scRNA.seurat_object.77570.rds
 rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/results/77570/chr11chr14.discovered_discordant_reads.tsv ' scRNA.discordant_reads.discover.77570.tsv
+rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/scRNA.77570.bulk.chr1114.Chimeric.out.junction ' .
 
 # convert inferCNV data to better format
 for x in 27522_1 27522_4 56203_1 56203_2; do
