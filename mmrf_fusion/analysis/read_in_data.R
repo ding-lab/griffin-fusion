@@ -216,6 +216,8 @@ bulk_reads_56203_2 <- read_tsv("data/scRNA.56203_2.bulk.chr8chr21422.Chimeric.ou
                                col_names = Chimeric.out.junction.column_names)
 bulk_reads_47499 <- read_tsv("data/scRNA.47499.bulk.chr1114.Chimeric.out.junction",
                                col_names = Chimeric.out.junction.column_names)
+bulk_reads_77570 <- read_tsv("data/scRNA.77570.bulk.chr1114.Chimeric.out.junction",
+                             col_names = Chimeric.out.junction.column_names)
 
 # STAR-Fusion calls (only 27522_1 relevant fusions detected)
 star_fusion_calls_27522_1 <- read_tsv("data/scRNA.27522_1.bulk.star-fusion.fusion_predictions.tsv")
