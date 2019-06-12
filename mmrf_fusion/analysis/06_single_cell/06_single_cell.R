@@ -494,7 +494,7 @@ plot_sc_read_length_distribution <- function(dis_reads, cutoff = 1024, id, dir =
 # ==============================================================================
 # Identify cells with chimeric transcripts
 # ==============================================================================
-plot_cell_chimeric_transcripts <- function(bulk_sc, tsne_umap, reduction = "UMAP", id, dir = paper_main){
+plot_cell_chimeric_transcripts <- function(bulk_sc, tsne_umap, reduction = "UMAP", id, dir = paper_main, facet = FALSE){
   
   if (reduction %in% c("UMAP", "t-SNE")) {
     
@@ -502,12 +502,14 @@ plot_cell_chimeric_transcripts <- function(bulk_sc, tsne_umap, reduction = "UMAP
       filter(data_type == "Single Cell Chimeric Transcript") %>% 
       separate(identifier, 
                into = c("cell_barcode", "molecular_barcode"), 
-               sep = ":") %>% 
-      select(cell_barcode, data_type) %>% 
-      unique() %>%
+               sep = ":") %>%
+      group_by(cell_barcode) %>%
+      summarize(color_column = str_c(sort(unique(color_column)), collapse = ", ")) %>%
       right_join(tsne_umap, 
                  by = c("cell_barcode" = "barcode")) %>%
-      arrange(!is.na(data_type))
+      replace_na(list(color_column = "No CT Detected")) %>%
+      mutate(color_column = fct_infreq(color_column)) %>%
+      arrange(color_column)
     
     if (reduction == "UMAP") {
       p <- ggplot(data = plot_df, aes(x = UMAP_1, y = UMAP_2))
@@ -520,7 +522,9 @@ plot_cell_chimeric_transcripts <- function(bulk_sc, tsne_umap, reduction = "UMAP
     stop("Reduction parameter reduction must be 'UMAP' or 't-SNE'.")
   }
   
-  p <- p + geom_point(aes(color = !is.na(data_type)),
+  n_colors <- plot_df %>% pull(color_column) %>% levels() %>% length()
+  
+  p <- p + geom_point(aes(color = color_column),
                       shape = 16, 
                       size = 1.5, 
                       alpha = 1)
@@ -529,7 +533,7 @@ plot_cell_chimeric_transcripts <- function(bulk_sc, tsne_umap, reduction = "UMAP
     labs(color = "Cell Contains\nChimeric Transcript") +
     theme_bw() +
     coord_equal() +
-    scale_color_manual(values = c("#a6bddb", "#1c9099")) +
+    scale_color_brewer(palette = "Set1") +
     scale_x_continuous(expand = c(0.01, 0.01)) +
     scale_y_continuous(expand = c(0.01, 0.01)) +
     theme(panel.background = element_blank(),
@@ -542,17 +546,87 @@ plot_cell_chimeric_transcripts <- function(bulk_sc, tsne_umap, reduction = "UMAP
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 10))
   
-  ggsave(str_c(dir, id, ".cells_chimeric_transcripts.", reduction, ".pdf"),
-         p,
-         width = 3.5, height = 3.5, useDingbats = FALSE)
+  if (facet) {
+    p <- p + facet_wrap(~ color_column, nrow = 1)
+    ggsave(str_c(dir, id, ".cells_chimeric_transcripts.", reduction, ".pdf"),
+           p,
+           width = n_colors*3.5, height = 3.5, useDingbats = FALSE)
+    
+    ggsave(str_c(dir, id, ".cells_chimeric_transcripts.no_legend.", reduction, ".pdf"),
+           p + guides(color = FALSE),
+           width = n_colors*3.5, height = 3.5, useDingbats = FALSE)
+  } else {
+    ggsave(str_c(dir, id, ".cells_chimeric_transcripts.", reduction, ".pdf"),
+           p,
+           width = 3.5, height = 3.5, useDingbats = FALSE)
+    
+    ggsave(str_c(dir, id, ".cells_chimeric_transcripts.no_legend.", reduction, ".pdf"),
+           p + guides(color = FALSE),
+           width = 3.5, height = 3.5, useDingbats = FALSE)
+  }
   
-  ggsave(str_c(dir, id, ".cells_chimeric_transcripts.no_legend.", reduction, ".pdf"),
-         p + guides(color = FALSE),
-         width = 3.5, height = 3.5, useDingbats = FALSE)
+  
 
 }
 
-#General analysis (all 4 samples)
+# ==============================================================================
+# Plot correlation of two genes expression
+# ==============================================================================
+plot_two_genes_correlation <- function(two_genes_expression, bulk_sc, dir = paper_main, id, gene1, gene2){
+  
+  plot_df <- bulk_sc %>% 
+    filter(data_type == "Single Cell Chimeric Transcript") %>%
+    separate(identifier, 
+             into = c("cell_barcode", "molecular_barcode"), 
+             sep = ":") %>% 
+    group_by(cell_barcode, data_type, chr14_position, chr4_position) %>%
+    summarize(molecular_barcodes = str_c(molecular_barcode, collapse = ", ")) %>%
+    right_join(two_genes_expression, by = c("cell_barcode" = "barcode")) %>%
+    filter(cell_type == "Plasma Cells") %>%
+    mutate(chimeric_transcript_detected = !is.na(data_type)) %>%
+    arrange(chimeric_transcript_detected) %>%
+    ungroup()
+  
+  print(str_c(id, " correlation between ", gene1, " and ", gene2, ":"))
+  
+  gene12_correlation <- plot_df %>%
+    filter(expression1 > 0, expression2 > 0) %>%
+    select(expression1, expression2) %>%
+    as.matrix() %>%
+    cor()
+  
+  print(gene12_correlation)
+  
+  print(plot_df)
+  
+  max_expr1 <- plot_df %>% pull(expression1) %>% max()
+  max_expr2 <- plot_df %>% pull(expression2) %>% max()
+  overall_max <- max(max_expr1, max_expr2)
+  
+  p <- ggplot(data = plot_df, aes(x = expression1, y = expression2)) 
+  p <- p + geom_point(aes(color = chimeric_transcript_detected),
+                      shape = 16, 
+                      size = 1.5, 
+                      show.legend = FALSE, 
+                      alpha = 1) +
+    theme_bw() +
+    coord_equal() +
+    scale_x_continuous(limits = c(0, overall_max), expand = c(0.01, 0.01)) +
+    scale_y_continuous(limits = c(0, overall_max), expand = c(0.01, 0.01)) +
+    labs(x = str_c(gene1, " Expression"), y = str_c(gene2, " Expression")) +
+    theme(panel.background = element_blank(),
+          plot.background = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.title = element_text(size = 12),
+          legend.title = element_text(size = 12),
+          legend.text = element_text(size = 10))
+  
+  ggsave(str_c(dir, id, ".", gene1, ".", gene2, ".correlation.pdf"),
+         p,
+         width = 3.5, height = 3.5, useDingbats = FALSE)
+}
+
+#General analysis (all 5 patients)
 if (TRUE) {
   
   # ==============================================================================
@@ -560,21 +634,25 @@ if (TRUE) {
   # ==============================================================================
   
   # ==============================================================================
-  # Plot cell types of each sample (4)
+  # Plot cell types of each sample
   # UMAP in paper_main; t-SNE in paper_supp
   # ==============================================================================
   if (TRUE) {
     plot_cell_types(cell_types_27522_1, seurat_object_27522_1, id = "27522_1")
     plot_cell_types(cell_types_27522_4, seurat_object_27522_4, id = "27522_4")
+    plot_cell_types(cell_types_47499, seurat_object_47499, id = "47499")
     plot_cell_types(cell_types_56203_1, seurat_object_56203_1, id = "56203_1")
     plot_cell_types(cell_types_56203_2, seurat_object_56203_2, id = "56203_2")
+    plot_cell_types(cell_types_77570, seurat_object_77570, id = "77570")
     plot_cell_types(cell_types_81012_1, seurat_object_81012_1, id = "81012_1")
     plot_cell_types(cell_types_81012_2, seurat_object_81012_2, id = "81012_2")
     
     plot_cell_types(cell_types_27522_1, seurat_object_27522_1, id = "27522_1", reduction = "t-SNE", dir = paper_supp)
     plot_cell_types(cell_types_27522_4, seurat_object_27522_4, id = "27522_4", reduction = "t-SNE", dir = paper_supp)
+    plot_cell_types(cell_types_47499, seurat_object_47499, id = "47499", reduction = "t-SNE", dir = paper_supp)
     plot_cell_types(cell_types_56203_1, seurat_object_56203_1, id = "56203_1", reduction = "t-SNE", dir = paper_supp)
     plot_cell_types(cell_types_56203_2, seurat_object_56203_2, id = "56203_2", reduction = "t-SNE", dir = paper_supp)  
+    plot_cell_types(cell_types_77570, seurat_object_77570, id = "77570", reduction = "t-SNE", dir = paper_supp)
     plot_cell_types(cell_types_81012_1, seurat_object_81012_1, id = "81012_1", reduction = "t-SNE", dir = paper_supp)
     plot_cell_types(cell_types_81012_2, seurat_object_81012_2, id = "81012_2", reduction = "t-SNE", dir = paper_supp)
   }
@@ -582,68 +660,126 @@ if (TRUE) {
   # ==============================================================================
   # Plot interesting gene expressions
   # 27522: WHSC1 (ENSG00000109685) and FGFR3 (ENSG00000068078)
+  # 47499: CCND1 (ENSG00000110092)
   # 56203: MYC (ENSG00000136997) and PVT1 (ENSG00000249859)
+  # 77570: CCND1 (ENSG00000110092)
   # 81012: CCND1 (ENSG00000110092)
   # ==============================================================================
   if (TRUE) {
-    plot_gene_expression(seurat_object_27522_1, 
-                         get_tsne_umap(cell_types = cell_types_27522_1, 
-                                       seurat_object = seurat_object_27522_1), 
-                         ensg = "ENSG00000109685", id = "27522_1", gene = "WHSC1")
-    plot_gene_expression(seurat_object_27522_1, 
-                         get_tsne_umap(cell_types = cell_types_27522_1, 
-                                       seurat_object = seurat_object_27522_1), 
-                         ensg = "ENSG00000068078", id = "27522_1", gene = "FGFR3")
-    plot_gene_expression(seurat_object_27522_4, 
-                         get_tsne_umap(cell_types = cell_types_27522_4, 
-                                       seurat_object = seurat_object_27522_4), 
-                         ensg = "ENSG00000109685", id = "27522_4", gene = "WHSC1")
-    plot_gene_expression(seurat_object_27522_4, 
-                         get_tsne_umap(cell_types = cell_types_27522_4, 
-                                       seurat_object = seurat_object_27522_4), 
-                         ensg = "ENSG00000068078", id = "27522_4", gene = "FGFR3")
-    
-    plot_gene_expression(seurat_object_27522_1, 
-                         get_tsne_umap(cell_types = cell_types_27522_1, 
-                                       seurat_object = seurat_object_27522_1), 
-                         ensg = "ENSG00000109685", id = "27522_1", gene = "WHSC1", reduction = "t-SNE", dir = paper_supp)
-    plot_gene_expression(seurat_object_27522_1, 
-                         get_tsne_umap(cell_types = cell_types_27522_1, 
-                                       seurat_object = seurat_object_27522_1), 
-                         ensg = "ENSG00000068078", id = "27522_1", gene = "FGFR3", reduction = "t-SNE", dir = paper_supp)
-    plot_gene_expression(seurat_object_27522_4, 
-                         get_tsne_umap(cell_types = cell_types_27522_4, 
-                                       seurat_object = seurat_object_27522_4), 
-                         ensg = "ENSG00000109685", id = "27522_4", gene = "WHSC1", reduction = "t-SNE", dir = paper_supp)
-    plot_gene_expression(seurat_object_27522_4, 
-                         get_tsne_umap(cell_types = cell_types_27522_4, 
-                                       seurat_object = seurat_object_27522_4), 
-                         ensg = "ENSG00000068078", id = "27522_4", gene = "FGFR3", reduction = "t-SNE", dir = paper_supp)
-    
-    plot_gene_expression(seurat_object_56203_1, 
-                         get_tsne_umap(cell_types = cell_types_56203_1, 
-                                       seurat_object = seurat_object_56203_1), 
-                         ensg = "ENSG00000136997", id = "56203_1", gene = "MYC")
-    plot_gene_expression(seurat_object_56203_1, 
-                         get_tsne_umap(cell_types = cell_types_56203_1, 
-                                       seurat_object = seurat_object_56203_1), 
-                         ensg = "ENSG00000249859", id = "56203_1", gene = "PVT1")
-    plot_gene_expression(seurat_object_56203_2, 
-                         get_tsne_umap(cell_types = cell_types_56203_2, 
-                                       seurat_object = seurat_object_56203_2), 
-                         ensg = "ENSG00000136997", id = "56203_2", gene = "MYC")
-    plot_gene_expression(seurat_object_56203_2, 
-                         get_tsne_umap(cell_types = cell_types_56203_2, 
-                                       seurat_object = seurat_object_56203_2), 
-                         ensg = "ENSG00000249859", id = "56203_2", gene = "PVT1")
-    plot_gene_expression(seurat_object_81012_1, 
-                         get_tsne_umap(cell_types = cell_types_81012_1, 
-                                       seurat_object = seurat_object_81012_1), 
-                         ensg = "ENSG00000110092", id = "81012_1", gene = "CCND1")
-    plot_gene_expression(seurat_object_81012_2, 
-                         get_tsne_umap(cell_types = cell_types_81012_2, 
-                                       seurat_object = seurat_object_81012_2), 
-                         ensg = "ENSG00000110092", id = "81012_2", gene = "CCND1")
+    # UMAP
+    if (TRUE) {
+      plot_gene_expression(seurat_object_27522_1, 
+                           get_tsne_umap(cell_types = cell_types_27522_1, 
+                                         seurat_object = seurat_object_27522_1), 
+                           ensg = "ENSG00000109685", id = "27522_1", gene = "WHSC1")
+      plot_gene_expression(seurat_object_27522_1, 
+                           get_tsne_umap(cell_types = cell_types_27522_1, 
+                                         seurat_object = seurat_object_27522_1), 
+                           ensg = "ENSG00000068078", id = "27522_1", gene = "FGFR3")
+      
+      plot_gene_expression(seurat_object_27522_4, 
+                           get_tsne_umap(cell_types = cell_types_27522_4, 
+                                         seurat_object = seurat_object_27522_4), 
+                           ensg = "ENSG00000109685", id = "27522_4", gene = "WHSC1")
+      plot_gene_expression(seurat_object_27522_4, 
+                           get_tsne_umap(cell_types = cell_types_27522_4, 
+                                         seurat_object = seurat_object_27522_4), 
+                           ensg = "ENSG00000068078", id = "27522_4", gene = "FGFR3")
+      
+      plot_gene_expression(seurat_object_47499, 
+                           get_tsne_umap(cell_types = cell_types_47499, 
+                                         seurat_object = seurat_object_47499), 
+                           ensg = "ENSG00000110092", id = "47499", gene = "CCND1")
+      
+      plot_gene_expression(seurat_object_56203_1, 
+                           get_tsne_umap(cell_types = cell_types_56203_1, 
+                                         seurat_object = seurat_object_56203_1), 
+                           ensg = "ENSG00000136997", id = "56203_1", gene = "MYC")
+      plot_gene_expression(seurat_object_56203_1, 
+                           get_tsne_umap(cell_types = cell_types_56203_1, 
+                                         seurat_object = seurat_object_56203_1), 
+                           ensg = "ENSG00000249859", id = "56203_1", gene = "PVT1")
+      
+      plot_gene_expression(seurat_object_56203_2, 
+                           get_tsne_umap(cell_types = cell_types_56203_2, 
+                                         seurat_object = seurat_object_56203_2), 
+                           ensg = "ENSG00000136997", id = "56203_2", gene = "MYC")
+      plot_gene_expression(seurat_object_56203_2, 
+                           get_tsne_umap(cell_types = cell_types_56203_2, 
+                                         seurat_object = seurat_object_56203_2), 
+                           ensg = "ENSG00000249859", id = "56203_2", gene = "PVT1")
+      
+      plot_gene_expression(seurat_object_77570, 
+                           get_tsne_umap(cell_types = cell_types_77570, 
+                                         seurat_object = seurat_object_77570), 
+                           ensg = "ENSG00000110092", id = "77570", gene = "CCND1")
+      
+      plot_gene_expression(seurat_object_81012_1, 
+                           get_tsne_umap(cell_types = cell_types_81012_1, 
+                                         seurat_object = seurat_object_81012_1), 
+                           ensg = "ENSG00000110092", id = "81012_1", gene = "CCND1")
+      plot_gene_expression(seurat_object_81012_2, 
+                           get_tsne_umap(cell_types = cell_types_81012_2, 
+                                         seurat_object = seurat_object_81012_2), 
+                           ensg = "ENSG00000110092", id = "81012_2", gene = "CCND1")  
+    }
+    # t-SNE
+    if (TRUE) {
+      plot_gene_expression(seurat_object_27522_1, 
+                           get_tsne_umap(cell_types = cell_types_27522_1, 
+                                         seurat_object = seurat_object_27522_1), 
+                           ensg = "ENSG00000109685", id = "27522_1", gene = "WHSC1")
+      plot_gene_expression(seurat_object_27522_1, 
+                           get_tsne_umap(cell_types = cell_types_27522_1, 
+                                         seurat_object = seurat_object_27522_1), 
+                           ensg = "ENSG00000068078", id = "27522_1", gene = "FGFR3", reduction = "t-SNE")
+      
+      plot_gene_expression(seurat_object_27522_4, 
+                           get_tsne_umap(cell_types = cell_types_27522_4, 
+                                         seurat_object = seurat_object_27522_4), 
+                           ensg = "ENSG00000109685", id = "27522_4", gene = "WHSC1", reduction = "t-SNE")
+      plot_gene_expression(seurat_object_27522_4, 
+                           get_tsne_umap(cell_types = cell_types_27522_4, 
+                                         seurat_object = seurat_object_27522_4), 
+                           ensg = "ENSG00000068078", id = "27522_4", gene = "FGFR3", reduction = "t-SNE")
+      
+      plot_gene_expression(seurat_object_47499, 
+                           get_tsne_umap(cell_types = cell_types_47499, 
+                                         seurat_object = seurat_object_47499), 
+                           ensg = "ENSG00000110092", id = "47499", gene = "CCND1", reduction = "t-SNE")
+      
+      plot_gene_expression(seurat_object_56203_1, 
+                           get_tsne_umap(cell_types = cell_types_56203_1, 
+                                         seurat_object = seurat_object_56203_1), 
+                           ensg = "ENSG00000136997", id = "56203_1", gene = "MYC", reduction = "t-SNE")
+      plot_gene_expression(seurat_object_56203_1, 
+                           get_tsne_umap(cell_types = cell_types_56203_1, 
+                                         seurat_object = seurat_object_56203_1), 
+                           ensg = "ENSG00000249859", id = "56203_1", gene = "PVT1", reduction = "t-SNE")
+      
+      plot_gene_expression(seurat_object_56203_2, 
+                           get_tsne_umap(cell_types = cell_types_56203_2, 
+                                         seurat_object = seurat_object_56203_2), 
+                           ensg = "ENSG00000136997", id = "56203_2", gene = "MYC", reduction = "t-SNE")
+      plot_gene_expression(seurat_object_56203_2, 
+                           get_tsne_umap(cell_types = cell_types_56203_2, 
+                                         seurat_object = seurat_object_56203_2), 
+                           ensg = "ENSG00000249859", id = "56203_2", gene = "PVT1", reduction = "t-SNE")
+      
+      plot_gene_expression(seurat_object_77570, 
+                           get_tsne_umap(cell_types = cell_types_77570, 
+                                         seurat_object = seurat_object_77570), 
+                           ensg = "ENSG00000110092", id = "77570", gene = "CCND1", reduction = "t-SNE")
+      
+      plot_gene_expression(seurat_object_81012_1, 
+                           get_tsne_umap(cell_types = cell_types_81012_1, 
+                                         seurat_object = seurat_object_81012_1), 
+                           ensg = "ENSG00000110092", id = "81012_1", gene = "CCND1", reduction = "t-SNE")
+      plot_gene_expression(seurat_object_81012_2, 
+                           get_tsne_umap(cell_types = cell_types_81012_2, 
+                                         seurat_object = seurat_object_81012_2), 
+                           ensg = "ENSG00000110092", id = "81012_2", gene = "CCND1", reduction = "t-SNE")  
+    }
   }
 
 }
@@ -752,37 +888,56 @@ if (TRUE) {
     shifted_chr4_breakpoint = chr4_breakpoint + chr4_shift
     shifted_chr14_breakpoint = chr14_breakpoint + chr14_shift
     
-    bulk_plot_df <- bulk_fusion_reads %>% 
+    bulk_plot_df <- bulk_fusion_reads %>%
+      mutate(category = case_when(chr4_position <= chr4_breakpoint & chr14_position <= chr14_breakpoint ~ "Supports Reciprocal FGFR3/WHSC1--IGH Fusion",
+                                  chr4_position > chr4_breakpoint & chr14_position <= chr14_breakpoint ~ "Supports General IGH Fusion with WHSC1",
+                                  chr4_position <= chr4_breakpoint & chr14_position > chr14_breakpoint ~ "Supports General IGH Fusion with WHSC1",
+                                  chr4_position > chr4_breakpoint & chr14_position > chr14_breakpoint ~ "Supports IGH--WHSC1 Fusion")) %>%
+      mutate(category = factor(category, levels = c("Supports IGH--WHSC1 Fusion", "Supports Reciprocal FGFR3/WHSC1--IGH Fusion", "Supports General IGH Fusion with WHSC1"), ordered = TRUE)) %>%
       mutate(shifted_chr4 = chr4_position + chr4_shift,
              shifted_chr14 = chr14_position + chr14_shift) %>%
-      mutate(category = case_when(chr4_position <= chr4_breakpoint & chr14_position <= chr14_breakpoint ~ "Category 1",
-                                  chr4_position > chr4_breakpoint & chr14_position <= chr14_breakpoint ~ "Category 2",
-                                  chr4_position <= chr4_breakpoint & chr14_position > chr14_breakpoint ~ "Category 3",
-                                  chr4_position > chr4_breakpoint & chr14_position > chr14_breakpoint ~ "Category 4")) %>%
       mutate(identifier = read_name,
              data_type = "Bulk Spanning/Junction Read Pair",
              y_position_offset = 0,
              curvature = -0.25) %>%
-      select(identifier, data_type, chr14_position, chr4_position, shifted_chr14, shifted_chr4, category, fusion) #, y_position_offset, curvature)
+      select(identifier, data_type, chr14_position, chr4_position, shifted_chr14, shifted_chr4, category, fusion)
     
     sc_plot_df <- sc_chimeric_transcripts %>%
-      mutate(chr4_position = min_start.y,
-             chr14_position = min_start.x) %>%
+      mutate(category = case_when((min_start.x <= chr14_breakpoint & max_end.x > chr14_breakpoint) | (min_start.y < chr4_breakpoint & max_end.y > chr4_breakpoint) ~ "Supports General IGH Fusion with WHSC1",
+                                  min_start.x > chr14_breakpoint & min_start.y > chr4_breakpoint ~ "Supports IGH--WHSC1 Fusion",
+                                  max_end.x <= chr14_breakpoint & max_end.y <= chr4_breakpoint ~ "Supports Reciprocal FGFR3/WHSC1--IGH Fusion",
+                                  max_end.x <= chr14_breakpoint & min_start.y > chr4_breakpoint ~ "Supports General IGH Fusion with WHSC1",
+                                  TRUE ~ "Supports General IGH Fusion with WHSC1")) %>%
+      mutate(chr4_position = case_when(category == "Supports IGH--WHSC1 Fusion" ~ min_start.y,
+                                       category == "Supports Reciprocal FGFR3/WHSC1--IGH Fusion" ~ max_end.y,
+                                       category == "Supports General IGH Fusion with WHSC1" ~ min_start.y),
+             chr14_position = case_when(category == "Supports IGH--WHSC1 Fusion" ~ min_start.x,
+                                        category == "Supports Reciprocal FGFR3/WHSC1--IGH Fusion" ~ max_end.x,
+                                        category == "Supports General IGH Fusion with WHSC1" ~ min_start.x)) %>%
+      mutate(category = factor(category, levels = c("Supports IGH--WHSC1 Fusion", "Supports Reciprocal FGFR3/WHSC1--IGH Fusion", "Supports General IGH Fusion with WHSC1"), ordered = TRUE)) %>%
       mutate(shifted_chr4 = chr4_position + chr4_shift,
              shifted_chr14 = chr14_position + chr14_shift) %>%
-      mutate(category = case_when(chr4_position <= chr4_breakpoint & chr14_position <= chr14_breakpoint ~ "Category 1",
-                                  chr4_position > chr4_breakpoint & chr14_position <= chr14_breakpoint ~ "Category 2",
-                                  chr4_position <= chr4_breakpoint & chr14_position > chr14_breakpoint ~ "Category 3",
-                                  chr4_position > chr4_breakpoint & chr14_position > chr14_breakpoint ~ "Category 4")) %>%
       mutate(identifier = str_c(cell_barcode, ":", molecular_barcode),
              data_type = "Single Cell Chimeric Transcript",
              y_position_offset = -0.5,
              curvature = 0.25,
              fusion = NA) %>%
       ungroup() %>%
-      select(identifier, data_type, chr14_position, chr4_position, shifted_chr14, shifted_chr4, category, fusion) #, y_position_offset, curvature)
+      select(identifier, data_type, chr14_position, chr4_position, shifted_chr14, shifted_chr4, category, fusion)
     
-    bind_rows(bulk_plot_df, sc_plot_df) %>% return()
+    bind_rows(bulk_plot_df, sc_plot_df) %>% 
+      filter(category %in% c("Supports Reciprocal FGFR3/WHSC1--IGH Fusion", "Supports IGH--WHSC1 Fusion")) %>%
+      mutate(chr14_category = case_when(chr14_position < 105625000 ~ "Cat 1",
+                                        chr14_position < 105750000 ~ "Cat 2",
+                                        TRUE ~ "Cat 3"),
+             chr4_category = case_when(chr4_position < 1871964 ~ "Cat 1",
+                                       chr4_position < 1950000 ~ "Cat 2",
+                                       TRUE ~ "Cat 3"),
+             color_column = category) %>%
+      
+             #color_column = str_c(chr14_category, chr4_category, sep = ":")) %>%
+             #color_column = chr14_category) %>%
+      return()
   }
   plot_bulk_sc_27522 <- function(bulk_sc_plot_df, genes = gene_spans, dir, id, use_fusion_names = TRUE, bulk_color = TRUE, color_indicates = "Fusion Name"){
     
@@ -823,7 +978,8 @@ if (TRUE) {
     
     chr4_gene_spans <- genes %>% 
       filter(chromosome == "chr4") %>% 
-      filter( (start <= overall_chr4_min & end >= overall_chr4_min) | 
+      filter( gene_name %in% c("FGFR3", "WHSC1") |
+                (start <= overall_chr4_min & end >= overall_chr4_min) | 
                 (start >= overall_chr4_min & end <= overall_chr4_max) | 
                 (start <= overall_chr4_max & end >= overall_chr4_max) ) %>% 
       filter(strand == "+", type == "protein_coding") %>%
@@ -936,71 +1092,30 @@ if (TRUE) {
            width = 7.25, height = 12,
            useDingbats = FALSE)
   }
-  plot_correlation_FGFR3_WHSC1_27522 <- function(two_genes_expression, bulk_sc, dir = paper_main, id, gene1, gene2){
-    
-    plot_df <- bulk_sc %>% 
-      filter(data_type == "Single Cell Chimeric Transcript") %>%
-      separate(identifier, 
-               into = c("cell_barcode", "molecular_barcode"), 
-               sep = ":") %>% 
-      group_by(cell_barcode, category, data_type, chr14_position, chr4_position) %>%
-      summarize(categories = str_c(sort(unique(category)), collapse = ", "),
-                molecular_barcodes = str_c(molecular_barcode, collapse = ", ")) %>%
-      right_join(two_genes_expression, by = c("cell_barcode" = "barcode")) %>%
-      filter(cell_type == "Plasma Cells") %>%
-      mutate(chimeric_transcript_detected = !is.na(data_type)) %>%
-      arrange(chimeric_transcript_detected) %>%
-      ungroup()
-    
-    gene12_correlation <- plot_df %>%
-      filter(expression1 > 0, expression2 > 0) %>%
-      #filter(chimeric_transcript_detected == FALSE) %>%
-      select(expression1, expression2) %>%
-      as.matrix() %>%
-      cor()
-    
-    print(gene12_correlation)
-    
-    max_expr1 <- plot_df %>% pull(expression1) %>% max()
-    max_expr2 <- plot_df %>% pull(expression2) %>% max()
-    overall_max <- max(max_expr1, max_expr2)
-    
-    p <- ggplot(data = plot_df, aes(x = expression1, y = expression2)) 
-    p <- p + geom_point(aes(color = chimeric_transcript_detected),
-                        shape = 16, 
-                        size = 1.5, 
-                        show.legend = FALSE, 
-                        alpha = 1) +
-      theme_bw() +
-      coord_equal() +
-      scale_x_continuous(limits = c(0, overall_max), expand = c(0.01, 0.01)) +
-      scale_y_continuous(limits = c(0, overall_max), expand = c(0.01, 0.01)) +
-      #facet_wrap(~ category, nrow = 1) +
-      labs(x = str_c(gene1, " Expression"), y = str_c(gene2, " Expression")) +
-      theme(panel.background = element_blank(),
-            plot.background = element_blank(),
-            panel.grid.minor = element_blank(),
-            axis.title = element_text(size = 12),
-            legend.title = element_text(size = 12),
-            legend.text = element_text(size = 10))
-    
-    ggsave(str_c(dir, id, ".", gene1, ".", gene2, ".correlation.pdf"),
-           p,
-           width = 3.5, height = 3.5, useDingbats = FALSE)
-    
-  }
   
   # 27522_1
   if (TRUE) {
     
-    bulk_fusion_reads_27522_1 <- get_bulk_fusion_reads_27522(bulk_reads_27522_1, star_fusion_calls_27522_1, use_SF_only = TRUE)
+    bulk_fusion_reads_27522_1_SF_only <- get_bulk_fusion_reads_27522(bulk_reads_27522_1, star_fusion_calls_27522_1, use_SF_only = TRUE)
+    bulk_fusion_reads_27522_1 <- get_bulk_fusion_reads_27522(bulk_reads_27522_1, star_fusion_calls_27522_1, use_SF_only = FALSE)
     plot_sc_read_length_distribution(dis_reads = dis_reads_27522_1_discover, cutoff = 1024, id = "27522_1")
     sc_chimeric_transcripts_27522_1 <- get_sc_chimeric_transcripts_27522(dis_reads_27522_1_discover)
+    bulk_sc_plot_df_27522_1_SF_only <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_1_SF_only, sc_chimeric_transcripts_27522_1)
     bulk_sc_plot_df_27522_1 <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_1, sc_chimeric_transcripts_27522_1)
-    plot_bulk_sc_27522(bulk_sc_plot_df_27522_1, dir = paper_main, id = "27522_1", bulk_color = FALSE)
     
-    plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_1, tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1), id = "27522_1")
-    plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_1, tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1), id = "27522_1", reduction = "t-SNE", dir = paper_supp)
+    plot_bulk_sc_27522(bulk_sc_plot_df_27522_1_SF_only, dir = paper_main, id = "27522_1", bulk_color = FALSE)
+    plot_bulk_sc_27522(bulk_sc_plot_df_27522_1, dir = paper_supp, id = "27522_1", bulk_color = FALSE)
+    
+    plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_1_SF_only, 
+                                   tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1), 
+                                   id = "27522_1", 
+                                   reduction = "UMAP", 
+                                   dir = paper_main)
+    plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_1_SF_only, 
+                                   tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1), 
+                                   id = "27522_1", 
+                                   reduction = "t-SNE", 
+                                   dir = paper_supp)
     
     plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_27522_1, 
                                 seurat_object = seurat_object_27522_1, 
@@ -1037,15 +1152,15 @@ if (TRUE) {
                                 dir = paper_supp, 
                                 max = 4.4)
     
-    plot_correlation_FGFR3_WHSC1_27522(two_genes_expression = get_two_genes_expression(seurat_object = seurat_object_27522_1,
-                                                                                       tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1),
-                                                                                       ensg1 = "ENSG00000109685",
-                                                                                       ensg2 = "ENSG00000068078"),
-                                       bulk_sc = bulk_sc_plot_df_27522_1, 
-                                       dir = paper_main, 
-                                       id = "27522_1", 
-                                       gene1 = "WHSC1", 
-                                       gene2 = "FGFR3")
+    plot_two_genes_correlation(two_genes_expression = get_two_genes_expression(seurat_object = seurat_object_27522_1,
+                                                                               tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1),
+                                                                               ensg1 = "ENSG00000109685",
+                                                                               ensg2 = "ENSG00000068078"),
+                               bulk_sc = bulk_sc_plot_df_27522_1, 
+                               dir = paper_main, 
+                               id = "27522_1", 
+                               gene1 = "WHSC1", 
+                               gene2 = "FGFR3")
     
     # ============================================================================
     # Plot FGFR3 CNV in 25722_1
@@ -1081,18 +1196,26 @@ if (TRUE) {
     bulk_sc_plot_df_27522_4 <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_4, sc_chimeric_transcripts_27522_4)
     plot_bulk_sc_27522(bulk_sc_plot_df_27522_4, dir = paper_main, id = "27522_4", bulk_color = FALSE)
     
-    plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_4, tsne_umap = get_tsne_umap(cell_types = cell_types_27522_4, seurat_object = seurat_object_27522_4), id = "27522_4")
-    plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_4, tsne_umap = get_tsne_umap(cell_types = cell_types_27522_4, seurat_object = seurat_object_27522_4), id = "27522_4", reduction = "t-SNE", dir = paper_supp)
+    plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_4, 
+                                   tsne_umap = get_tsne_umap(cell_types = cell_types_27522_4, seurat_object = seurat_object_27522_4), 
+                                   id = "27522_4",
+                                   reduction = "UMAP",
+                                   dir = paper_main)
+    plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_4, 
+                                   tsne_umap = get_tsne_umap(cell_types = cell_types_27522_4, seurat_object = seurat_object_27522_4), 
+                                   id = "27522_4", 
+                                   reduction = "t-SNE", 
+                                   dir = paper_supp)
     
-    plot_correlation_FGFR3_WHSC1_27522(two_genes_expression = get_two_genes_expression(seurat_object = seurat_object_27522_4,
-                                                                                       tsne_umap = get_tsne_umap(cell_types = cell_types_27522_4, seurat_object = seurat_object_27522_4),
-                                                                                       ensg1 = "ENSG00000109685",
-                                                                                       ensg2 = "ENSG00000068078"),
-                                       bulk_sc = bulk_sc_plot_df_27522_4, 
-                                       dir = paper_main, 
-                                       id = "27522_4", 
-                                       gene1 = "WHSC1", 
-                                       gene2 = "FGFR3")
+    plot_two_genes_correlation(two_genes_expression = get_two_genes_expression(seurat_object = seurat_object_27522_4,
+                                                                               tsne_umap = get_tsne_umap(cell_types = cell_types_27522_4, seurat_object = seurat_object_27522_4),
+                                                                               ensg1 = "ENSG00000109685",
+                                                                               ensg2 = "ENSG00000068078"),
+                               bulk_sc = bulk_sc_plot_df_27522_4, 
+                               dir = paper_main, 
+                               id = "27522_4", 
+                               gene1 = "WHSC1", 
+                               gene2 = "FGFR3")
     
     # ============================================================================
     # Plot chr3 CNV in 25722_4
@@ -1121,10 +1244,18 @@ if (TRUE) {
 }
 
 # ==============================================================================
+# Work with 47499
+# ==============================================================================
+
+# ==============================================================================
 # Work with 56203
 # ==============================================================================
 if (TRUE) {
   get_bulk_fusion_reads_56203 <- function(bulk_reads, star_fusion = NULL, use_SF_only = FALSE){
+    
+    if (identical(bulk_reads, NULL)) {
+      return(NULL)
+    }
     
     return_fusions <- function(this_read, star_fusion){
       if (identical(star_fusion, NULL)) {
@@ -1251,27 +1382,38 @@ if (TRUE) {
     
     between_genes <- 0.2e6
     
-    bulk_chr8_min <- bulk_fusion_reads %>% pull(chr8_position) %>% min()
-    bulk_chr8_max <- bulk_fusion_reads %>% pull(chr8_position) %>% max()
-    
-    if ("chr2" %in% bulk_fusion_reads$chrN) {
-      bulk_chr2_min <- bulk_fusion_reads %>% filter(chrN == "chr2") %>% pull(chrN_position) %>% min()
-      bulk_chr2_max <- bulk_fusion_reads %>% filter(chrN == "chr2") %>% pull(chrN_position) %>% max()
-    } else {
+    if (!identical(bulk_fusion_reads, NULL)) {
+      bulk_chr8_min <- bulk_fusion_reads %>% pull(chr8_position) %>% min()
+      bulk_chr8_max <- bulk_fusion_reads %>% pull(chr8_position) %>% max()
+      
+      if ("chr2" %in% bulk_fusion_reads$chrN) {
+        bulk_chr2_min <- bulk_fusion_reads %>% filter(chrN == "chr2") %>% pull(chrN_position) %>% min()
+        bulk_chr2_max <- bulk_fusion_reads %>% filter(chrN == "chr2") %>% pull(chrN_position) %>% max()
+      } else {
+        bulk_chr2_min <- NULL
+        bulk_chr2_max <- NULL
+      }
+      if ("chr14" %in% bulk_fusion_reads$chrN) {
+        bulk_chr14_min <- bulk_fusion_reads %>% filter(chrN == "chr14") %>% pull(chrN_position) %>% min()
+        bulk_chr14_max <- bulk_fusion_reads %>% filter(chrN == "chr14") %>% pull(chrN_position) %>% max()
+      } else {
+        bulk_chr14_min <- NULL
+        bulk_chr14_max <- NULL
+      }
+      if ("chr22" %in% bulk_fusion_reads$chrN) {
+        bulk_chr22_min <- bulk_fusion_reads %>% filter(chrN == "chr22") %>% pull(chrN_position) %>% min()
+        bulk_chr22_max <- bulk_fusion_reads %>% filter(chrN == "chr22") %>% pull(chrN_position) %>% max()  
+      } else {
+        bulk_chr22_min <- NULL
+        bulk_chr22_max <- NULL
+      }  
+    } else{
+      bulk_chr8_min <- NULL
+      bulk_chr8_max <- NULL
       bulk_chr2_min <- NULL
       bulk_chr2_max <- NULL
-    }
-    if ("chr14" %in% bulk_fusion_reads$chrN) {
-      bulk_chr14_min <- bulk_fusion_reads %>% filter(chrN == "chr14") %>% pull(chrN_position) %>% min()
-      bulk_chr14_max <- bulk_fusion_reads %>% filter(chrN == "chr14") %>% pull(chrN_position) %>% max()
-    } else {
       bulk_chr14_min <- NULL
       bulk_chr14_max <- NULL
-    }
-    if ("chr22" %in% bulk_fusion_reads$chrN) {
-      bulk_chr22_min <- bulk_fusion_reads %>% filter(chrN == "chr22") %>% pull(chrN_position) %>% min()
-      bulk_chr22_max <- bulk_fusion_reads %>% filter(chrN == "chr22") %>% pull(chrN_position) %>% max()  
-    } else {
       bulk_chr22_min <- NULL
       bulk_chr22_max <- NULL
     }
@@ -1301,10 +1443,6 @@ if (TRUE) {
       sc_chr22_max <- NULL
     }
     
-    overall_chr8_min <- min(bulk_chr8_min, sc_chr8_min)
-    overall_chr8_max <- max(bulk_chr8_max, sc_chr8_max)
-    chr8_shift = 0 - overall_chr8_min
-    
     if (identical(bulk_chr2_min, NULL) & identical(sc_chr2_min, NULL)) {
       overall_chr2_min <- NULL
       overall_chr2_max <- NULL
@@ -1312,7 +1450,7 @@ if (TRUE) {
     } else {
       overall_chr2_min <- min(bulk_chr2_min, sc_chr2_min)
       overall_chr2_max <- max(bulk_chr2_max, sc_chr2_max)
-      chr2_shift <- 0 - overall_chr2_min + overall_chr8_max - overall_chr8_min + between_genes
+      chr2_shift <- 0 - overall_chr2_min
     }
     if (identical(bulk_chr14_min, NULL) & identical(sc_chr14_min, NULL)) {
       overall_chr14_min <- NULL
@@ -1321,7 +1459,7 @@ if (TRUE) {
     } else {
       overall_chr14_min <- min(bulk_chr14_min, sc_chr14_min)
       overall_chr14_max <- max(bulk_chr14_max, sc_chr14_max)
-      chr14_shift = 0 - overall_chr14_min + overall_chr8_max - overall_chr8_min + between_genes
+      chr14_shift = 0 - overall_chr14_min
     }
     if (identical(bulk_chr22_min, NULL) & identical(sc_chr22_min, NULL)) {
       overall_chr22_min <- NULL
@@ -1330,28 +1468,25 @@ if (TRUE) {
     } else {
       overall_chr22_min <- min(bulk_chr22_min, sc_chr22_min)
       overall_chr22_max <- max(bulk_chr22_max, sc_chr22_max)
-      chr22_shift = 0 - overall_chr22_min + overall_chr8_max - overall_chr8_min + between_genes
+      chr22_shift = 0 - overall_chr22_min
     }
     
     get_bulk_plot_df <- function(bulk_fusion_reads, this_chrN, chrN_shift, chr8_shift){
       
-      bulk_fusion_reads %>% 
-        filter(chrN == this_chrN) %>%
-        mutate(shifted_chrN = chrN_position + chrN_shift,
-               shifted_chr8 = chr8_position + chr8_shift) %>%
-        mutate(category = "None") %>%
-        #mutate(category = case_when(chr4_position <= chr4_breakpoint & chr14_position <= chr14_breakpoint ~ "Category 1",
-        #                            chr4_position > chr4_breakpoint & chr14_position <= chr14_breakpoint ~ "Category 2",
-        #                            chr4_position <= chr4_breakpoint & chr14_position > chr14_breakpoint ~ "Category 3",
-        #                            chr4_position > chr4_breakpoint & chr14_position > chr14_breakpoint ~ "Category 4")) %>%
-        mutate(identifier = read_name,
-               data_type = "Bulk Spanning/Junction Read Pair",
-               y_position_offset = 0,
-               curvature = -0.25) %>%
-        ungroup() %>%
-        select(identifier, data_type, chr8_position, chrN_position, shifted_chr8, shifted_chrN, category, fusion, chrN) %>%
-        return()
-      
+      if (identical(bulk_fusion_reads, NULL)) {
+        return(NULL)
+      } else {
+        bulk_fusion_reads %>% 
+          filter(chrN == this_chrN) %>%
+          mutate(shifted_chrN = chrN_position + chrN_shift,
+                 shifted_chr8 = chr8_position + chr8_shift) %>%
+          mutate(category = "None") %>%
+          mutate(identifier = read_name,
+                 data_type = "Bulk Spanning/Junction Read Pair") %>%
+          ungroup() %>%
+          select(identifier, data_type, chr8_position, chrN_position, shifted_chr8, shifted_chrN, category, fusion, chrN) %>%
+          return()  
+      }
     } 
     
     get_sc_plot_df <- function(sc_chimeric_transcripts, this_chrN, chrN_shift, chr8_shift) {
@@ -1359,18 +1494,13 @@ if (TRUE) {
       sc_chimeric_transcripts %>%
         filter(chr.y == this_chrN) %>%
         mutate(chrN_position = min_start.y,
-               chr8_position = min_start.x) %>%
+               chr8_position = max_end.x) %>%
+               #chr8_position = min_start.x) %>%
         mutate(shifted_chrN = chrN_position + chrN_shift,
                shifted_chr8 = chr8_position + chr8_shift) %>%
         mutate(category = "None") %>%
-        #mutate(category = case_when(chr4_position <= chr4_breakpoint & chr14_position <= chr14_breakpoint ~ "Category 1",
-        #                            chr4_position > chr4_breakpoint & chr14_position <= chr14_breakpoint ~ "Category 2",
-        #                            chr4_position <= chr4_breakpoint & chr14_position > chr14_breakpoint ~ "Category 3",
-        #                            chr4_position > chr4_breakpoint & chr14_position > chr14_breakpoint ~ "Category 4")) %>%
         mutate(identifier = str_c(cell_barcode, ":", molecular_barcode),
                data_type = "Single Cell Chimeric Transcript",
-               y_position_offset = -0.5,
-               curvature = 0.25,
                fusion = NA) %>%
         ungroup() %>%
         select(identifier, data_type, chr8_position, chrN_position, shifted_chr8, shifted_chrN, category, fusion, chr.y) %>%
@@ -1379,13 +1509,16 @@ if (TRUE) {
       
     }
     
-    chr2_bulk_plot_df <- get_bulk_plot_df(bulk_fusion_reads, "chr2", chr2_shift, chr8_shift)
-    chr14_bulk_plot_df <- get_bulk_plot_df(bulk_fusion_reads, "chr14", chr14_shift, chr8_shift)
-    chr22_bulk_plot_df <- get_bulk_plot_df(bulk_fusion_reads, "chr22", chr22_shift, chr8_shift)
+    overall_chr8_min <- min(bulk_chr8_min, sc_chr8_min)
+    overall_chr8_max <- max(bulk_chr8_max, sc_chr8_max)
     
-    chr2_sc_plot_df <- get_sc_plot_df(sc_chimeric_transcripts, "chr2", chr2_shift, chr8_shift)
-    chr14_sc_plot_df <- get_sc_plot_df(sc_chimeric_transcripts, "chr14", chr14_shift, chr8_shift)
-    chr22_sc_plot_df <- get_sc_plot_df(sc_chimeric_transcripts, "chr22", chr22_shift, chr8_shift)
+    chr2_bulk_plot_df <- get_bulk_plot_df(bulk_fusion_reads, "chr2", chr2_shift, chr8_shift = 0 - overall_chr8_min + overall_chr2_max - overall_chr2_min + between_genes)
+    chr14_bulk_plot_df <- get_bulk_plot_df(bulk_fusion_reads, "chr14", chr14_shift, chr8_shift = 0 - overall_chr8_min + overall_chr14_max - overall_chr14_min + between_genes)
+    chr22_bulk_plot_df <- get_bulk_plot_df(bulk_fusion_reads, "chr22", chr22_shift, chr8_shift = 0 - overall_chr8_min + overall_chr22_max - overall_chr22_min + between_genes)
+    
+    chr2_sc_plot_df <- get_sc_plot_df(sc_chimeric_transcripts, "chr2", chr2_shift, chr8_shift = 0 - overall_chr8_min + overall_chr2_max - overall_chr2_min + between_genes)
+    chr14_sc_plot_df <- get_sc_plot_df(sc_chimeric_transcripts, "chr14", chr14_shift, chr8_shift = 0 - overall_chr8_min + overall_chr14_max - overall_chr14_min + between_genes)
+    chr22_sc_plot_df <- get_sc_plot_df(sc_chimeric_transcripts, "chr22", chr22_shift, chr8_shift = 0 - overall_chr8_min + overall_chr22_max - overall_chr22_min + between_genes)
     
     chr2_bulk_sc_plot_df <- bind_rows(chr2_bulk_plot_df, chr2_sc_plot_df)
     chr14_bulk_sc_plot_df <- bind_rows(chr14_bulk_plot_df, chr14_sc_plot_df)
@@ -1394,6 +1527,7 @@ if (TRUE) {
     bind_rows(chr2_bulk_sc_plot_df, 
               chr14_bulk_sc_plot_df, 
               chr22_bulk_sc_plot_df) %>%
+      mutate(color_column = chrN) %>%
       return()
   }
   plot_bulk_sc_56203 <- function(bulk_sc_plot_df, genes = gene_spans, dir, id, use_fusion_names = TRUE, bulk_color = TRUE, color_indicates = "Fusion Name", partner_chr = NULL){
@@ -1403,24 +1537,25 @@ if (TRUE) {
     }
     
     between_genes <- 0.2e6
-    chrN_offset_y <- 0.5
+    chr8_offset_y <- 0.5
     
     bulk_sc_plot_df <- bulk_sc_plot_df %>%
       filter(chrN == partner_chr) %>%
       mutate(color_column = "black",
              reciprocal = FALSE)
     
-    overall_chr8_min <- bulk_sc_plot_df %>% pull(chr8_position) %>% min() #%>% plyr::round_any(accuracy = 1e5, f = floor)
-    overall_chr8_max <- bulk_sc_plot_df %>% pull(chr8_position) %>% max() #%>% plyr::round_any(accuracy = 1e5, f = ceiling) 
-    overall_chrN_min <- bulk_sc_plot_df %>% filter(chrN == partner_chr) %>% pull(chrN_position) %>% min() #%>% plyr::round_any(accuracy = 1e5, f = floor)
-    overall_chrN_max <- bulk_sc_plot_df %>% filter(chrN == partner_chr) %>% pull(chrN_position) %>% max() #%>% plyr::round_any(accuracy = 1e5, f = ceiling)
+    overall_chr8_min <- bulk_sc_plot_df %>% pull(chr8_position) %>% min()
+    overall_chr8_max <- bulk_sc_plot_df %>% pull(chr8_position) %>% max()
+    overall_chrN_min <- bulk_sc_plot_df %>% pull(chrN_position) %>% min()
+    overall_chrN_max <- bulk_sc_plot_df %>% pull(chrN_position) %>% max()
     
-    chrN_shift = 0 - overall_chrN_min + overall_chr8_max - overall_chr8_min + between_genes
-    chr8_shift = 0 - overall_chr8_min
+    chr8_shift <- 0 - overall_chr8_min + overall_chrN_max - overall_chrN_min + between_genes
+    chrN_shift <- 0 - overall_chrN_min
     
     chr8_gene_spans <- genes %>% 
       filter(chromosome == "chr8") %>% 
-      filter( (start <= overall_chr8_min & end >= overall_chr8_min) | 
+      filter( gene_name %in% c("MYC", "PVT1") |
+                (start <= overall_chr8_min & end >= overall_chr8_min) | 
                 (start >= overall_chr8_min & end <= overall_chr8_max) | 
                 (start <= overall_chr8_max & end >= overall_chr8_max) ) %>% 
       filter(strand == "+", type %in% c("protein_coding", "lincRNA")) %>%
@@ -1457,8 +1592,8 @@ if (TRUE) {
       geom_rect(data = chr8_gene_spans,
                 aes(xmin = shifted_chr8_start, 
                     xmax = shifted_chr8_end,
-                    ymin = 0, 
-                    ymax = 1,
+                    ymin = 0 - chr8_offset_y, 
+                    ymax = 1 - chr8_offset_y,
                     fill = "chr8"),
                 #fill = "#f03b20"
                 alpha = 1) +
@@ -1466,54 +1601,49 @@ if (TRUE) {
       geom_rect(data = chrN_gene_spans,
                 aes(xmin = shifted_chrN_start, 
                     xmax = shifted_chrN_end,
-                    ymin = 0 - chrN_offset_y, 
-                    ymax = 1 - chrN_offset_y,
+                    ymin = 0, 
+                    ymax = 1,
                     fill = "chrN"), 
                 #fill = "#feb24c",
-                alpha = 1) + 
+                alpha = 1)
+    
+    if (bulk_sc_plot_df %>% 
+        filter(data_type == "Bulk Spanning/Junction Read Pair") %>% 
+        nrow() > 0) {
       # draw bulk read curves
-      geom_curve(data = bulk_sc_plot_df %>% 
-                   filter(data_type == "Bulk Spanning/Junction Read Pair"), #%>%
-                 #arrange(str_detect(fusion, "IGH")),
-                 aes(x = shifted_chr8, 
-                     xend = shifted_chrN,
-                     color = color_column,
-                     linetype = reciprocal,
-                     y = 1,
-                     yend = 1 - chrN_offset_y),
-                 curvature = -0.25,
-                 ncp = 10,
-                 lineend = "round",
-                 alpha = 0.25) +
-      # draw sc read curves
-      geom_curve(data = bulk_sc_plot_df %>% 
-                   filter(data_type == "Single Cell Chimeric Transcript"),
-                 aes(x = shifted_chr8, 
-                     xend = shifted_chrN,
-                     y = 0,
-                     yend = 0 - chrN_offset_y,
-                     color = "black"),
-                 curvature = 0.25,
-                 ncp = 10,
-                 lineend = "round",
-                 show.legend = FALSE,
-                 alpha = 0.25) +
+      p <- p + geom_curve(data = bulk_sc_plot_df %>% 
+                            filter(data_type == "Bulk Spanning/Junction Read Pair"),
+                          aes(x = shifted_chrN, 
+                              xend = shifted_chr8,
+                              color = color_column,
+                              linetype = reciprocal,
+                              y = 1,
+                              yend = 1 - chr8_offset_y),
+                          curvature = -0.25,
+                          ncp = 10,
+                          lineend = "round",
+                          alpha = 0.25)
+    }
+    
+    # draw sc read curves
+    p <- p + geom_curve(data = bulk_sc_plot_df %>% 
+                          filter(data_type == "Single Cell Chimeric Transcript"),
+                        aes(x = shifted_chrN, 
+                            xend = shifted_chr8,
+                            y = 0,
+                            yend = 0 - chr8_offset_y,
+                            color = "black"),
+                        curvature = 0.25,
+                        ncp = 10,
+                        lineend = "round",
+                        show.legend = FALSE,
+                        alpha = 0.25) +
       # label chr8 genes
       geom_text(data = chr8_gene_spans,
                 aes(x = (shifted_chr8_end + shifted_chr8_start)/2,
-                    y = 0.5,
+                    y = 0,
                     label = gene_name),
                 fontface = "italic") +
-      # translocation breakpoints 
-      #geom_vline(xintercept = shifted_chr4_breakpoint,
-      #           linetype = 2) +
-      #geom_vline(xintercept = shifted_chr14_breakpoint,
-      #           linetype = 2) +
-      #annotate(geom = "text", x = shifted_chr4_breakpoint + between_genes*0.02, y = -1.5, label = chr4_breakpoint, hjust = 0, vjust = 1) +
-      #annotate(geom = "text", x = shifted_chr14_breakpoint - between_genes*0.02, y = -1.5, label = chr14_breakpoint, hjust = 1, vjust = 1) +
-      # facets
-      #facet_wrap(~ category, ncol = 1) + 
-      # colors
       scale_color_brewer(palette = "Paired") +
       scale_fill_brewer(palette = "Accent") +
       labs(color = color_indicates,
@@ -1542,42 +1672,91 @@ if (TRUE) {
            useDingbats = FALSE)
   }
   
-  bulk_sc_plot_df_56203_2 <- get_bulk_sc_plot_df_56203(bulk_fusion_reads = get_bulk_fusion_reads_56203(bulk_reads = bulk_reads_56203_2), sc_chimeric_transcripts = get_sc_chimeric_transcripts_56203(dis_reads = dis_reads_56203_2_discover))
-  plot_bulk_sc_56203(bulk_sc_plot_df_56203_2, dir = paper_main, id = "56203_2", partner_chr = "chr14")
+  # 56203_1
+  if (TRUE) {
+    bulk_sc_plot_df_56203_1 <- get_bulk_sc_plot_df_56203(bulk_fusion_reads = NULL,
+                                                         sc_chimeric_transcripts = get_sc_chimeric_transcripts_56203(dis_reads = dis_reads_56203_1_discover))
+    
+    #plot_bulk_sc_56203(bulk_sc_plot_df_56203_1, dir = paper_main, id = "56203_1", partner_chr = "chr14")
+    #plot_bulk_sc_56203(bulk_sc_plot_df_56203_1, dir = paper_main, id = "56203_1", partner_chr = "chr2")
+    #plot_bulk_sc_56203(bulk_sc_plot_df_56203_1, dir = paper_main, id = "56203_1", partner_chr = "chr22")
+    
+    plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_56203_1,
+                                   tsne_umap = get_tsne_umap(cell_types = cell_types_56203_1, seurat_object = seurat_object_56203_1), 
+                                   id = "56203_2", 
+                                   reduction = "UMAP", 
+                                   dir = paper_main, 
+                                   facet = TRUE)
+    
+    plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_56203_1, 
+                                seurat_object = seurat_object_56203_1, 
+                                tsne_umap = get_tsne_umap(cell_types = cell_types_56203_1, seurat_object = seurat_object_56203_1), 
+                                ensg = "ENSG00000136997", 
+                                id = "56203_1", 
+                                gene = "MYC", 
+                                dir = paper_supp, 
+                                max = 3.5)
+    plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_56203_1, 
+                                seurat_object = seurat_object_56203_1, 
+                                tsne_umap = get_tsne_umap(cell_types = cell_types_56203_1, seurat_object = seurat_object_56203_1), 
+                                ensg = "ENSG00000249859", 
+                                id = "56203_1", 
+                                gene = "PVT1", 
+                                dir = paper_supp, 
+                                max = 3.5) 
+  }
   
+  # 56203_2
+  if (TRUE) {
+    bulk_sc_plot_df_56203_2 <- get_bulk_sc_plot_df_56203(bulk_fusion_reads = get_bulk_fusion_reads_56203(bulk_reads = bulk_reads_56203_2), 
+                                                         sc_chimeric_transcripts = get_sc_chimeric_transcripts_56203(dis_reads = dis_reads_56203_2_discover))
+    
+    #plot_bulk_sc_56203(bulk_sc_plot_df_56203_2, dir = paper_main, id = "56203_2", partner_chr = "chr14")
+    #plot_bulk_sc_56203(bulk_sc_plot_df_56203_2, dir = paper_main, id = "56203_2", partner_chr = "chr2")
+    #plot_bulk_sc_56203(bulk_sc_plot_df_56203_2, dir = paper_main, id = "56203_2", partner_chr = "chr22")
+    
+    plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_56203_2,
+                                   tsne_umap = get_tsne_umap(cell_types = cell_types_56203_2, seurat_object = seurat_object_56203_2), 
+                                   id = "56203_2", 
+                                   reduction = "UMAP", 
+                                   dir = paper_main, 
+                                   facet = TRUE)
+    plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_56203_2,
+                                   tsne_umap = get_tsne_umap(cell_types = cell_types_56203_2, seurat_object = seurat_object_56203_2), 
+                                   id = "56203_2", 
+                                   reduction = "UMAP", 
+                                   dir = paper_main, 
+                                   facet = TRUE)
+    
+    plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_56203_2, 
+                                seurat_object = seurat_object_56203_2, 
+                                tsne_umap = get_tsne_umap(cell_types = cell_types_56203_2, seurat_object = seurat_object_56203_2), 
+                                ensg = "ENSG00000136997", 
+                                id = "56203_2", 
+                                gene = "MYC", 
+                                dir = paper_supp, 
+                                max = 3.75)
+    plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_56203_2, 
+                                seurat_object = seurat_object_56203_2, 
+                                tsne_umap = get_tsne_umap(cell_types = cell_types_56203_2, seurat_object = seurat_object_56203_2), 
+                                ensg = "ENSG00000249859", 
+                                id = "56203_2", 
+                                gene = "PVT1", 
+                                dir = paper_supp, 
+                                max = 3.75) 
+  }
   
-  get_sc_chimeric_transcripts_56203(dis_reads = dis_reads_56203_2_discover) %>% right_join(get_tsne_umap(cell_types_56203_2, seurat_object_56203_2), by = c("cell_barcode" = "barcode")) %>%
-    mutate(chr.y = case_when(is.na(chr.y) ~ "Not found",
-                             TRUE ~ chr.y)) %>%
-    arrange(desc(chr.y)) %>%
-    ggplot(aes(x = UMAP_1, y = UMAP_2)) +
-    geom_point(aes(color = chr.y),
-               #shape = chr.y),
-               #shape = 16, 
-               size = 1.5,
-               alpha = 1) +
-    labs(color = "Cell Contains\nChimeric Transcript") +
-    theme_bw() +
-    coord_equal() +
-    #scale_color_manual(values = c("#a6bddb", "#1c9099")) +
-    scale_color_brewer(palette = "Set1") +
-    scale_x_continuous(expand = c(0.01, 0.01)) +
-    scale_y_continuous(expand = c(0.01, 0.01)) +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank(),
-          plot.background = element_blank(),
-          panel.grid = element_blank(),
-          axis.ticks = element_blank(),
-          axis.text = element_blank(),
-          axis.title = element_text(size = 12),
-          legend.title = element_text(size = 12),
-          legend.text = element_text(size = 10)) +
-    ggsave(str_c("~/Desktop/x2.pdf"), width = 3.5, height = 3.5, useDingbats = FALSE)
-  
-  ggsave(str_c(dir, id, ".cells_chimeric_transcripts.no_legend.", reduction, ".pdf"),
-         p + guides(color = FALSE),
-         width = 3.5, height = 3.5, useDingbats = FALSE)
 }
+
+# ==============================================================================
+# Work with 77570
+# ==============================================================================
+
+# ==============================================================================
+# Work with 81012
+# ==============================================================================
+
+
 
 
 # Draw genes
