@@ -600,8 +600,6 @@ plot_two_genes_correlation <- function(two_genes_expression, bulk_sc, dir = pape
   
   print(gene12_correlation)
   
-  print(plot_df)
-  
   max_expr1 <- plot_df %>% pull(expression1) %>% max()
   max_expr2 <- plot_df %>% pull(expression2) %>% max()
   overall_max <- max(max_expr1, max_expr2)
