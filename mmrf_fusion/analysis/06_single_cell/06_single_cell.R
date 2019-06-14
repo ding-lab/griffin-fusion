@@ -7,7 +7,11 @@ paper_main = "paper/main/06_single_cell/"
 paper_supp = "paper/supplemental/06_single_cell/"
 
 # Create directories
-for (id in c("27522_1", "27522_4", "47499", "56203_1", "56203_2", "77570", "81012_1", "81012_2")) {
+for (id in c("27522_1", "27522_4",    #t(4;14)
+             "47499",                 #t(11;14)
+             "56203_1", "56203_2",    #t(8;*) 
+             "77570",                 #t(11;14)
+             "81012_1", "81012_2")) { #t(11;14)
   dir.create(str_c(paper_main, id), recursive = TRUE, showWarnings = FALSE)
   dir.create(str_c(paper_supp, id), recursive = TRUE, showWarnings = FALSE)  
 }
@@ -660,150 +664,68 @@ if (TRUE) {
   
   # ==============================================================================
   # Plot interesting gene expressions
-  # 27522: WHSC1 (ENSG00000109685) and FGFR3 (ENSG00000068078)
-  # 47499: CCND1 (ENSG00000110092)
-  # 56203: MYC (ENSG00000136997) and PVT1 (ENSG00000249859)
-  # 77570: CCND1 (ENSG00000110092)
-  # 81012: CCND1 (ENSG00000110092)
+  # 27522: t(4;14) WHSC1 (ENSG00000109685) and FGFR3 (ENSG00000068078)
+  # 47499: t(11;14) CCND1 (ENSG00000110092)
+  # 56203: t(8;*) MYC (ENSG00000136997) and PVT1 (ENSG00000249859)
+  # 77570: t(11;14) CCND1 (ENSG00000110092)
+  # 81012: t(11;14) CCND1 (ENSG00000110092)
   # ==============================================================================
   if (TRUE) {
-    # UMAP
-    if (TRUE) {
-      plot_gene_expression(seurat_object_27522_1, 
-                           get_tsne_umap(cell_types = cell_types_27522_1, 
-                                         seurat_object = seurat_object_27522_1), 
-                           ensg = "ENSG00000109685", id = "27522_1", gene = "WHSC1",
-                           dir = str_c(paper_main, "27522_1/"))
-      plot_gene_expression(seurat_object_27522_1, 
-                           get_tsne_umap(cell_types = cell_types_27522_1, 
-                                         seurat_object = seurat_object_27522_1), 
-                           ensg = "ENSG00000068078", id = "27522_1", gene = "FGFR3",
-                           dir = str_c(paper_main, "27522_1/"))
+    for (red in c("UMAP", "t-SNE")) {
+      t414_gene_names <- c("WHSC1", "FGFR3", "SDC1", "TNFRSF17", "SLAMF7")
+      t414_ensg <- c("ENSG00000109685", "ENSG00000068078", "ENSG00000115884", "ENSG00000048462", "ENSG00000026751")
+      for (i in 1:length(t414_gene_names)) {
+        plot_gene_expression(seurat_object_27522_1, 
+                             get_tsne_umap(cell_types = cell_types_27522_1, 
+                                           seurat_object = seurat_object_27522_1), 
+                             ensg = t414_ensg[i], id = "27522_1", gene = t414_gene_names[i],
+                             dir = str_c(paper_supp, "27522_1/"), reduction = red)  
+        plot_gene_expression(seurat_object_27522_4, 
+                             get_tsne_umap(cell_types = cell_types_27522_4, 
+                                           seurat_object = seurat_object_27522_4), 
+                             ensg = t414_ensg[i], id = "27522_4", gene = t414_gene_names[i],
+                             dir = str_c(paper_supp, "27522_4/"), reduction = red)
+      }
       
-      plot_gene_expression(seurat_object_27522_4, 
-                           get_tsne_umap(cell_types = cell_types_27522_4, 
-                                         seurat_object = seurat_object_27522_4), 
-                           ensg = "ENSG00000109685", id = "27522_4", gene = "WHSC1",
-                           dir = str_c(paper_main, "27522_4/"))
-      plot_gene_expression(seurat_object_27522_4, 
-                           get_tsne_umap(cell_types = cell_types_27522_4, 
-                                         seurat_object = seurat_object_27522_4), 
-                           ensg = "ENSG00000068078", id = "27522_4", gene = "FGFR3",
-                           dir = str_c(paper_main, "27522_4/"))
+      t1114_gene_names <- c("CCND1", "SDC1", "TNFRSF17", "SLAMF7")
+      t1114_ensg <- c("ENSG00000110092", "ENSG00000115884", "ENSG00000048462", "ENSG00000026751")
+      for (i in 1:length(t1114_gene_names)) {
+        plot_gene_expression(seurat_object_47499, 
+                             get_tsne_umap(cell_types = cell_types_47499, 
+                                           seurat_object = seurat_object_47499), 
+                             ensg = t1114_ensg[i], id = "47499", gene = t1114_gene_names[i],
+                             dir = str_c(paper_supp, "47499/"), reduction = red)
+        plot_gene_expression(seurat_object_77570, 
+                             get_tsne_umap(cell_types = cell_types_77570, 
+                                           seurat_object = seurat_object_77570), 
+                             ensg = "ENSG00000110092", id = "77570", gene = "CCND1",
+                             dir = str_c(paper_supp, "77570/"), reduction = red)
+        plot_gene_expression(seurat_object_81012_1, 
+                             get_tsne_umap(cell_types = cell_types_81012_1, 
+                                           seurat_object = seurat_object_81012_1), 
+                             ensg = "ENSG00000110092", id = "81012_1", gene = "CCND1",
+                             dir = str_c(paper_supp, "81012_1/"), reduction = red)
+        plot_gene_expression(seurat_object_81012_2, 
+                             get_tsne_umap(cell_types = cell_types_81012_2, 
+                                           seurat_object = seurat_object_81012_2), 
+                             ensg = "ENSG00000110092", id = "81012_2", gene = "CCND1",
+                             dir = str_c(paper_supp, "81012_2/"), reduction = red)
+      }
       
-      plot_gene_expression(seurat_object_47499, 
-                           get_tsne_umap(cell_types = cell_types_47499, 
-                                         seurat_object = seurat_object_47499), 
-                           ensg = "ENSG00000110092", id = "47499", gene = "CCND1",
-                           dir = str_c(paper_main, "47499/"))
-      
-      plot_gene_expression(seurat_object_56203_1, 
-                           get_tsne_umap(cell_types = cell_types_56203_1, 
-                                         seurat_object = seurat_object_56203_1), 
-                           ensg = "ENSG00000136997", id = "56203_1", gene = "MYC",
-                           dir = str_c(paper_main, "56203_1/"))
-      plot_gene_expression(seurat_object_56203_1, 
-                           get_tsne_umap(cell_types = cell_types_56203_1, 
-                                         seurat_object = seurat_object_56203_1), 
-                           ensg = "ENSG00000249859", id = "56203_1", gene = "PVT1",
-                           dir = str_c(paper_main, "56203_1/"))
-      
-      plot_gene_expression(seurat_object_56203_2, 
-                           get_tsne_umap(cell_types = cell_types_56203_2, 
-                                         seurat_object = seurat_object_56203_2), 
-                           ensg = "ENSG00000136997", id = "56203_2", gene = "MYC",
-                           dir = str_c(paper_main, "56203_2/"))
-      plot_gene_expression(seurat_object_56203_2, 
-                           get_tsne_umap(cell_types = cell_types_56203_2, 
-                                         seurat_object = seurat_object_56203_2), 
-                           ensg = "ENSG00000249859", id = "56203_2", gene = "PVT1",
-                           dir = str_c(paper_main, "56203_2/"))
-      
-      plot_gene_expression(seurat_object_77570, 
-                           get_tsne_umap(cell_types = cell_types_77570, 
-                                         seurat_object = seurat_object_77570), 
-                           ensg = "ENSG00000110092", id = "77570", gene = "CCND1",
-                           dir = str_c(paper_main, "77570/"))
-      
-      plot_gene_expression(seurat_object_81012_1, 
-                           get_tsne_umap(cell_types = cell_types_81012_1, 
-                                         seurat_object = seurat_object_81012_1), 
-                           ensg = "ENSG00000110092", id = "81012_1", gene = "CCND1",
-                           dir = str_c(paper_main, "81012_1/"))
-      plot_gene_expression(seurat_object_81012_2, 
-                           get_tsne_umap(cell_types = cell_types_81012_2, 
-                                         seurat_object = seurat_object_81012_2), 
-                           ensg = "ENSG00000110092", id = "81012_2", gene = "CCND1",
-                           dir = str_c(paper_main, "81012_2/"))  
-    }
-    # t-SNE
-    if (TRUE) {
-      plot_gene_expression(seurat_object_27522_1, 
-                           get_tsne_umap(cell_types = cell_types_27522_1, 
-                                         seurat_object = seurat_object_27522_1), 
-                           ensg = "ENSG00000109685", id = "27522_1", gene = "WHSC1",
-                           dir = str_c(paper_supp, "27522_1/"))
-      plot_gene_expression(seurat_object_27522_1, 
-                           get_tsne_umap(cell_types = cell_types_27522_1, 
-                                         seurat_object = seurat_object_27522_1), 
-                           ensg = "ENSG00000068078", id = "27522_1", gene = "FGFR3", reduction = "t-SNE",
-                           dir = str_c(paper_supp, "27522_1/"))
-      
-      plot_gene_expression(seurat_object_27522_4, 
-                           get_tsne_umap(cell_types = cell_types_27522_4, 
-                                         seurat_object = seurat_object_27522_4), 
-                           ensg = "ENSG00000109685", id = "27522_4", gene = "WHSC1", reduction = "t-SNE",
-                           dir = str_c(paper_supp, "27522_4/"))
-      plot_gene_expression(seurat_object_27522_4, 
-                           get_tsne_umap(cell_types = cell_types_27522_4, 
-                                         seurat_object = seurat_object_27522_4), 
-                           ensg = "ENSG00000068078", id = "27522_4", gene = "FGFR3", reduction = "t-SNE",
-                           dir = str_c(paper_supp, "27522_4/"))
-      
-      plot_gene_expression(seurat_object_47499, 
-                           get_tsne_umap(cell_types = cell_types_47499, 
-                                         seurat_object = seurat_object_47499), 
-                           ensg = "ENSG00000110092", id = "47499", gene = "CCND1", reduction = "t-SNE",
-                           dir = str_c(paper_supp, "47499/"))
-      
-      plot_gene_expression(seurat_object_56203_1, 
-                           get_tsne_umap(cell_types = cell_types_56203_1, 
-                                         seurat_object = seurat_object_56203_1), 
-                           ensg = "ENSG00000136997", id = "56203_1", gene = "MYC", reduction = "t-SNE",
-                           dir = str_c(paper_supp, "56203_1/"))
-      plot_gene_expression(seurat_object_56203_1, 
-                           get_tsne_umap(cell_types = cell_types_56203_1, 
-                                         seurat_object = seurat_object_56203_1), 
-                           ensg = "ENSG00000249859", id = "56203_1", gene = "PVT1", reduction = "t-SNE",
-                           dir = str_c(paper_supp, "56203_1/"))
-      
-      plot_gene_expression(seurat_object_56203_2, 
-                           get_tsne_umap(cell_types = cell_types_56203_2, 
-                                         seurat_object = seurat_object_56203_2), 
-                           ensg = "ENSG00000136997", id = "56203_2", gene = "MYC", reduction = "t-SNE",
-                           dir = str_c(paper_supp, "56203_2/"))
-      plot_gene_expression(seurat_object_56203_2, 
-                           get_tsne_umap(cell_types = cell_types_56203_2, 
-                                         seurat_object = seurat_object_56203_2), 
-                           ensg = "ENSG00000249859", id = "56203_2", gene = "PVT1", reduction = "t-SNE",
-                           dir = str_c(paper_supp, "56203_2/"))
-      
-      plot_gene_expression(seurat_object_77570, 
-                           get_tsne_umap(cell_types = cell_types_77570, 
-                                         seurat_object = seurat_object_77570), 
-                           ensg = "ENSG00000110092", id = "77570", gene = "CCND1", reduction = "t-SNE",
-                           dir = str_c(paper_supp, "77570/"))
-      
-      plot_gene_expression(seurat_object_81012_1, 
-                           get_tsne_umap(cell_types = cell_types_81012_1, 
-                                         seurat_object = seurat_object_81012_1), 
-                           ensg = "ENSG00000110092", id = "81012_1", gene = "CCND1", reduction = "t-SNE",
-                           dir = str_c(paper_supp, "81012_1/"))
-      plot_gene_expression(seurat_object_81012_2, 
-                           get_tsne_umap(cell_types = cell_types_81012_2, 
-                                         seurat_object = seurat_object_81012_2), 
-                           ensg = "ENSG00000110092", id = "81012_2", gene = "CCND1", reduction = "t-SNE",
-                           dir = str_c(paper_supp, "81012_2/"))  
+      t814_gene_names <- c("MYC", "SDC1", "TNFRSF17", "SLAMF7")
+      t814_ensg <- c("ENSG00000136997", "ENSG00000115884", "ENSG00000048462", "ENSG00000026751")
+      for (i in 1:length(t814_gene_names)) {
+        plot_gene_expression(seurat_object_56203_1, 
+                             get_tsne_umap(cell_types = cell_types_56203_1, 
+                                           seurat_object = seurat_object_56203_1), 
+                             ensg = t814_ensg[i], id = "56203_1", gene = t814_gene_names[i],
+                             dir = str_c(paper_supp, "56203_1/"), reduction = red)
+        plot_gene_expression(seurat_object_56203_2, 
+                             get_tsne_umap(cell_types = cell_types_56203_2, 
+                                           seurat_object = seurat_object_56203_2), 
+                             ensg = t814_ensg[i], id = "56203_2", gene = t814_gene_names[i],
+                             dir = str_c(paper_supp, "56203_2/"), reduction = red)
+      }
     }
   }
 
