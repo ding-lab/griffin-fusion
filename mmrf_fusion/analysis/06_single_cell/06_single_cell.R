@@ -3,6 +3,8 @@
 # Steven Foltz (smfoltz@wustl.edu), May 2019
 # ==============================================================================
 
+stop("This script is deprecated because it tries to run samples with bad QC results -- re-run 06_single_cell.R instead.")
+
 paper_main = "paper/main/06_single_cell/"
 paper_supp = "paper/supplemental/06_single_cell/"
 
@@ -15,7 +17,6 @@ for (id in c("27522_1", "27522_4",    #t(4;14)
   dir.create(str_c(paper_main, id), recursive = TRUE, showWarnings = FALSE)
   dir.create(str_c(paper_supp, id), recursive = TRUE, showWarnings = FALSE)  
 }
-
 
 # ==============================================================================
 # Get t-SNE and UMAP mappings in same tibble
@@ -814,6 +815,12 @@ if (TRUE) {
     chr14_breakpoint <- 105858090
     between_genes <- 0.2e6
     
+    bulk_fusion_reads <- bulk_fusion_reads %>%
+      filter(chr14_position >= 105835000, chr14_position <= 105935000)
+    
+    sc_chimeric_transcripts <- sc_chimeric_transcripts %>%
+      filter(min_start.x >= 105835000, max_end.x <= 105935000)
+    
     bulk_chr14_min <- bulk_fusion_reads %>% pull(chr14_position) %>% min()
     bulk_chr14_max <- bulk_fusion_reads %>% pull(chr14_position) %>% max()
     bulk_chr4_min <- bulk_fusion_reads %>% pull(chr4_position) %>% min()
@@ -874,6 +881,7 @@ if (TRUE) {
     
     bind_rows(bulk_plot_df, sc_plot_df) %>% 
       mutate(color_column = category) %>%
+      filter(chr14_position >= 105835000, chr14_position <= 105935000) %>%
       return()
   }
   plot_bulk_sc_27522 <- function(bulk_sc_plot_df, genes = gene_spans, dir, id, use_fusion_names = TRUE, bulk_color = TRUE, color_indicates = "Fusion Name"){
@@ -1041,7 +1049,7 @@ if (TRUE) {
     bulk_sc_plot_df_27522_1 <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_1, sc_chimeric_transcripts_27522_1)
     
     plot_bulk_sc_27522(bulk_sc_plot_df_27522_1_SF_only, id = "27522_1", bulk_color = FALSE, dir = str_c(paper_main, "27522_1/"))
-    plot_bulk_sc_27522(bulk_sc_plot_df_27522_1, id = "27522_1", bulk_color = FALSE, dir = str_c(paper_supp, "27522_1/"))
+    #plot_bulk_sc_27522(bulk_sc_plot_df_27522_1, id = "27522_1", bulk_color = FALSE, dir = str_c(paper_supp, "27522_1/"))
     
     plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_1_SF_only, 
                                    tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1), 
@@ -2797,7 +2805,63 @@ if (TRUE) {
   }
 }
 
-
+# ==============================================================================
+# Explore QC of samples
+# ==============================================================================
+if (TRUE) {
+  bad_df <- read_tsv("data/bad_qc_reads_plot_df.tsv") %>%
+    filter(chromosome %in% c(2, 14, 22)) %>%
+    filter(!(chromosome == 2 & start < 88857244)) %>%
+    group_by(cell_barcode, molecular_barcode, sample, test, chromosome) %>% 
+    summarize(start = min(start), end = max(end)) %>%
+    ungroup() %>%
+    separate(test, by = "_", into = c("ig", "other_gene")) %>%
+    mutate(ig_name = case_when(chromosome == 2 ~ "IGK",
+                               chromosome == 14 ~ "IGH",
+                               chromosome == 22 ~ "IGL"))
+  
+  original_df <- bind_rows(dis_reads_27522_1_discover %>% mutate(sample = "27522_1"), 
+                           dis_reads_27522_4_discover %>% mutate(sample = "27522_4"), 
+                           dis_reads_47499_discover %>% mutate(sample = "47499"), 
+                           dis_reads_56203_1_discover %>% mutate(sample = "56203_1"), 
+                           dis_reads_56203_2_discover %>% mutate(sample = "56203_2"),
+                           dis_reads_77570_discover %>% mutate(sample = "77570"), 
+                           dis_reads_81012_1_discover %>% mutate(sample = "81012_1"), 
+                           dis_reads_81012_2_discover %>% mutate(sample = "81012_2")) %>% 
+    filter(end - start < 1024) %>% 
+    group_by(sample, cell_barcode, molecular_barcode, chrom) %>% 
+    summarize(start = min(start), end = max(end)) %>%
+    mutate(other_gene = "original") %>%
+    filter(chrom %in% c(2, 14, 22)) %>%
+    filter(!(chrom == 2 & start < 88857244)) %>%
+    mutate(ig_name = case_when(chrom == 2 ~ "IGK",
+                               chrom == 14 ~ "IGH",
+                               chrom == 22 ~ "IGL"))
+  
+  ggplot(original_df, aes(x = start/1e6, fill = sample)) + 
+    geom_histogram(binwidth = 10000/1e6) +
+    #geom_vline(xintercept = 105854501) +
+    #geom_vline(xintercept = 105922264) +
+    facet_wrap(~ ig_name, ncol = 1, scales = "free") +
+    labs(fill = "Sample ID",
+         x = "Position (Mb)",
+         y = "Number of 'Chimeric Transcripts'") +
+    theme_bw() +
+    ggsave(str_c(paper_supp, "pre_QC_discovery.pdf"), width = 10, height = 20, useDingbats = FALSE)
+  
+  
+  ggplot(bad_df, aes(x = start/1e6, fill = other_gene)) + 
+    geom_histogram(binwidth = 10000/1e6) +
+    #geom_vline(xintercept = 105854501) +
+    #geom_vline(xintercept = 105922264) +
+    facet_wrap(~ ig_name, ncol = 1, scales = "free") +
+    labs(fill = "'Partner' Gene",
+         x = "Position (Mb)",
+         y = "Number of 'Chimeric Transcripts'") +
+    theme_bw() +
+    ggsave(str_c(paper_supp, "false_positives.pdf"), width = 10, height = 20, useDingbats = FALSE)
+  
+}
 
 # Draw genes
 if (FALSE) {
