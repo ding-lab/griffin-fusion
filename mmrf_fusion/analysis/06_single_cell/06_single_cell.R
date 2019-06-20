@@ -638,11 +638,11 @@ if (TRUE) {
   # UMAP in paper_main; t-SNE in paper_supp
   # ==============================================================================
   if (TRUE) {
-    plot_cell_types(cell_types_27522_1, seurat_object_27522_1, id = "27522_1", dir = str_c(paper_main, "27522_1/"))
-    plot_cell_types(cell_types_27522_4, seurat_object_27522_4, id = "27522_4", dir = str_c(paper_main, "27522_4/"))
+    plot_cell_types(cell_types_27522_1, seurat_object_27522_1, id = "27522_1", dir = str_c(paper_main, "27522_1"))
+    plot_cell_types(cell_types_27522_4, seurat_object_27522_4, id = "27522_4", dir = str_c(paper_main, "27522_4"))
     
-    plot_cell_types(cell_types_27522_1, seurat_object_27522_1, id = "27522_1", reduction = "t-SNE", dir = str_c(paper_supp, "27522_1/"))
-    plot_cell_types(cell_types_27522_4, seurat_object_27522_4, id = "27522_4", reduction = "t-SNE", dir = str_c(paper_supp, "27522_4/"))
+    plot_cell_types(cell_types_27522_1, seurat_object_27522_1, id = "27522_1", reduction = "t-SNE", dir = str_c(paper_supp, "27522_1"))
+    plot_cell_types(cell_types_27522_4, seurat_object_27522_4, id = "27522_4", reduction = "t-SNE", dir = str_c(paper_supp, "27522_4"))
   }
   
   # ==============================================================================
@@ -981,24 +981,24 @@ if (TRUE) {
     
     bulk_fusion_reads_27522_1_SF_only <- get_bulk_fusion_reads_27522(bulk_reads_27522_1, star_fusion_calls_27522_1, use_SF_only = TRUE)
     bulk_fusion_reads_27522_1 <- get_bulk_fusion_reads_27522(bulk_reads_27522_1, star_fusion_calls_27522_1, use_SF_only = FALSE)
-    plot_sc_read_length_distribution(dis_reads = dis_reads_27522_1_discover, cutoff = 1024, id = "27522_1", dir = str_c(paper_supp, "27522_1/"))
+    plot_sc_read_length_distribution(dis_reads = dis_reads_27522_1_discover, cutoff = 1024, id = "27522_1", dir = str_c(paper_supp, "27522_1"))
     sc_chimeric_transcripts_27522_1 <- get_sc_chimeric_transcripts_27522(dis_reads_27522_1_discover)
     bulk_sc_plot_df_27522_1_SF_only <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_1_SF_only, sc_chimeric_transcripts_27522_1)
     bulk_sc_plot_df_27522_1 <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_1, sc_chimeric_transcripts_27522_1)
     
-    plot_bulk_sc_27522(bulk_sc_plot_df_27522_1_SF_only, id = "27522_1", bulk_color = FALSE, dir = str_c(paper_main, "27522_1/"))
-    #plot_bulk_sc_27522(bulk_sc_plot_df_27522_1, id = "27522_1", bulk_color = FALSE, dir = str_c(paper_supp, "27522_1/"))
+    plot_bulk_sc_27522(bulk_sc_plot_df_27522_1_SF_only, id = "27522_1", bulk_color = FALSE, dir = str_c(paper_main, "27522_1"))
+    #plot_bulk_sc_27522(bulk_sc_plot_df_27522_1, id = "27522_1", bulk_color = FALSE, dir = str_c(paper_supp, "27522_1"))
     
     plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_1_SF_only, 
                                    tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1), 
                                    id = "27522_1", 
                                    reduction = "UMAP", 
-                                   dir = str_c(paper_main, "27522_1/"))
+                                   dir = str_c(paper_main, "27522_1"))
     plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_1_SF_only, 
                                    tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1), 
                                    id = "27522_1", 
                                    reduction = "t-SNE", 
-                                   dir = str_c(paper_supp, "27522_1/"))
+                                   dir = str_c(paper_supp, "27522_1"))
     
     plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_27522_1, 
                                 seurat_object = seurat_object_27522_1, 
@@ -1007,7 +1007,7 @@ if (TRUE) {
                                 ensg = "ENSG00000068078", 
                                 id = "27522_1", 
                                 gene = "FGFR3", 
-                                dir = str_c(paper_supp, "27522_1/"),
+                                dir = str_c(paper_supp, "27522_1"),
                                 max = 4.4)
     plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_27522_1, 
                                 seurat_object = seurat_object_27522_1, 
@@ -1015,7 +1015,7 @@ if (TRUE) {
                                 ensg = "ENSG00000109685", 
                                 id = "27522_1", 
                                 gene = "WHSC1", 
-                                dir = str_c(paper_supp, "27522_1/"),
+                                dir = str_c(paper_supp, "27522_1"),
                                 max = 4.4)
     # https://www.nature.com/articles/nrc2780/figures/2
     plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_27522_1, 
@@ -1024,7 +1024,7 @@ if (TRUE) {
                                 ensg = "ENSG00000142208", 
                                 id = "27522_1", 
                                 gene = "AKT1", 
-                                dir = str_c(paper_supp, "27522_1/"),
+                                dir = str_c(paper_supp, "27522_1"),
                                 max = 4.4)
     plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_27522_1, 
                                 seurat_object = seurat_object_27522_1, 
@@ -1032,7 +1032,7 @@ if (TRUE) {
                                 ensg = "ENSG00000100030", 
                                 id = "27522_1",
                                 gene = "MAPK1", 
-                                dir = str_c(paper_supp, "27522_1/"),
+                                dir = str_c(paper_supp, "27522_1"),
                                 max = 4.4)
     
     plot_two_genes_correlation(two_genes_expression = get_two_genes_expression(seurat_object = seurat_object_27522_1,
@@ -1040,7 +1040,7 @@ if (TRUE) {
                                                                                ensg1 = "ENSG00000109685",
                                                                                ensg2 = "ENSG00000068078"),
                                bulk_sc = bulk_sc_plot_df_27522_1, 
-                               dir = str_c(paper_supp, "27522_1/"),
+                               dir = str_c(paper_supp, "27522_1"),
                                id = "27522_1", 
                                gene1 = "WHSC1", 
                                gene2 = "FGFR3")
@@ -1049,21 +1049,21 @@ if (TRUE) {
   # 27522_4
   if (TRUE) {
     bulk_fusion_reads_27522_4 <- get_bulk_fusion_reads_27522(bulk_reads_27522_4)
-    plot_sc_read_length_distribution(dis_reads = dis_reads_27522_4_discover, cutoff = 1024, id = "27522_4", dir = str_c(paper_supp, "27522_4/"))
+    plot_sc_read_length_distribution(dis_reads = dis_reads_27522_4_discover, cutoff = 1024, id = "27522_4", dir = str_c(paper_supp, "27522_4"))
     sc_chimeric_transcripts_27522_4 <- get_sc_chimeric_transcripts_27522(dis_reads_27522_4_discover)
     bulk_sc_plot_df_27522_4 <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_4, sc_chimeric_transcripts_27522_4)
-    plot_bulk_sc_27522(bulk_sc_plot_df_27522_4, id = "27522_4", bulk_color = FALSE, dir = str_c(paper_main, "27522_4/"))
+    plot_bulk_sc_27522(bulk_sc_plot_df_27522_4, id = "27522_4", bulk_color = FALSE, dir = str_c(paper_main, "27522_4"))
     
     plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_4, 
                                    tsne_umap = get_tsne_umap(cell_types = cell_types_27522_4, seurat_object = seurat_object_27522_4), 
                                    id = "27522_4",
                                    reduction = "UMAP",
-                                   dir = str_c(paper_main, "27522_4/"))
+                                   dir = str_c(paper_main, "27522_4"))
     plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_4, 
                                    tsne_umap = get_tsne_umap(cell_types = cell_types_27522_4, seurat_object = seurat_object_27522_4), 
                                    id = "27522_4", 
                                    reduction = "t-SNE", 
-                                   dir = str_c(paper_supp, "27522_4/"))
+                                   dir = str_c(paper_supp, "27522_4"))
     
     plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_27522_4, 
                                 seurat_object = seurat_object_27522_4, 
@@ -1072,7 +1072,7 @@ if (TRUE) {
                                 ensg = "ENSG00000068078", 
                                 id = "27522_4", 
                                 gene = "FGFR3", 
-                                dir = str_c(paper_supp, "27522_4/"),
+                                dir = str_c(paper_supp, "27522_4"),
                                 max = 4.4)
     plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_27522_4, 
                                 seurat_object = seurat_object_27522_4, 
@@ -1080,7 +1080,7 @@ if (TRUE) {
                                 ensg = "ENSG00000109685", 
                                 id = "27522_4", 
                                 gene = "WHSC1", 
-                                dir = str_c(paper_supp, "27522_4/"),
+                                dir = str_c(paper_supp, "27522_4"),
                                 max = 4.4)
     # https://www.nature.com/articles/nrc2780/figures/2
     plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_27522_4, 
@@ -1089,7 +1089,7 @@ if (TRUE) {
                                 ensg = "ENSG00000142208", 
                                 id = "27522_4", 
                                 gene = "AKT1", 
-                                dir = str_c(paper_supp, "27522_4/"),
+                                dir = str_c(paper_supp, "27522_4"),
                                 max = 4.4)
     plot_gene_expression_violin(bulk_sc = bulk_sc_plot_df_27522_4, 
                                 seurat_object = seurat_object_27522_4, 
@@ -1097,7 +1097,7 @@ if (TRUE) {
                                 ensg = "ENSG00000100030", 
                                 id = "27522_4",
                                 gene = "MAPK1", 
-                                dir = str_c(paper_supp, "27522_4/"),
+                                dir = str_c(paper_supp, "27522_4"),
                                 max = 4.4)
     
     plot_two_genes_correlation(two_genes_expression = get_two_genes_expression(seurat_object = seurat_object_27522_4,
@@ -1105,7 +1105,7 @@ if (TRUE) {
                                                                                ensg1 = "ENSG00000109685",
                                                                                ensg2 = "ENSG00000068078"),
                                bulk_sc = bulk_sc_plot_df_27522_4, 
-                               dir = str_c(paper_supp, "27522_4/"), 
+                               dir = str_c(paper_supp, "27522_4"), 
                                id = "27522_4", 
                                gene1 = "WHSC1", 
                                gene2 = "FGFR3")
@@ -1117,7 +1117,7 @@ if (TRUE) {
                  get_tsne_umap(cell_types = cell_types_27522_4, 
                                seurat_object = seurat_object_27522_4), 
                  id = "27522_4", chr = "chr3",
-                 dir = str_c(paper_supp, "27522_4/"))
+                 dir = str_c(paper_supp, "27522_4"))
     
     # ============================================================================
     # Plot chr13 CNV in 25722_4
@@ -1126,7 +1126,7 @@ if (TRUE) {
                  get_tsne_umap(cell_types = cell_types_27522_4, 
                                seurat_object = seurat_object_27522_4), 
                  id = "27522_4", chr = "chr13",
-                 dir = str_c(paper_supp, "27522_4/"))
+                 dir = str_c(paper_supp, "27522_4"))
     
     # ============================================================================
     # Plot chr16 CNV in 25722_4
@@ -1135,7 +1135,7 @@ if (TRUE) {
                  get_tsne_umap(cell_types = cell_types_27522_4, 
                                seurat_object = seurat_object_27522_4), 
                  id = "27522_4", chr = "chr16",
-                 dir = str_c(paper_supp, "27522_4/"))
+                 dir = str_c(paper_supp, "27522_4"))
     
     
   }
