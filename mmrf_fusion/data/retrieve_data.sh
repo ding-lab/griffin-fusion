@@ -31,6 +31,8 @@ mv mmc2.xlsx tcga_pancancer_fusions.xlsx
 ########################
 # single cell analysis #
 ########################
+rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/QCtesting/bad_qc_reads_plot_df.tsv' .
+
 rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/lyao/Tools/GRCh38_gencode_v29_CTAT_lib_Mar272019.plug-n-play/ctat_genome_lib_build_dir/ref_annot.gtf.gene_spans' .
 
 #27522_1 
