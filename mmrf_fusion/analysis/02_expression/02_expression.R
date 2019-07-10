@@ -1702,6 +1702,7 @@ if (TRUE) {
                                        TRUE ~ "Not recurrent")) %>%
     mutate(recurrent_color = factor(recurrent_color, levels = c(recurrent_3p_intact_kinases, "Not recurrent"), ordered = TRUE)) %>%
     ggplot(aes(x = geneA_pct, y = geneB_pct)) + 
+    geom_abline(linetype = 2, alpha = 0.5) +
     geom_smooth(method = "lm") + 
     geom_point(aes(color = recurrent_color), shape = 16, show.legend = FALSE) +
     geom_label_repel(aes(color = recurrent_color, label = recurrent_label), fontface = "italic", show.legend = FALSE) +
