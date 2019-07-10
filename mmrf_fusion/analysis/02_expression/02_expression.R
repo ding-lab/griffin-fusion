@@ -1702,13 +1702,13 @@ if (TRUE) {
                                        TRUE ~ "Not recurrent")) %>%
     mutate(recurrent_color = factor(recurrent_color, levels = c(recurrent_3p_intact_kinases, "Not recurrent"), ordered = TRUE)) %>%
     ggplot(aes(x = geneA_pct, y = geneB_pct, color = recurrent_color, label = recurrent_label)) + 
-    geom_smooth(method = "lm", color = "#000000") + 
+    geom_smooth(method = "lm", color = "blue") + 
     geom_point(shape = 16, show.legend = FALSE) +
     geom_label_repel(fontface = "italic", show.legend = FALSE) +
     coord_fixed() + 
     scale_y_continuous(limits = c(0,1), expand = c(0, 0.1)) +
     scale_x_continuous(limits = c(0,1), expand = c(0, 0.1)) +
-    scale_color_brewer(palette = "Accent") +
+    scale_color_brewer(palette = "Set2") +
     geom_text(data = cor_tibble, aes(x = .99, y = 0.01, label = str_c("cor = ", round(c, 2))), vjust = 0, hjust = 1, color = "blue", size = 2.5) +
     labs(x = "5' Gene Expression Percentile", y = "3' Expression Percentile") +
     theme_bw() +
