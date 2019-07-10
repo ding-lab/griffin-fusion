@@ -486,3 +486,164 @@ if (TRUE) {
   ggsave(str_c(paper_main, "TCGA_connection.no_legend.pdf"), p + guides(fill = FALSE),
                width = 3, height = 2)
 }
+
+
+# ==============================================================================
+# Types of kinases
+# Written April 2019 -- Main
+# ==============================================================================
+
+if (TRUE) {
+  p <- kinases %>% group_by(kinase_group_full_name) %>% summarize(count = n()) %>% ungroup() %>%
+    ggplot(aes(x = fct_reorder(kinase_group_full_name, count), y = count)) +
+    geom_col(position = "dodge") +
+    coord_flip(expand = c(0,0)) +
+    labs(y = "Fusion Count", x = "Kinase Group") +
+    scale_y_continuous(position = "right") +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          panel.grid = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank(),
+          legend.position = "bottom",
+          legend.direction = "vertical",
+          axis.text.x = element_text(size = 8),
+          axis.text.y = element_text(size = 10),
+          axis.title = element_text(size = 12)
+    )
+  
+  ggsave(str_c(paper_supp, "kinase_groups.with_legend.pdf"), p, 
+         width = 7.25, height = 7.25/1.618, useDingbats = FALSE)
+  ggsave(str_c(paper_supp, "kinase_groups.without_legend.pdf"), 
+         p + guides(fill = FALSE), 
+         width = 7.25, height = 7.25/1.618, useDingbats = FALSE)
+  
+}
+
+
+# ==============================================================================
+# NTRK1 fusion structures -- manually create based on agFusion output
+# Written April 2019 -- Main
+# ==============================================================================
+
+if (TRUE) {
+  structure_tbl <- tribble(~mmrf,          ~fusion,          ~element, ~fill_color, ~exterior_color, ~start, ~stop,   ~class,
+                           1232,     "TPR--NTRK1",             "TPR",           1,               1,      0,   366,   "gene",
+                           1232,     "TPR--NTRK1",           "NTRK1",           2,               1,    366,   764,   "gene",
+                           1232,     "TPR--NTRK1", "Tyrosine Kinase",           4,               2,    480,   749, "domain",
+                           1656,    "TPM3--NTRK1",            "TPM3",           1,               1,      0,   258,   "gene",
+                           1656,    "TPM3--NTRK1",           "NTRK1",           2,               1,    258,   656,   "gene",
+                           1656,    "TPM3--NTRK1",     "Tropomyosin",           3,               2,     49,   258, "domain",
+                           1656,    "TPM3--NTRK1", "Tyrosine Kinase",           4,               2,    372,   641, "domain",
+                           2490, "ARHGEF2--NTRK1",         "ARHGEF2",           1,               1,      0,   962,   "gene",
+                           2490, "ARHGEF2--NTRK1",           "NTRK1",           2,               1,    962,  1307,   "gene",
+                           2490, "ARHGEF2--NTRK1",          "RhoGEF",           3,               2,    239,	 431, "domain",
+                           2490, "ARHGEF2--NTRK1",              "PH",           3,               2,    474,   570, "domain",
+                           2490, "ARHGEF2--NTRK1", "Tyrosine Kinase",           4,               2,   1023,	1292, "domain") %>%
+    mutate(fusion = factor(fusion, levels = c("TPM3--NTRK1", "TPR--NTRK1", "ARHGEF2--NTRK1")),
+           fill_color = factor(fill_color),
+           exterior_color = factor(exterior_color),
+           class = factor(class))
+  
+  
+  ggplot(structure_tbl, aes(xmin = start, 
+                            xmax = stop, 
+                            ymin = as.numeric(fusion), 
+                            ymax = as.numeric(fusion) + 0.25, 
+                            fill = fill_color, 
+                            label = element)) +
+    geom_rect(show.legend = FALSE) +
+    scale_fill_manual(values = c("#bdd7e7", "#fcae91", "#2171b5", "#cb181d")) +
+    scale_color_manual(values = c("#bdd7e7", "#fcae91", "#2171b5", "#cb181d")) +
+    geom_segment(data = structure_tbl %>% filter(element == "NTRK1"), aes(x = start, xend = start, y = as.numeric(fusion) - 0.05, yend = as.numeric(fusion) + 0.25 + 0.025)) +
+    geom_text(data = structure_tbl %>% filter(class == "gene"), aes(x = start + (stop - start)/2, y = as.numeric(fusion) - 0.075, color = fill_color), size = 4, show.legend = FALSE, fontface = "italic") +
+    geom_text(data = structure_tbl %>% filter(class == "domain"), aes(x = start + (stop - start)/2, y = as.numeric(fusion) + 0.125), size = 4, show.legend = FALSE, color = "white") +
+    facet_wrap(~ fusion, strip.position = "left", scales = "free_y", ncol = 1) +
+    labs(x = "Amino Acid Position", y = NULL) +
+    scale_y_continuous(expand = c(0.05, 0.05)) +
+    scale_x_continuous(breaks = seq(0, 1300, 100), position = "bottom", expand = c(0.01, 0.01)) +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          panel.grid = element_blank(),
+          strip.background = element_blank(),
+          strip.text = element_blank(),
+          axis.text.x = element_text(size = 8),
+          axis.title.x = element_text(size = 12),
+          axis.text.y = element_blank(),
+          axis.ticks = element_blank()) + 
+    ggsave(str_c(paper_main, "NTRK1.structures.pdf"), 
+           width = 7.25, height = 7.25/(2*1.618), useDingbats = FALSE)
+}
+
+# ==============================================================================
+# 3' intact kinase TCGA overlap
+# Written April 2018 Supplement
+# ==============================================================================
+
+if (TRUE) {
+  plot_df <- kinases %>% 
+    filter(KinasePos == "3P_KINASE", KinaseDomain == "Intact") %>% 
+    group_by(geneB) %>% 
+    summarize(count = n()) %>% 
+    left_join(pancan_fusions %>% 
+                separate(Fusion, into = c("geneA", "geneB"), sep = "--"), 
+              by = "geneB") %>% 
+    group_by(geneB, Cancer) %>% 
+    summarize(count2 = n()) %>%
+    filter(!is.na(Cancer))
+  
+  ggplot(data = plot_df, aes(y = geneB, x = Cancer)) + 
+    geom_tile(aes(fill = factor(count2))) + 
+    geom_text(data = plot_df %>% filter(count2 < 6), aes(label = count2),
+              color = "#000000") +
+    geom_text(data = plot_df %>% filter(count2 >= 6), aes(label = count2),
+              color = "#ffffff") +
+    scale_fill_brewer(palette = "Blues") +
+    labs(x = "TCGA Cancer Type",
+         y = "MMRF 3' Intact Kinase Fusions",
+         fill = "TCGA Samples\nwith Same 3' Fusion") +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = "bottom",
+          axis.text.y = element_text(size = 10, face = "italic"),
+          axis.text.x = element_text(size = 10, angle = 90, vjust = 0.5, hjust = 1),
+          axis.title = element_text(size = 12)) +
+    ggsave(str_c(paper_supp, "TCGA_kinase_fusions.pdf"),
+           width = 7.5, height = 9)
+  
+}
+
+# ==============================================================================
+# 5' Partners of NTRK1 in TCGA
+# Written April 2018
+# ==============================================================================
+
+if (TRUE) {
+  pancan_fusions %>% 
+    filter(str_detect(Fusion, pattern = "--NTRK1")) %>%
+    separate(Fusion, by = "--", into = c("geneA", "geneB")) %>% 
+    group_by(Cancer, geneA) %>% 
+    summarize(count = n()) %>% 
+    ggplot(aes(x = Cancer, y = geneA, fill = factor(count))) + 
+    geom_tile() + 
+    geom_text(aes(label = count)) +
+    scale_fill_brewer(palette = "Blues") +
+    labs(x = "TCGA Cancer Type",
+         y = "5' Partner of NTRK1",
+         fill = "TCGA Sample Count") +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          axis.ticks = element_blank(),
+          legend.position = "bottom",
+          axis.text.y = element_text(size = 10, face = "italic"),
+          axis.text.x = element_text(size = 10, angle = 90, vjust = 0.5, hjust = 1),
+          axis.title = element_text(size = 12)) +
+    ggsave(str_c(paper_supp, "TCGA_NTRK1_partners.pdf"),
+           width = 7.25, height = 3)
+}
+
