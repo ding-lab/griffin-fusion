@@ -250,7 +250,7 @@ if (TRUE) {
     ggplot(aes(x = Age)) + geom_histogram() + 
     labs(x = "Age at onset (years)", y = "Number of patients", 
          caption = str_c("Number missing = ", n_missing)) +
-    ggplot2_standard_additions()
+    theme_bw(base_size = 20)
   print(p)
   dev.off()
   
@@ -262,7 +262,7 @@ if (TRUE) {
     ggplot(aes(x = BM_Plasma_Cell_Percent)) + geom_histogram() + 
     labs(x = "Bone marrow plasma cell (%)", y = "Number of patients",
          caption = str_c("Number missing = ", n_missing)) +
-    ggplot2_standard_additions()
+    theme_bw(base_size = 20)
   print(p)
   dev.off()
   
@@ -273,7 +273,7 @@ if (TRUE) {
     ggplot(aes(x = LDH)) + geom_histogram() +
     labs(x = "Lactate dehydrogenase (LDH) (U/L)", y = "Number of patients",
          caption = str_c("Number missing = ", n_missing)) +
-    ggplot2_standard_additions()
+    theme_bw(base_size = 20)
   print(p)
   dev.off()
   
@@ -722,7 +722,10 @@ if (TRUE) {
   plot_df <- seqfish_clinical_info %>% select(mmrf, seqfish_Hyperdiploidy) %>% 
     left_join(fusions_primary, by = "mmrf") %>%
     group_by(mmrf, seqfish_Hyperdiploidy, srr) %>% 
-    summarize(n = n()) %>% ungroup() %>%
+    summarize(n = n(), 
+              n_ig = sum(geneA %in% c("IGH", "IGL", "IGK") | 
+                           geneB %in% c("IGH", "IGL", "IGK"))) %>%
+    ungroup() %>%
     mutate(n_fusions = n - is.na(srr)) %>%
     left_join(hpd_key, by = "seqfish_Hyperdiploidy")
   
@@ -732,7 +735,9 @@ if (TRUE) {
     left_join(fusions_primary, by = "mmrf") %>% 
     filter(!is.na(seqfish_Hyperdiploidy)) %>% 
     group_by(mmrf, srr, seqfish_Hyperdiploidy)  %>% 
-    summarize(n = n()) %>% 
+    summarize(n = n(),
+              n_ig = sum(geneA %in% c("IGH", "IGL", "IGK") | 
+                           geneB %in% c("IGH", "IGL", "IGK"))) %>% 
     ungroup() %>% 
     mutate(n_corrected = n - is.na(srr))
   
@@ -740,7 +745,25 @@ if (TRUE) {
     filter(seqfish_Hyperdiploidy == 1) %>% pull(n_corrected)
   n_fusions_nonhyperdiploid <- n_fusions_with_hyperdiploid_info %>% 
     filter(seqfish_Hyperdiploidy == 0) %>% pull(n_corrected)
-  pvalue <- t.test(n_fusions_hyperdiploid, n_fusions_nonhyperdiploid)$p.value
+  n_fusions_hyperdiploid_ig <- n_fusions_with_hyperdiploid_info %>% 
+    filter(seqfish_Hyperdiploidy == 1) %>% pull(n_ig)
+  n_fusions_nonhyperdiploid_ig <- n_fusions_with_hyperdiploid_info %>%
+    filter(seqfish_Hyperdiploidy == 0) %>% pull(n_ig)
+  if ( t.test(n_fusions_hyperdiploid, n_fusions_nonhyperdiploid)$p.value < 0.05) {
+    print("Number of fusions significantly different between non- and hyperdiploid.")
+  } else {
+    print("Number of fusions not significantly different between non- and hyperdiploid.")
+  }
+  if ( t.test(n_fusions_hyperdiploid_ig, n_fusions_nonhyperdiploid_ig)$p.value < 0.05) {
+    print("Number of IG fusions significantly different between non- and hyperdiploid.")
+  } else {
+    print("Number of IG fusions not significantly different between non- and hyperdiploid.")
+  }
+  
+  t.test(n_fusions_with_hyperdiploid_info %>% 
+    filter(seqfish_Hyperdiploidy == 1) %>% pull(n_ig),
+  n_fusions_with_hyperdiploid_info %>% 
+    filter(seqfish_Hyperdiploidy == 0) %>% pull(n_ig))
   
   # Plot number of fusions per sample
   
@@ -749,7 +772,17 @@ if (TRUE) {
     geom_histogram(binwidth = 1, center = 0) + 
     facet_wrap(~ fct_reorder(hyperdiploid_categories, -count), ncol = 1) +
     labs(x = "Number of Fusions Detected", y = "Number of Samples") +
-    ggplot2_standard_additions() +
+    theme_bw() +
+    scale_x_continuous(expand = c(0,0)) +
+    theme(panel.background = element_blank(),
+          panel.grid.minor.y = element_blank(),
+          panel.border = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.title = element_text(size = 12),
+          axis.text.x = element_text(size = 8),
+          strip.background = element_blank(),
+          strip.text = element_text(size = 12)) +
     ggsave(str_c(paper_supp, "histogram_n_fusions_per_sample.pdf"), 
            device = "pdf", width = 10, height = 5, useDingbats = FALSE)
   
@@ -758,7 +791,8 @@ if (TRUE) {
   n_fusion_tibble <- plot_df %>% group_by(hyperdiploid_categories) %>% 
     summarize(`Median` = median(n_fusions), 
               `Mean` = round(mean(n_fusions),1), 
-              `Max` = max(n_fusions))
+              `Max` = max(n_fusions),
+              `IG` = round(mean(n_ig),1))
   
   n_total_samples <- plot_df %>% nrow()
   
@@ -766,7 +800,8 @@ if (TRUE) {
     summarize(hyperdiploid_categories = str_c("Overall (", n_total_samples, ")"),
               `Median` = median(n_fusions),
               `Mean` = round(mean(n_fusions),1),
-              `Max` = max(n_fusions))
+              `Max` = max(n_fusions),
+              `IG` = round(mean(n_ig),1))
   
   n_fusion_all <- n_fusion_tibble %>% bind_rows(overall_n_fusion_tibble)
   
@@ -786,11 +821,11 @@ if (TRUE) {
                        labels = c(0, 3, 20, 40, 60)) +
     scale_y_continuous() +
     annotation_custom(tableGrob(n_fusion_all, rows = NULL, 
-                                cols = c("HRD Status", "Median", "Mean", "Max"),
-                                theme = ttheme_default(core = list(fg_params = list(col = matrix(c("#a6cee3", "#1f78b4", "#b2df8a", rep("#000000", 13)), nrow = 4, byrow = FALSE),
-                                                                                    fontface = matrix(rep(c("bold", "plain", "plain", "plain"), 4), nrow = 4, byrow = TRUE),
-                                                                                    fontsize = 10)), 
-                                                       colhead = list(fg_params = list( fontsize = 12)))),
+                                cols = c("HRD Status", "Median", "Mean", "Max", "IG"),
+                                theme = ttheme_default(core = list(fg_params = list(col = matrix(c("#a6cee3", "#1f78b4", "#b2df8a", rep("#000000", 17)), nrow = 4, byrow = FALSE),
+                                                                                    fontface = matrix(rep(c("bold", "plain", "plain", "plain", "plain"), 4), nrow = 4, byrow = TRUE),
+                                                                                    fontsize = 8)), 
+                                                       colhead = list(fg_params = list( fontsize = 10)))),
                       xmax = 80, ymax = 0.25) + 
     theme(panel.background = element_blank(),
           panel.grid = element_blank(),
@@ -803,7 +838,7 @@ if (TRUE) {
     ggsave(str_c(paper_main, "freqpoly_n_fusions_per_sample.pdf"), 
            device = "pdf", width = 5, height = 5/1.618, useDingbats = FALSE)
   
-}
+} # change median IG to mean
 
 # ==============================================================================
 # Top recurrent fusions (with validation)
@@ -819,13 +854,17 @@ if (TRUE) {
     mutate(validation_pct = 100*n_validated/n_not_na) %>%
     filter(n_validated >= 1) %>% pull(fusion)
   
-  total_each_fusion <- fusions_primary %>% filter(fusion %in% keep_fusions) %>% 
+  total_each_fusion <- fusions_primary %>% filter(fusion %in% keep_fusions) %>%
+    mutate(fusion = case_when(geneB %in% c("IGH", "IGK", "IGL") ~ str_c("*", fusion), # mark as reciprocal
+                              TRUE ~ fusion)) %>%
     group_by(fusion) %>% summarize(total = n())
   
   total_by_status <- fusions_primary %>% filter(fusion %in% keep_fusions) %>% 
+    mutate(fusion = case_when(geneB %in% c("IGH", "IGK", "IGL") ~ str_c("*", fusion), # mark as reciprocal
+                              TRUE ~ fusion)) %>%
     select(fusion, n_discordant) %>% 
     mutate(validation_status = case_when(is.na(n_discordant) ~ "Not Available", 
-                                         n_discordant > 0 ~ "Validated", 
+                                         n_discordant > 0 ~ "WGS Validated", 
                                          TRUE ~ "Not Validated" )) %>% 
     group_by(fusion, validation_status) %>% 
     summarize(count = n())
@@ -836,13 +875,15 @@ if (TRUE) {
                              y = count, 
                              fill = validation_status)) + 
     geom_col() +
-    coord_flip(expand = c(0,0)) +
+    coord_flip() +
     theme_bw() +
-    scale_y_continuous(breaks = seq(0, 100, 20),
+    scale_x_discrete(expand = c(0,0)) +
+    scale_y_continuous(expand = c(0,0),
+                       breaks = seq(0, 100, 20),
                        labels = seq(0, 100, 20),
                        position = "right") +
-    scale_fill_brewer(palette = "Purples",
-                      breaks = c("Validated", "Not Validated", "Not Available")) +
+    scale_fill_manual(values = c("#cbc9e2", "#9e9ac8", "#6a51a3"),
+                      breaks = c("WGS Validated", "Not Validated", "Not Available")) +
     theme(panel.background = element_blank(),
           panel.border = element_blank(),
           panel.grid = element_blank(),
