@@ -10,10 +10,6 @@ paper_supp = "paper/supplemental/03_whsc1_myc/"
 dir.create(paper_main, recursive = TRUE, showWarnings = FALSE)
 dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 
-
-
-
-
 # ==============================================================================
 # More FGFR3 WHSC1 IGH story
 # Updated April 2019
