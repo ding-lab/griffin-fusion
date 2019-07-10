@@ -1552,13 +1552,13 @@ if (TRUE) {
            "geneA_tsg", "drug_fusion", "drug_geneA", key = "category", value = "status") %>% 
     mutate(category = str_remove_all(category, pattern = "geneA_")) %>% 
     mutate(category = str_remove_all(category, pattern = "_geneA")) %>% 
-    mutate(category = case_when(category == "drug_fusion" ~ "Drug",
-                                category == "drug" ~ "Drug",
+    mutate(category = case_when(category == "drug_fusion" ~ "Druggable",
+                                category == "drug" ~ "Druggable",
                                 category == "driver" ~ "Driver",
                                 category == "kinase" ~ "Kinase",
                                 category == "mmy_known" ~ "Multiple\nMyeloma\nRelated",
                                 category == "oncogene" ~ "Oncogene",
-                                category == "tsg" ~ "Tumor Supp")) %>%
+                                category == "tsg" ~ "Tumor Supp.")) %>%
     unique() %>% filter(status == 1)
   
   gene_attributes_B <- fusions_primary %>% 
@@ -1570,13 +1570,13 @@ if (TRUE) {
            "geneB_tsg", "drug_fusion", "drug_geneB", key = "category", value = "status") %>% 
     mutate(category = str_remove_all(category, pattern = "geneB_")) %>% 
     mutate(category = str_remove_all(category, pattern = "_geneB")) %>% 
-    mutate(category = case_when(category == "drug_fusion" ~ "Drug",
-                                category == "drug" ~ "Drug",
+    mutate(category = case_when(category == "drug_fusion" ~ "Druggable",
+                                category == "drug" ~ "Druggable",
                                 category == "driver" ~ "Driver",
                                 category == "kinase" ~ "Kinase",
                                 category == "mmy_known" ~ "Multiple\nMyeloma\nRelated",
                                 category == "oncogene" ~ "Oncogene",
-                                category == "tsg" ~ "Tumor Supp")) %>%
+                                category == "tsg" ~ "Tumor Supp.")) %>%
     unique() %>% filter(status == 1)
   
   gene_attributes <- bind_rows(gene_attributes_A, gene_attributes_B) %>% unique()
@@ -1616,80 +1616,6 @@ if (TRUE) {
           axis.text.y = element_text(size = 10, color = "grey50")) +
     ggsave(str_c(paper_main, "gene_attributes.pdf"), height = 1, width = 7.25)
   
-  fgfr3_whsc1_ymax <- plot_df %>% filter(gene %in% c("FGFR3", "WHSC1")) %>% 
-    pull(log10tpm) %>% max() %>% plyr::round_any(accuracy = 0.1, f = ceiling) 
-  plot_expression_2d(plot_df,
-                     c("WHSC1", "FGFR3"),
-                     fusion1 = "IGH--WHSC1",
-                     fusion2 = "IGH--FGFR3",
-                     translocation = "seqfish_Translocation_WHSC1_4_14",
-                     translocation_formatted = "t(4;14)",
-                     ymax_value = fgfr3_whsc1_ymax,
-                     pdf_path = str_c(paper_main, "FGFR3_WHSC1_t414.pdf"),
-                     pdf_width = 3.5,
-                     pdf_height = 3.5,
-                     seed = 10, 
-                     pretty = TRUE)
-  
-}
-
-# ==============================================================================
-# MYC PVT1 story
-# ==============================================================================
-
-if (TRUE) {
-  myc_pvt1 <- fusions_primary %>% 
-    filter(geneA %in% c("PVT1", "MYC"), geneB == "IGL") %>% 
-    group_by(srr) %>% 
-    summarize(fusion_labels = str_c(fusion, collapse = "\n")) %>% 
-    right_join(plot_df %>% filter(gene == "MYC"), by = "srr") %>% 
-    select(fusion_labels, log10tpm) %>%
-    mutate(jitter_fusion_labels = 
-             jitter(as.numeric(!is.na(fusion_labels)) + 1, factor = 1),
-           fusion_labels = replace_na(fusion_labels, "Neither Reported")) %>%
-    mutate(fusion_labels = factor(fusion_labels, levels = c("MYC--IGL", 
-                                                            "PVT1--IGL", 
-                                                            "Neither Reported"), 
-                                  ordered = TRUE))
-  
-  max_myc_expr <- ceiling(max(myc_pvt1$log10tpm))
-  
-  p <- ggplot(myc_pvt1) +
-    coord_flip(expand = c(0.01, 0.01)) +
-    #geom_violin(aes(x = str_detect(fusion_labels, "IGL"), y = log10tpm),
-    #            color = NA,
-    #            fill = "black",
-    #            alpha = 0.25) +
-    geom_violin(aes(x = str_detect(fusion_labels, "IGL"), y = log10tpm),
-                color = "black",
-                draw_quantiles = 0.5,
-                scale = "width") + 
-    geom_point(aes(x = jitter_fusion_labels,
-                   y = log10tpm,
-                   color = fusion_labels),
-               #alpha = 0.25,
-               shape = 16) +
-    scale_color_manual(values = c("#1BB6AF", "#088BBE", "#172869")) +
-    scale_y_continuous(limits = c(0, max_myc_expr), position = "right") +
-    labs(x = NULL,
-         y = "MYC Expression TPM (log10)",
-         color = "Fusion Gene") +
-    theme_bw() +
-    theme(panel.background = element_blank(),
-          panel.grid.minor = element_blank(),
-          panel.grid.major.x = element_blank(),
-          panel.border = element_blank(),
-          axis.ticks = element_blank(),
-          axis.text.y = element_blank(),
-          legend.position = "bottom",
-          legend.direction = "vertical",
-          axis.text.x = element_text(size = 8),
-          axis.title = element_text(size = 12))
-    
-  ggsave(str_c(paper_main, "PVT1_MYC.pdf"), p, width = 8, height = 2, useDingbats = FALSE)
-  ggsave(str_c(paper_main, "PVT1_MYC.no_legend.pdf"), 
-         p + guides(shape = FALSE, color = FALSE),
-         width = 3.5, height = 1.75, useDingbats = FALSE)
 }
 
 # ==============================================================================
@@ -1705,19 +1631,20 @@ if (TRUE) {
                        fusions_primary %>% filter(geneA_kinase == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Kinase", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
                        fusions_primary %>% filter(geneB_kinase == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Kinase", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct))
   
-  ggplot(data = plot_df, aes(x = geneAB, y = pct)) + 
+  #ggplot(data = plot_df, aes(x = geneAB, y = pct)) + 
+  ggplot(data = plot_df, aes(x = category, y = pct)) + 
     #geom_violin(color = NA, fill = "black", alpha = 0.25) + 
     geom_violin(color = "black",
                 draw_quantiles = 0.5,
                 scale = "width") +
     geom_jitter(height = 0, width = 0.2, shape = 16, alpha = 0.25) + 
-    facet_wrap(~ category, nrow = 1) +
+    facet_wrap(~ category, nrow = 1, scales = "free_x") +
     theme_bw() +
     scale_y_continuous(expand = c(0,0), limits = c(-0.05, 1.02)) +
     scale_x_discrete(expand = c(0,0)) +
     labs(x = NULL, y = "Expression Percentile") +
-    annotate("text", label = "Gene A", x = "geneA", y = -0.02, size = 2, color = "grey50", vjust = 1) +
-    annotate("text", label = "Gene B", x = "geneB", y = -0.02, size = 2, color = "grey50", vjust = 1) +
+    #annotate("text", label = "Gene A", x = "geneA", y = -0.02, size = 2, color = "grey50", vjust = 1) +
+    #annotate("text", label = "Gene B", x = "geneB", y = -0.02, size = 2, color = "grey50", vjust = 1) +
     theme(panel.background = element_blank(),
           panel.border = element_blank(),
           plot.background = element_blank(),
@@ -1731,166 +1658,130 @@ if (TRUE) {
           strip.text = element_text(size = 10)
           ) +
     ggsave(str_c(paper_main, "kinase_oncogene_tsg.pdf"),
-           width = 3.5, height = 1.75, useDingbats = FALSE)
+           width = 3, height = 4, useDingbats = FALSE)
 }
 
-
 # ==============================================================================
-# More FGFR3 WHSC1 IGH story
-# Updated April 2019
+# Expression correlation of kinases by structure (3' or 5', in-frame or not)
+# Intact only
+# Written April 2019 -- Main
 # ==============================================================================
 
 if (TRUE) {
   
-  get_t414 <- function(delly){
-    chr_pos_list <- NULL
-    vector_of_events <- str_split(delly, pattern = "\\*")[[1]]
-    for (event in vector_of_events) {
-      vector_of_sides = str_split(event, pattern = "\\|")[[1]]
-      chr_pos_list <- list()
-      for (side in vector_of_sides) {
-        chr = str_split(side, pattern = "\\:")[[1]][1]
-        pos = str_split(str_split(side, pattern = "\\:")[[1]][2], pattern = "-")[[1]][1]
-        chr_pos_list[[chr]] <- as.numeric(pos)
-      }
-      if (all(sort(names(chr_pos_list)) == c("14", "4")) ) {
-        return(chr_pos_list)
-        break()
-      }
-    }
-    return(list("4" = NA, "14" = NA))
-  }
+  cor_tibble <- kinases %>% 
+    mutate(kinase_expression = case_when(KinasePos == "5P_KINASE" ~ geneA_pct,
+                                         KinasePos == "3P_KINASE" ~ geneB_pct)) %>%
+    group_by(KinasePos, KinaseDomain) %>% 
+    summarize(c = cor(geneA_pct, geneB_pct, use = "pairwise.complete.obs")) %>% 
+    ungroup() %>% 
+    mutate(KinasePos = case_when(KinasePos == "5P_KINASE" ~ "5' Kinase",
+                                 KinasePos == "3P_KINASE" ~ "3' Kinase")) %>%
+    mutate(KinaseDomain = case_when(KinaseDomain == "Intact" ~ "Domain Intact",
+                                    KinaseDomain == "Disrupted" ~ "Domain Disrupted")) %>%
+    filter(KinaseDomain == "Domain Intact") %>%
+    filter(KinasePos == "3' Kinase")
   
-  fgfr3_mutations <- mutation_calls %>% 
-    filter(Hugo_Symbol == "FGFR3") %>% 
-    separate(Tumor_Sample_Barcode, 
-             by = "_", 
-             into = c("MMRF", "mmrf", "sample_n")) %>% 
-    filter(sample_n == 1) %>% 
-    mutate(mmrf = str_c(MMRF, "_", mmrf)) %>% 
-    mutate(vaf = t_alt_count/t_depth) %>% select(mmrf, vaf)
+  recurrent_3p_intact_kinases <- kinases %>% 
+    mutate(KinasePos = case_when(KinasePos == "5P_KINASE" ~ "5' Kinase",
+                                 KinasePos == "3P_KINASE" ~ "3' Kinase")) %>%
+    mutate(KinaseDomain = case_when(KinaseDomain == "Intact" ~ "Domain Intact",
+                                    KinaseDomain == "Disrupted" ~ "Domain Disrupted")) %>%
+    filter(KinaseDomain == "Domain Intact") %>%
+    filter(KinasePos == "3' Kinase") %>% 
+    group_by(geneB) %>% 
+    summarize(count = n()) %>% 
+    filter(count > 1) %>%
+    pull(geneB)
+    #mutate(combined = str_c(geneB, " (", count, ")")) # %>%
+    #pull(combined)
   
-  plot_df <- fusions_primary %>% 
-    filter(fusion == "IGH--WHSC1", !is.na(delly_evidence)) %>% 
-    select(mmrf, fusion, srr, LeftBreakpoint, RightBreakpoint, 
-           chrA, posA, chrB, posB, delly_evidence) %>% 
-    rowwise() %>%
-    mutate(chr4_genome_position = get_t414(as.character(delly_evidence))[["4"]],
-           chr14_genome_position = get_t414(as.character(delly_evidence))[["14"]]) %>%
-    filter(!is.na(chr4_genome_position), !is.na(chr14_genome_position)) %>%
-    left_join(expression_primary %>% 
-                filter(gene == "FGFR3") %>% 
-                select(mmrf, tpm, pct), 
-              by = "mmrf") %>%
-    mutate(high_expression = case_when(log10(tpm + 1) > 1 ~ "FGFR3 Expression High",
-                                       TRUE ~ "FGFR3 Expression Low")) %>%
-    left_join(fgfr3_mutations, by = "mmrf") %>%
-    ungroup()
-  
-  p <- ggplot(plot_df, aes(x = posA/1e6, y = posB/1e6)) + 
-    geom_jitter(aes(color = !is.na(vaf)), shape = 16, alpha = 0.5, size = 5) +
-    geom_point(shape = 16, alpha = 0.5) +
-    facet_wrap(~ high_expression, nrow = 1) +
-    labs(x = "IGH Fusion Breakpoint (chr14 Mb)", 
-         y = "WHSC1 Fusion Breakpoint (chr4 Mb)",
-         color = "FGFR3 Mutant") +
-    scale_color_brewer(palette = "Set2", direction = 1) +
+  kinases %>% mutate(KinasePos = case_when(KinasePos == "5P_KINASE" ~ "5' Kinase",
+                                           KinasePos == "3P_KINASE" ~ "3' Kinase")) %>%
+    mutate(KinaseDomain = case_when(KinaseDomain == "Intact" ~ "Domain Intact",
+                                    KinaseDomain == "Disrupted" ~ "Domain Disrupted")) %>%
+    filter(KinaseDomain == "Domain Intact") %>%
+    filter(KinasePos == "3' Kinase") %>%
+    mutate(recurrent_label = case_when(geneB %in% recurrent_3p_intact_kinases ~ geneB,
+                                       TRUE ~ "")) %>% #"Not recurrent")) %>%
+    mutate(recurrent_color = case_when(geneB %in% recurrent_3p_intact_kinases ~ geneB,
+                                       TRUE ~ "Not recurrent")) %>%
+    mutate(recurrent_color = factor(recurrent_color, levels = c(recurrent_3p_intact_kinases, "Not recurrent"), ordered = TRUE)) %>%
+    ggplot(aes(x = geneA_pct, y = geneB_pct, color = recurrent_color, label = recurrent_label)) + 
+    geom_smooth(method = "lm", color = "#000000") + 
+    geom_point(shape = 16, show.legend = FALSE) +
+    geom_label_repel(fontface = "italic", show.legend = FALSE) +
+    coord_fixed() + 
+    scale_y_continuous(limits = c(0,1), expand = c(0, 0.1)) +
+    scale_x_continuous(limits = c(0,1), expand = c(0, 0.1)) +
+    scale_color_brewer(palette = "Accent") +
+    geom_text(data = cor_tibble, aes(x = .99, y = 0.01, label = str_c("cor = ", round(c, 2))), vjust = 0, hjust = 1, color = "blue", size = 2.5) +
+    #facet_grid(fct_reorder(KinasePos, desc(KinasePos)) ~ KinaseDomain) +
+    labs(x = "5' Gene Expression Percentile", y = "3' Expression Percentile") +
     theme_bw() +
     theme(panel.background = element_blank(),
-          axis.text.x = element_text(angle = 90, vjust = 0.5),
-          strip.background = element_blank(),
-          strip.text = element_text(size = 10),
-          axis.text = element_text(size = 8),
-          axis.title = element_text(size = 10),
-          legend.position = "bottom")
-  
-  ggsave(str_c(paper_supp, "igh_whsc1_fusion_breakpoints.pdf"), p,
-         width = 7.25, height = 3)
-  ggsave(str_c(paper_supp, "igh_whsc1_fusion_breakpoints.no_legend.pdf"), p + guides(color = FALSE),
-         width = 7.25, height = 3)
-  
-  
-  q <- ggplot(plot_df, aes(x = chr14_genome_position/1e6, y = chr4_genome_position/1e6)) + 
-    geom_jitter(aes(color = !is.na(vaf)), shape = 16, alpha = 0.5, size = 5) +
-    geom_point(shape = 16, alpha = 0.5) +
-    facet_wrap(~ high_expression, nrow = 1) +
-    labs(x = "IGH Genome Breakpoint (chr14 Mb)", 
-         y = "WHSC1 Genome Breakpoint (chr4 Mb)",
-         color = "FGFR3 Mutant") +
-    scale_color_brewer(palette = "Set2", direction = 1) +
-    theme_bw() +
-    theme(panel.background = element_blank(),
-          axis.text.x = element_text(angle = 90, vjust = 0.5),
-          strip.background = element_blank(),
-          strip.text = element_text(size = 10),
-          axis.text = element_text(size = 8),
-          axis.title = element_text(size = 10),
-          legend.position = "bottom")
-  
-  ggsave(str_c(paper_supp, "igh_whsc1_genome_breakpoints.pdf"), q,
-         width = 7.25, height = 3)
-  ggsave(str_c(paper_supp, "igh_whsc1_genome_breakpoints.no_legend.pdf"), q + guides(color = FALSE),
-         width = 7.25, height = 3)
-  
-  
-  # Look at gene expression
-  p <- bind_cols(expression_primary %>% filter(gene == "FGFR3") %>% 
-              select(mmrf, log10tpm, pct, gene_avg_cnv), 
-            expression_primary %>% filter(gene == "WHSC1") %>% 
-              select(mmrf, log10tpm, pct, gene_avg_cnv)) %>% 
-    left_join(fusions_primary %>% filter(fusion == "IGH--WHSC1"), by = "mmrf") %>% 
-    filter(!is.na(fusion)) %>% 
-    mutate(expression_level = case_when(log10tpm < 1 ~ "Low",
-                                        TRUE ~ "High")) %>%
-    ggplot(aes(x = gene_avg_cnv1, y = gene_avg_cnv)) + 
-    geom_abline(linetype = 3, color = "grey50") + 
-    geom_point(aes(color = expression_level), shape = 16) + 
-    coord_equal() +
-    theme_bw() +
-    labs(color = "FGFR3 Expression", 
-         x = "WHSC1 CNV (log2 ratio)",
-         y = "FGFR3 CNV (log2 ratio)") +
-    theme(panel.background = element_blank(),
-          panel.grid.minor = element_blank(),
           panel.border = element_blank(),
-          plot.background = element_blank(),
+          strip.background = element_blank(),
+          panel.grid.minor = element_blank(),
+          strip.text = element_text(size = 12),
+          axis.title = element_text(size = 12),
+          axis.text = element_text(size = 8),
+          axis.ticks = element_blank()) +
+    ggsave(str_c(paper_main, "kinase_expression_correlation.intact.pdf"),
+           height = 4, width = 4, useDingbats = FALSE)
+}
+
+
+# ==============================================================================
+# Expression correlation of CBX7--CSNK1E the only recurrent fusion with
+# 3' intact kinase
+# Written April 2019 -- Supplemental
+# ==============================================================================
+
+if (TRUE) {
+  geneA <- "CBX7"
+  geneB <- "CSNK1E"
+  this_fusion = str_c(geneA, "--", geneB)
+  
+  fusion_samples <- kinases %>% 
+    filter(KinasePos == "3P_KINASE", KinaseDomain == "Intact") %>% 
+    filter(Fusion == this_fusion) %>% 
+    pull(SampleID)
+  
+  geneA_expr <- expression_primary %>% filter(gene == geneA) %>%
+    select(srr, gene, log10tpm, pct) %>%
+    rename(geneA = gene, geneA_log10tpm = log10tpm, geneA_pct = pct)
+  
+  geneB_expr <- expression_primary %>% filter(gene == geneB) %>%
+    select(srr, gene, log10tpm, pct) %>%
+    rename(geneB = gene, geneB_log10tpm = log10tpm, geneB_pct = pct)
+  
+  geneA_geneB_expr <- geneA_expr %>% left_join(geneB_expr, by = "srr") %>%
+    mutate(has_fusion = srr %in% fusion_samples) %>%
+    arrange(has_fusion)
+  
+  ggplot(geneA_geneB_expr, 
+         aes(x = geneA_pct, y = geneB_pct, color = has_fusion)) +
+    geom_point(shape = 16, size = 2) + 
+    coord_fixed() + 
+    geom_segment(x = 0, xend = 1, y = 0, yend = 1, 
+                 linetype = 2, show.legend = FALSE,
+                 color = "grey90") +
+    scale_x_continuous(expand = c(0.01, 0.01), limits = c(0,1)) +
+    scale_y_continuous(expand = c(0.01, 0.01), limits = c(0,1)) +
+    scale_color_manual(values = c("grey90", "black")) +
+    labs(x = str_c(geneA, " Expression Percentile"),
+         y = str_c(geneB, " Expression Percentile"),
+         color = str_c(this_fusion, "\nFusion Reported")) +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          panel.grid = element_blank(),
           axis.ticks = element_blank(),
           axis.text = element_text(size = 8),
-          axis.title = element_text(size = 12),
-          legend.text = element_text(size = 10),
-          legend.title = element_text(size = 12),
-          legend.position = "bottom")
-  ggsave(str_c(paper_supp, "fgfr3_whsc1_cnv.pdf"), p,
-         width = 5, height = 5, useDingbats = FALSE)
-  ggsave(str_c(paper_supp, "fgfr3_whsc1_cnv.no_legend.pdf"), 
-         p + guides(color = FALSE),
-         width = 3.5, height = 3.5, useDingbats = FALSE)
-  
-  q <- bind_cols(expression_primary %>% filter(gene == "FGFR3") %>% 
-              select(mmrf, log10tpm, pct, gene_avg_cnv), 
-            expression_primary %>% filter(gene == "WHSC1") %>% 
-              select(mmrf, log10tpm, pct, gene_avg_cnv)) %>% 
-    left_join(fusions_primary %>% filter(fusion == "IGH--WHSC1"), by = "mmrf") %>% 
-    filter(!is.na(fusion)) %>% 
-    mutate(expression_level = case_when(log10tpm < 1 ~ "Low",
-                                        TRUE ~ "High")) %>%
-    ggplot(aes(x = expression_level, y = gene_avg_cnv)) + 
-    geom_violin(scale = "width") + 
-    geom_jitter(aes(color = expression_level), height = 0, width = 0.1, show.legend = FALSE) +
-    theme_bw() +
-    labs(x = "FGFR3 Expression", y = "FGFR3 CNV (log2 ratio)") +
-    theme(panel.background = element_blank(),
-        panel.border = element_blank(),
-        plot.background = element_blank(),
-        axis.ticks = element_blank(),
-        axis.text = element_text(size = 8),
-        axis.title = element_text(size = 12),
-        legend.text = element_text(size = 10),
-        legend.title = element_text(size = 12),
-        legend.position = "bottom",
-        panel.grid.minor = element_blank(),
-        panel.grid.major.x = element_blank())
-    ggsave(str_c(paper_supp, "fgfr3_expression_cnv.pdf"), q,
-             width = 3.5, height = 3.5, useDingbats = FALSE)
-
+          axis.title = element_text(size = 10),
+          legend.position = "bottom"
+    ) +
+    ggsave(str_c(paper_supp, "CBX7--CSNK1E.expression.pdf"),
+           width = 6, height = 6, useDingbats = FALSE)  
 }
