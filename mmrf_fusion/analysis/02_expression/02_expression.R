@@ -1630,10 +1630,8 @@ if (TRUE) {
                        fusions_primary %>% filter(geneB_tsg == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Tumor\nSuppressor", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct),
                        fusions_primary %>% filter(geneA_kinase == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Kinase", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
                        fusions_primary %>% filter(geneB_kinase == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Kinase", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct))
-  
-  #ggplot(data = plot_df, aes(x = geneAB, y = pct)) + 
+
   ggplot(data = plot_df, aes(x = category, y = pct)) + 
-    #geom_violin(color = NA, fill = "black", alpha = 0.25) + 
     geom_violin(color = "black",
                 draw_quantiles = 0.5,
                 scale = "width") +
@@ -1643,8 +1641,6 @@ if (TRUE) {
     scale_y_continuous(expand = c(0,0), limits = c(-0.05, 1.02)) +
     scale_x_discrete(expand = c(0,0)) +
     labs(x = NULL, y = "Expression Percentile") +
-    #annotate("text", label = "Gene A", x = "geneA", y = -0.02, size = 2, color = "grey50", vjust = 1) +
-    #annotate("text", label = "Gene B", x = "geneB", y = -0.02, size = 2, color = "grey50", vjust = 1) +
     theme(panel.background = element_blank(),
           panel.border = element_blank(),
           plot.background = element_blank(),
@@ -1693,8 +1689,6 @@ if (TRUE) {
     summarize(count = n()) %>% 
     filter(count > 1) %>%
     pull(geneB)
-    #mutate(combined = str_c(geneB, " (", count, ")")) # %>%
-    #pull(combined)
   
   kinases %>% mutate(KinasePos = case_when(KinasePos == "5P_KINASE" ~ "5' Kinase",
                                            KinasePos == "3P_KINASE" ~ "3' Kinase")) %>%
@@ -1716,7 +1710,6 @@ if (TRUE) {
     scale_x_continuous(limits = c(0,1), expand = c(0, 0.1)) +
     scale_color_brewer(palette = "Accent") +
     geom_text(data = cor_tibble, aes(x = .99, y = 0.01, label = str_c("cor = ", round(c, 2))), vjust = 0, hjust = 1, color = "blue", size = 2.5) +
-    #facet_grid(fct_reorder(KinasePos, desc(KinasePos)) ~ KinaseDomain) +
     labs(x = "5' Gene Expression Percentile", y = "3' Expression Percentile") +
     theme_bw() +
     theme(panel.background = element_blank(),
@@ -1730,7 +1723,6 @@ if (TRUE) {
     ggsave(str_c(paper_main, "kinase_expression_correlation.intact.pdf"),
            height = 4, width = 4, useDingbats = FALSE)
 }
-
 
 # ==============================================================================
 # Expression correlation of CBX7--CSNK1E the only recurrent fusion with
