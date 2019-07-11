@@ -1138,7 +1138,7 @@ if (TRUE) {
                   y = "Gene Expression TPM (log10)", 
                   color = "Copy Number")
     
-    p <- p + ggplot2_standard_additions()
+    p <- p + theme_bw()
     
     if (pretty) { 
       p <- p + theme(legend.position = "bottom",
@@ -1242,7 +1242,7 @@ if (TRUE) {
                   color = "Fusion status",
                   shape = translocation_formatted)
     
-    p <- p + ggplot2_standard_additions()
+    p <- p + theme_bw()
     
     p <- p + coord_fixed(ratio = 1)
     
@@ -1261,7 +1261,7 @@ if (TRUE) {
                      axis.title = element_text(size = 12),
                      axis.text = element_text(size = 8)) +
         #scale_color_brewer(palette = "Oranges", direction = -1) +
-        scale_color_manual(values = c("#D9565C", "#F28A8A"))
+        scale_color_manual(values = c("#D9565C", "#EDA9AB"))
         
     }
     

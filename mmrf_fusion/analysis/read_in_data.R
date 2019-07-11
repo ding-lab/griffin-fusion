@@ -166,7 +166,10 @@ mutation_calls <- read_tsv("data/wxs_bm_data.withmutect.merged.maf.rc.caller.ren
                                                  Transcript_ID = "c",
                                                  t_depth = "n",
                                                  t_ref_count = "n",
-                                                 t_alt_count = "n"))
+                                                 t_alt_count = "n",
+                                                 Consequence = "c",
+                                                 CLIN_SIG = "c",
+                                                 IMPACT = "c"))
 
 # ==============================================================================
 # Important genes
