@@ -12,8 +12,8 @@ dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 
 # Expression plot data
 
-plot_df <- read_tsv("paper/supplemental/02_expression/expression_plot_tibble.tsv")
-plot_df <- plot_df %>% mutate(cnv_factor = factor(categorical_cnv,
+expr_plot_df <- read_tsv("paper/supplemental/02_expression/expression_plot_tibble.tsv")
+expr_plot_df <- expr_plot_df %>% mutate(cnv_factor = factor(categorical_cnv,
                                                   labels = c("DELETION",
                                                              "Deletion",
                                                              "Neutral",
@@ -64,9 +64,9 @@ if (TRUE) {
     mutate(vaf = t_alt_count/t_depth)
   
   # Panel A co-expression of FGFR3 and WHSC1
-  fgfr3_whsc1_ymax <- plot_df %>% filter(gene %in% c("FGFR3", "WHSC1")) %>% 
+  fgfr3_whsc1_ymax <- expr_plot_df %>% filter(gene %in% c("FGFR3", "WHSC1")) %>% 
     pull(log10tpm) %>% max() %>% plyr::round_any(accuracy = 0.1, f = ceiling) 
-  plot_expression_2d(plot_df,
+  plot_expression_2d(expr_plot_df,
                      c("WHSC1", "FGFR3"),
                      fusion1 = "IGH--WHSC1",
                      fusion2 = "IGH--FGFR3",
@@ -133,8 +133,9 @@ if (TRUE) {
                                         TRUE ~ "Fusion\nwith high\nFGFR3\nexpression")) %>%
     arrange(expression_level) %>%
     ggplot(aes(x = fct_rev(expression_level), y = gene_avg_cnv)) + 
-    geom_violin(scale = "width") + 
-    geom_jitter(aes(color = expression_level), height = 0, width = 0.1, show.legend = FALSE, shape = 18, size = 2) + #, alpha = 0.5) +
+    geom_violin(scale = "width",
+                draw_quantiles = 0.5) + 
+    geom_jitter(aes(color = expression_level), height = 0, width = 0.1, show.legend = FALSE, shape = 18, size = 2) + 
     scale_color_manual(values = c("#D9565C", "#D9565C", "#EDA9AB")) +
     coord_flip() +
     theme_bw() +
@@ -235,7 +236,6 @@ if (TRUE) {
   
 }
 
-
 # ==============================================================================
 # MYC PVT1 story
 # ==============================================================================
@@ -263,135 +263,144 @@ if (TRUE) {
   
   # MYC and PVT expression
   myc_pvt1 <- fusions_primary %>% 
-    filter(geneA %in% c("PVT1", "MYC"), geneB == "IGL") %>% 
-    group_by(srr) %>% 
-    summarize(fusion_labels = str_c(fusion, collapse = "\n")) %>% 
-    right_join(plot_df %>% filter(gene == "MYC"), by = "srr") %>% 
+    filter((geneA %in% c("PVT1", "MYC") & geneB %in% c("IGH", "IGK", "IGL")) |
+             (geneB %in% c("PVT1", "MYC") & geneA %in% c("IGH", "IGK", "IGL"))) %>%
+    mutate(fusion_labels = fusion) %>%
+    right_join(expr_plot_df %>% filter(gene == "MYC"), by = "srr") %>% 
     select(fusion_labels, log10tpm) %>%
-    mutate(jitter_fusion_labels = 
-             jitter(as.numeric(!is.na(fusion_labels)) + 1, factor = 1),
-           fusion_labels = replace_na(fusion_labels, "Neither Reported")) %>%
-    mutate(fusion_labels = factor(fusion_labels, levels = c("MYC--IGL", 
-                                                            "PVT1--IGL", 
-                                                            "Neither Reported"), 
-                                  ordered = TRUE))
+    mutate(ig_gene = case_when(str_detect(fusion_labels, pattern = "IGH") ~ "IGH",
+                               str_detect(fusion_labels, pattern = "IGK") ~ "IGK",
+                               str_detect(fusion_labels, pattern = "IGL") ~ "IGL",
+                               TRUE ~ "Neither\nReported"),
+           other_gene = case_when(str_detect(fusion_labels, pattern = "MYC") ~ "MYC",
+                                  str_detect(fusion_labels, pattern = "PVT1") ~ "PVT1",
+                                  TRUE ~ "Neither\nReported")) %>%
+    mutate(fusion_labels = replace_na(fusion_labels, "Neither\nReported")) %>%
+    mutate(other_gene = factor(other_gene, levels = c("Neither\nReported",
+                                                      "MYC",
+                                                      "PVT1"),
+                               ordered = TRUE),
+           ig_gene = factor(ig_gene, levels = c("Neither\nReported",
+                                                "IGH",
+                                                "IGK",
+                                                "IGL"),
+                            ordered = TRUE))
   
   max_myc_expr <- ceiling(max(myc_pvt1$log10tpm))
   
   p <- ggplot(myc_pvt1) +
-    coord_flip(expand = c(0.01, 0.01)) +
-    #geom_violin(aes(x = str_detect(fusion_labels, "IGL"), y = log10tpm),
-    #            color = NA,
-    #            fill = "black",
-    #            alpha = 0.25) +
-    geom_violin(aes(x = str_detect(fusion_labels, "IGL"), y = log10tpm),
+    geom_violin(aes(x = other_gene, y = log10tpm),
                 color = "black",
                 draw_quantiles = 0.5,
                 scale = "width") + 
-    geom_point(aes(x = jitter_fusion_labels,
+    geom_jitter(aes(x = other_gene,
                    y = log10tpm,
-                   color = fusion_labels),
-               #alpha = 0.25,
-               shape = 16) +
-    scale_color_manual(values = c("#1BB6AF", "#088BBE", "#172869")) +
-    scale_y_continuous(limits = c(0, max_myc_expr), position = "right") +
+                   color = other_gene,
+                   shape = ig_gene),
+                height = 0) +
+    scale_color_manual(values = c("#1BB6AF", "#172869", "#088BBE")) +
+    scale_shape_manual(values = c(1, 17, 15, 16)) +
+    scale_y_continuous(limits = c(0, max_myc_expr)) +
     labs(x = NULL,
          y = "MYC Expression TPM (log10)",
-         color = "Fusion Gene") +
+         color = "Fusion Gene",
+         shape = "IG partner gene") +
     theme_bw() +
     theme(panel.background = element_blank(),
           panel.grid.minor = element_blank(),
           panel.grid.major.x = element_blank(),
           panel.border = element_blank(),
           axis.ticks = element_blank(),
-          axis.text.y = element_blank(),
+          axis.text.x = element_text(vjust = 0.5, size = 8),
           legend.position = "bottom",
           legend.direction = "vertical",
-          axis.text.x = element_text(size = 8),
           axis.title = element_text(size = 12))
   
-  ggsave(str_c(paper_main, "PVT1_MYC.pdf"), p, width = 8, height = 2, useDingbats = FALSE)
-  ggsave(str_c(paper_main, "PVT1_MYC.no_legend.pdf"), 
+  ggsave(str_c(paper_main, "PVT1_MYC.pdf"), 
+         p,
+         width = 2.5, height = 4.5, useDingbats = FALSE)
+  
+  ggsave(str_c(paper_main, "PVT1_MYC.no_legend.pdf"),
          p + guides(shape = FALSE, color = FALSE),
-         width = 3.5, height = 1.75, useDingbats = FALSE)
+         width = 2.5, height = 4.5, useDingbats = FALSE)
   
   # Breakpoints
   plot_df <- fusions_primary %>% 
-    filter(geneA %in% c("MYC", "PVT1"),
-           geneB %in% c("IGH", "IGL", "IGK")) %>% #fusion %in% c("MYC--IGL", "PVT1--IGL")) %>% #, !is.na(delly_evidence)) %>% 
-    select(mmrf, fusion, srr, LeftBreakpoint, RightBreakpoint, 
-           chrA, posA, chrB, posB) #%>% #, delly_evidence) %>% 
-    #rowwise() %>%
-    #mutate(chr8_genome_position = get_t822(as.character(delly_evidence))[["8"]],
-    #       chr22_genome_position = get_t822(as.character(delly_evidence))[["22"]]) %>%
-    #filter(!is.na(chr8_genome_position), !is.na(chr22_genome_position)) %>%
-    #left_join(expression_primary %>% 
-    #            filter(gene == "FGFR3") %>% 
-    #            select(mmrf, tpm, pct), 
-    #          by = "mmrf") %>%
-    #mutate(high_expression = case_when(log10(tpm + 1) > 1 ~ "FGFR3 Expression High",
-    #                                   TRUE ~ "FGFR3 Expression Low")) %>%
-    #ungroup()
+    filter((geneA %in% c("PVT1", "MYC") & geneB %in% c("IGH", "IGK", "IGL")) |
+             (geneB %in% c("PVT1", "MYC") & geneA %in% c("IGH", "IGK", "IGL"))) %>%
+    mutate(ig_chr = case_when(geneA %in% c("IGH", "IGK", "IGL") ~ chrA,
+                              TRUE ~ chrB),
+           ig_pos = case_when(geneA %in% c("IGH", "IGK", "IGL") ~ posA,
+                              TRUE ~ posB),
+           other_chr = case_when(geneA %in% c("MYC", "PVT1") ~ chrA,
+                                 TRUE ~ chrB),
+           other_pos = case_when(geneA %in% c("MYC", "PVT1") ~ posA,
+                                 TRUE ~ posB)) %>%
+    mutate(ig_gene = case_when(str_detect(fusion, pattern = "IGH") ~ "IGH\nchr14 Position (Mb)",
+                               str_detect(fusion, pattern = "IGK") ~ "IGK\nchr2 Position (Mb)",
+                               str_detect(fusion, pattern = "IGL") ~ "IGL\nchr22 Position (Mb)",
+                               TRUE ~ "Neither\nReported"),
+           other_gene = case_when(str_detect(fusion, pattern = "MYC") ~ "MYC",
+                                  str_detect(fusion, pattern = "PVT1") ~ "PVT1",
+                                  TRUE ~ "Neither\nReported")) %>%
+    mutate(other_gene = factor(other_gene, levels = c("Neither\nReported",
+                                                      "MYC",
+                                                      "PVT1"),
+                               ordered = TRUE),
+           ig_gene = factor(ig_gene, levels = c("Neither\nReported",
+                                                "IGH\nchr14 Position (Mb)",
+                                                "IGK\nchr2 Position (Mb)",
+                                                "IGL\nchr22 Position (Mb)"),
+                            ordered = TRUE)) %>%
+    select(mmrf, srr, fusion, ig_chr, ig_pos, other_chr, other_pos, ig_gene, other_gene)
   
-  min_chr14 <- min(min(plot_df$posA), min(plot_df$chr14_genome_position))/1e6
-  max_chr14 <- max(max(plot_df$posA), max(plot_df$chr14_genome_position))/1e6
-  min_chr4 <- min(min(plot_df$posB), min(plot_df$chr4_genome_position))/1e6
-  max_chr4 <- max(max(plot_df$posB), max(plot_df$chr4_genome_position))/1e6
+  chr8_min <- plot_df %>% pull(other_pos) %>% min()/1e6
+  chr8_max <- plot_df %>% pull(other_pos) %>% max()/1e6
   
-  p <- ggplot(plot_df, aes(x = posA/1e6, y = posB/1e6)) + 
-    geom_point(shape = 3, alpha = 1) +
-    facet_wrap(~ high_expression, nrow = 1) +
-    labs(x = "IGH Fusion Breakpoint (chr14 Mb)", 
-         y = "WHSC1 Fusion Breakpoint (chr4 Mb)") +
-    coord_cartesian(ylim = c(1.84, 1.92),
-                    xlim = c(105.85, max_chr14)) +
-    theme_bw() +
-    theme(panel.background = element_blank(),
-          axis.text.x = element_text(angle = 90, vjust = 0.5),
-          strip.background = element_blank(),
-          strip.text = element_text(size = 10),
-          axis.text = element_text(size = 8),
-          axis.title = element_text(size = 10),
-          legend.position = "bottom") +
-    geom_segment(x = 105.9, xend = 105.9, y = min_whsc1, yend = Inf, color = "#9ecae1") +
-    geom_rect(data = whsc1_tx,
-              aes(ymin = start/1e6, 
-                  ymax = stop/1e6, 
-                  xmin = 105.9 - .05,
-                  xmax = 105.9 + .05),
+  myc_pvt1_gene_bounds <- tribble(~gene, ~start, ~stop, ~ig_gene,
+                                  "MYC", 128747680/1e6, 128753680/1e6, "Neither\nReported",
+                                  "PVT1", 128806779/1e6, 129113499/1e6, "Neither\nReported")
+  
+  plot_df %>% ggplot(aes(x = other_pos/1e6, y = ig_pos/1e6)) +
+    coord_cartesian(xlim = c(chr8_min, chr8_max)) +
+    facet_wrap(~ ig_gene, ncol = 1, 
+               scales = "free_y",
+               strip.position = "left") +
+    geom_point(aes(color = other_gene, shape = ig_gene), show.legend = FALSE) +
+    geom_rect(data = myc_pvt1_gene_bounds,
+                 aes(xmin = start, xmax = stop, ymin = 0.5, ymax = 1),
+                 inherit.aes = FALSE,
+              color = NA,
+              fill = "#bdbdbd") +
+    geom_rect(data = myc_pvt1_gene_bounds,
+              aes(xmin = start, xmax = stop, ymin = -1, ymax = -0.5),
               inherit.aes = FALSE,
-              color = NA, 
-              fill = "#3182bd")
-  
-  ggsave(str_c(paper_supp, "igh_whsc1_fusion_breakpoints.pdf"), p,
-         width = 7.25, height = 3)
-  
-  
-  q <- ggplot(plot_df, aes(x = chr14_genome_position/1e6, y = chr4_genome_position/1e6)) +
-    geom_point(shape = 3, alpha = 1) +
-    facet_wrap(~ high_expression, nrow = 1) +
-    labs(x = "IGH Genome Breakpoint (chr14 Mb)", 
-         y = "WHSC1 Genome Breakpoint (chr4 Mb)") +
-    coord_cartesian(ylim = c(1.84, 1.92),
-                    xlim = c(105.85, max_chr14)) +
+              color = NA,
+              fill = "#bdbdbd") +
+    geom_text(data = myc_pvt1_gene_bounds,
+              aes(x = start,
+                  y = 0.75,
+                  label = gene),
+              fontface = "italic",
+              hjust = 0,
+              nudge_x = 0.001) +
+    geom_text(data = myc_pvt1_gene_bounds,
+              aes(x = start,
+                  y = -0.75,
+                  label = gene),
+              fontface = "italic",
+              hjust = 0,
+              nudge_x = 0.001) +
+    scale_color_manual(values = c("#1BB6AF", "#172869", "#088BBE"), drop = FALSE) +
+    scale_shape_manual(values = c(1, 17, 15, 16), drop = FALSE) +
+    labs(y = NULL, x = "chr8 Position (Mb)") +
     theme_bw() +
-    theme(panel.background = element_blank(),
-          axis.text.x = element_text(angle = 90, vjust = 0.5),
+    theme(plot.background = element_blank(),
+          panel.background = element_blank(),
+          panel.grid.minor = element_blank(),
           strip.background = element_blank(),
-          strip.text = element_text(size = 10),
-          axis.text = element_text(size = 8),
-          axis.title = element_text(size = 10),
-          legend.position = "bottom") +
-    geom_segment(x = 105.9, xend = 105.9, y = min_whsc1, yend = Inf, color = "#9ecae1") +
-    geom_rect(data = whsc1_tx,
-              aes(ymin = start/1e6, 
-                  ymax = stop/1e6, 
-                  xmin = 105.9 - .05,
-                  xmax = 105.9 + .05),
-              inherit.aes = FALSE,
-              color = NA, 
-              fill = "#3182bd")
-  
-  ggsave(str_c(paper_supp, "igh_whsc1_genome_breakpoints.pdf"), q,
-         width = 7.25, height = 3)
+          strip.placement = "outside",
+          axis.ticks = element_blank()) +
+    ggsave(str_c(paper_main, "PVT1_MYC.breakpoints.pdf"),
+           width = 4.5, height = 4.5, useDingbats = FALSE)
 }
