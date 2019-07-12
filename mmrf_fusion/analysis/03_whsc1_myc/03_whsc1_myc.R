@@ -311,7 +311,8 @@ if (TRUE) {
           panel.grid.major.x = element_blank(),
           panel.border = element_blank(),
           axis.ticks = element_blank(),
-          axis.text.x = element_text(vjust = 0.5, size = 8),
+          axis.text.x = element_text(vjust = 0.5, size = 10),
+          axis.text.y = element_text(size = 8),
           legend.position = "bottom",
           legend.direction = "vertical",
           axis.title = element_text(size = 12))
@@ -400,7 +401,8 @@ if (TRUE) {
           panel.grid.minor = element_blank(),
           strip.background = element_blank(),
           strip.placement = "outside",
-          axis.ticks = element_blank()) +
+          axis.ticks = element_blank(),
+          axis.text = element_text(size = 8),) +
     ggsave(str_c(paper_main, "PVT1_MYC.breakpoints.pdf"),
            width = 4.5, height = 4.5, useDingbats = FALSE)
 }
