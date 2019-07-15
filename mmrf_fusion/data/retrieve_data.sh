@@ -8,7 +8,7 @@ rsync -avh 'sfoltz@virtual-workstation3.gsc.wustl.edu:/gscmnt/gc2737/ding/Analys
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/00_combined_fusion_file/Fusions_EFI.tsv \
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/00_combined_fusion_file/Fusions_low_count.tsv \
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/01_sample_set/sample_list.806.txt \
-  /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/01_sample_set/sample_list.with_file_names.txt \
+  /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/01_sample_set/sample_list.806.fixed_visit_number.txt \
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/02_sv_annotation/discordant_reads/fusion_evidence_discordant_reads.100000.txt \
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/02_sv_annotation/Filtered_Fusions_10000_delly_manta_20180817.txt \
   /gscmnt/gc2737/ding/Analysis/RNA-seq/fusion_paper/00_filtering_annotation/02_sv_annotation/Filtered_Fusions_100000_delly_manta_20180817.txt \
