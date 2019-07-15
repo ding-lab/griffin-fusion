@@ -25,7 +25,10 @@ if (TRUE) {
   # Fusions involving important genes
   
   fusions_with_important_genes <- fusions_all %>%
-    filter( fusion == "IGH--WHSC1" | 
+    filter( str_detect(fusion, "WHSC1") |
+              str_detect(fusion, "FGFR3") |
+              str_detect(fusion, "MYC") |
+              str_detect(fusion, "PVT1") |
               !(geneA %in% c("IGH", "IGK", "IGL") |
                   geneB %in% c("IGH", "IGK", "IGL"))) %>%
     filter( geneA_oncogene | geneA_tsg | geneA_kinase | 
@@ -34,7 +37,7 @@ if (TRUE) {
               geneB_mmy_known | geneB_driver |
               drug_fusion | drug_geneA | drug_geneB) %>% 
     select(mmrf, fusion) %>% unique() %>% group_by(fusion) %>% 
-    summarize(n()) %>% #filter(`n()` > 1) %>% 
+    summarize(n()) %>%
     pull(fusion)
   
   # plot it 
@@ -54,7 +57,10 @@ if (TRUE) {
     right_join(keep_these_srrs, by = c("mmrf", "srr")) %>% 
     mutate(mmrf_number_only = str_remove_all(mmrf, "MMRF_")) %>%
     replace_na(list(fusion = "Zero detected")) %>%
-    ggplot(aes(y = factor(srr), x = fusion, fill = log10(FFPM + 1))) + 
+    mutate(updated_srr = str_c(srr, ": ", ticker.y)) %>%
+    mutate(mmrf_num = str_c(mmrf, "_", ticker.y)) %>%
+    left_join(tumor_purity, by = c("srr" = "SRR_Tumor")) %>% View()
+    ggplot(aes(y = factor(updated_srr), x = fusion, fill = log10(FFPM + 1))) + 
     geom_tile(color = "black") +
     geom_text(aes(label = sample_number), size = 1.75, vjust = 0.5) +
     theme_bw() +
@@ -63,18 +69,53 @@ if (TRUE) {
           panel.border = element_rect(size = 0.1),
           axis.ticks = element_line(size = 0.1),
           strip.background = element_blank(),
-          axis.text.x = element_text(angle = 90, vjust = 1, hjust = 1, size = 5, face = "italic"),
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 5, face = "italic"),
           axis.text.y = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 5),
           strip.text.y = element_text(angle = 0),
           legend.position = "bottom",
           panel.spacing.y = unit(0.025, units = "inches")) +
     scale_fill_gradient(low = "#ffedbc", high = "#ed4264",
-                        limits = c(0,1.05), 
+                        limits = c(0, 1.05), 
                         breaks = seq(0, 1, 0.25),
                         labels = seq(0, 1, 0.25)) + 
     scale_x_discrete(drop = FALSE) +
     labs(y = "Sample Number", x = NULL, fill = "Scaled FFPM") +
-    ggsave(str_c(paper_supp, "multiple_timepoints.pdf"),
+    ggsave(str_c(paper_supp, "multiple_timepoints.ffpm.pdf"),
+           device = "pdf", width = 7.5, height = 9, useDingbats = FALSE)
+  
+  keep_these_srrs %>% left_join(fusions_all, by = c("mmrf", "srr")) %>%
+    filter(fusion %in% fusions_with_important_genes) %>%
+    right_join(keep_these_srrs, by = c("mmrf", "srr")) %>% 
+    mutate(mmrf_number_only = str_remove_all(mmrf, "MMRF_")) %>%
+    replace_na(list(fusion = "Zero detected")) %>%
+    mutate(tpm_to_use = case_when((geneA %in% c("IGH", "IGK", "IGL") | geneB_oncogene | geneB_tsg | geneB_kinase | geneB_driver | drug_geneB) ~ geneB_pct,
+                                  (geneB %in% c("IGH", "IGK", "IGL") | geneA_oncogene | geneA_tsg | geneA_kinase | geneA_driver | drug_geneA) ~ geneA_pct)) %>%
+    mutate(updated_fusion = case_when((geneA %in% c("IGH", "IGK", "IGL") | geneB_oncogene | geneB_tsg | geneB_kinase | geneB_driver | drug_geneB) ~ str_c(fusion, "*"),
+                                      (geneB %in% c("IGH", "IGK", "IGL") | geneA_oncogene | geneA_tsg | geneA_kinase | geneA_driver | drug_geneA) ~ str_c(geneA, "*", "--", geneB),
+                                      TRUE ~ fusion)) %>%
+    mutate(updated_srr = str_c(srr, ": ", ticker.y)) %>%
+    ggplot(aes(y = factor(updated_srr), x = updated_fusion, fill = tpm_to_use)) + 
+    geom_tile(color = "black") +
+    geom_text(aes(label = sample_number), size = 1.75, vjust = 0.5) +
+    theme_bw() +
+    facet_wrap(~ mmrf_number_only , ncol = 1, strip.position = "right", dir = "h", scales = "free_y") +
+    theme(panel.grid.major = element_line(size = 0.1),
+          panel.border = element_rect(size = 0.1),
+          axis.ticks = element_line(size = 0.1),
+          strip.background = element_blank(),
+          axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 5, face = "italic"),
+          axis.text.y = element_text(angle = 0, hjust = 0.5, vjust = 0.5, size = 5),
+          strip.text.y = element_text(angle = 0),
+          legend.position = "bottom",
+          panel.spacing.y = unit(0.025, units = "inches")) +
+    scale_fill_gradient(low = "#ffedbc", high = "#ed4264",
+                        limits = c(0, 1.05), 
+                        breaks = seq(0, 1, 0.25),
+                        labels = seq(0, 1, 0.25)
+                        ) + 
+    scale_x_discrete(drop = FALSE) +
+    labs(y = "Sample Number", x = NULL, fill = "TPM (log10)") +
+    ggsave(str_c(paper_supp, "multiple_timepoints.tpm.pdf"),
            device = "pdf", width = 7.5, height = 9, useDingbats = FALSE)
 }
 
