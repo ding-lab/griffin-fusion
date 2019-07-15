@@ -22,7 +22,7 @@ library(UpSetR) # 01_overview.R
 # ==============================================================================
 # Sample lists (MMRF, SRR) of data related to samples in this analysis
 # ==============================================================================
-samples_all <- read_tsv("data/sample_list.806.txt", 
+samples_all <- read_tsv("data/sample_list.806.fixed_visit_number.txt", 
                         col_names = c("mmrf","srr"))
 samples_primary <- read_tsv("data/sample_list.primary.txt",
                             col_names = c("mmrf","srr"))
@@ -170,6 +170,17 @@ mutation_calls <- read_tsv("data/wxs_bm_data.withmutect.merged.maf.rc.caller.ren
                                                  Consequence = "c",
                                                  CLIN_SIG = "c",
                                                  IMPACT = "c"))
+
+# ==============================================================================
+# Sample names used by Hua
+# ==============================================================================
+matched_names <- read_tsv("data/sample_infor.v20170912.plus.v4.matchedName.All.out")
+
+# ==============================================================================
+# Tumor purity estimates from Hua
+# ==============================================================================
+tumor_purity <- read_tsv("data/MMRF_estimate_score.tsv") %>% 
+  left_join(matched_names, by = c("MMRF" = "SampleID_Tumor"))
 
 # ==============================================================================
 # Important genes

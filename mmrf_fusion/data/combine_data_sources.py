@@ -1,4 +1,4 @@
-regenerate_expr_file = False #warning: takes 3+ hours if regenerate_expr_file = True and test = False
+regenerate_expr_file = True #warning: takes 3+ hours if regenerate_expr_file = True and test = False
 test = False
 
 import sys
@@ -44,21 +44,23 @@ for line in f:
 f.close()
 
 #read in sample list, assign primary secondary etc
-f = open("sample_list.with_file_names.txt","r")
+f = open("sample_list.806.fixed_visit_number.txt", "r")
+f.readline()
 w = open("sample_list.primary.txt","w")
 sample_dict = {}
+srr_visit_dict = {}
 srr_dict = {}
 for line in f:
-  mmrf, primary_srr, other_srr, sf, sf2, es, es2, i, i2, pd, pd2, fc, fc2, wgstn_srr, delly, manta, lumpy, cnv, tpm = line.strip().split()
-  w.write(mmrf+"\t"+primary_srr+"\n")
-  sample_dict[mmrf] = [primary_srr]
-  srr_dict[primary_srr] = 1
-  if other_srr != "NA":
-    count = 1
-    for srr in other_srr.split(","):
-      count += 1
-      sample_dict[mmrf].append(srr)
-      srr_dict[srr] = count
+  mmrf, srr, visit = line.strip().split()
+  srr_visit_dict[srr] = visit
+  if mmrf in sample_dict:
+    sample_dict[mmrf].append(srr)
+    srr_dict[srr] = len(sample_dict[mmrf])
+  else:
+    w.write(mmrf+"\t"+srr+"\n")
+    sample_dict[mmrf] = [srr] # guaranteed to be in visit order
+    srr_dict[srr] = 1
+
 f.close()
 w.close()
 
@@ -333,6 +335,7 @@ column_labels.extend(["srr"])
 column_labels.extend(["fusion"])
 column_labels.extend(["sample_number"])
 column_labels.extend(["has_secondary"])
+column_labels.extend(["visit_number"])
 column_labels.extend(["geneA", "geneB", "LeftBreakpoint", "RightBreakpoint",  "chrA", "posA", "strandA", "chrB", "posB", "strandB", "JunctionReadCount", "SpanningFragCount", "FFPM", "PROT_FUSION_TYPE", "Callers", "CallerN", "called_by_EricScript", "called_by_FusionCatcher", "called_by_INTEGRATE", "called_by_PRADA", "called_by_STAR-Fusion"])
 column_labels.extend(["Overlap", "bpRangeA", "bpRangeB", "depthA", "depthB", "n_discordant", "discordant_reads","wgs_bam"])
 column_labels.extend(["sv_type", "cancer_wgs_srr", "normal_wgs_srr", "delly_support_level", "delly_evidence", "manta_support_level", "manta_evidence", "any_cancer_wgs_srr", "any_normal_wgs_srr", "any_delly_support_level", "any_delly_evidence", "any_manta_support_level", "any_manta_evidence"])
@@ -356,6 +359,7 @@ for fusion_key in sorted(filtered_fusions_dict.keys()):
     print_list.append("1") #has secondary
   else:
     print_list.append("0")
+  print_list.append(str(srr_visit_dict[srr]))
   print_list.extend([ filtered_fusions_dict[fusion_key][i] for i in [2,3,4,5,6,7,8,9,10,11,14,15,16,17,18,19,20,21,22,23,24] ]) #geneA, geneB, LeftBreakpoint, RightBreakpoint, chrA, posA, strandA, chrB, posB, strandB, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, Callers, CallerN, called_by_X
 
   #discordant read validation
