@@ -487,14 +487,16 @@ if (TRUE) {
                width = 3, height = 2)
 }
 
-
 # ==============================================================================
 # Types of kinases
-# Written April 2019 -- Main
+# Written April 2019 -- Supp
 # ==============================================================================
 
 if (TRUE) {
-  p <- kinases %>% group_by(kinase_group_full_name) %>% summarize(count = n()) %>% ungroup() %>%
+  p <- kinases %>%
+    group_by(kinase_group_full_name) %>% 
+    summarize(count = n()) %>% 
+    ungroup() %>%
     ggplot(aes(x = fct_reorder(kinase_group_full_name, count), y = count)) +
     geom_col(position = "dodge") +
     coord_flip(expand = c(0,0)) +
@@ -521,7 +523,6 @@ if (TRUE) {
   
 }
 
-
 # ==============================================================================
 # NTRK1 fusion structures -- manually create based on agFusion output
 # Written April 2019 -- Main
@@ -529,18 +530,18 @@ if (TRUE) {
 
 if (TRUE) {
   structure_tbl <- tribble(~mmrf,          ~fusion,          ~element, ~fill_color, ~exterior_color, ~start, ~stop,   ~class,
-                           1232,     "TPR--NTRK1",             "TPR",           1,               1,      0,   366,   "gene",
-                           1232,     "TPR--NTRK1",           "NTRK1",           2,               1,    366,   764,   "gene",
-                           1232,     "TPR--NTRK1", "Tyrosine Kinase",           4,               2,    480,   749, "domain",
-                           1656,    "TPM3--NTRK1",            "TPM3",           1,               1,      0,   258,   "gene",
-                           1656,    "TPM3--NTRK1",           "NTRK1",           2,               1,    258,   656,   "gene",
-                           1656,    "TPM3--NTRK1",     "Tropomyosin",           3,               2,     49,   258, "domain",
-                           1656,    "TPM3--NTRK1", "Tyrosine Kinase",           4,               2,    372,   641, "domain",
-                           2490, "ARHGEF2--NTRK1",         "ARHGEF2",           1,               1,      0,   962,   "gene",
-                           2490, "ARHGEF2--NTRK1",           "NTRK1",           2,               1,    962,  1307,   "gene",
-                           2490, "ARHGEF2--NTRK1",          "RhoGEF",           3,               2,    239,	 431, "domain",
-                           2490, "ARHGEF2--NTRK1",              "PH",           3,               2,    474,   570, "domain",
-                           2490, "ARHGEF2--NTRK1", "Tyrosine Kinase",           4,               2,   1023,	1292, "domain") %>%
+                            1232,     "TPR--NTRK1",             "TPR",           1,               1,      0,   366,   "gene",
+                            1232,     "TPR--NTRK1",           "NTRK1",           2,               1,    366,   764,   "gene",
+                            1232,     "TPR--NTRK1", "Tyrosine Kinase",           4,               2,    480,   749, "domain",
+                            1656,    "TPM3--NTRK1",            "TPM3",           1,               1,      0,   258,   "gene",
+                            1656,    "TPM3--NTRK1",           "NTRK1",           2,               1,    258,   656,   "gene",
+                            1656,    "TPM3--NTRK1",     "Tropomyosin",           3,               2,     49,   258, "domain",
+                            1656,    "TPM3--NTRK1", "Tyrosine Kinase",           4,               2,    372,   641, "domain",
+                            2490, "ARHGEF2--NTRK1",         "ARHGEF2",           1,               1,      0,   962,   "gene",
+                            2490, "ARHGEF2--NTRK1",           "NTRK1",           2,               1,    962,  1307,   "gene",
+                            2490, "ARHGEF2--NTRK1",          "RhoGEF",           3,               2,    239,	  431, "domain",
+                            2490, "ARHGEF2--NTRK1",              "PH",           3,               2,    474,   570, "domain",
+                            2490, "ARHGEF2--NTRK1", "Tyrosine Kinase",           4,               2,   1023,	 1292, "domain") %>%
     mutate(fusion = factor(fusion, levels = c("TPM3--NTRK1", "TPR--NTRK1", "ARHGEF2--NTRK1")),
            fill_color = factor(fill_color),
            exterior_color = factor(exterior_color),
@@ -557,8 +558,10 @@ if (TRUE) {
     scale_fill_manual(values = c("#bdd7e7", "#fcae91", "#2171b5", "#cb181d")) +
     scale_color_manual(values = c("#bdd7e7", "#fcae91", "#2171b5", "#cb181d")) +
     geom_segment(data = structure_tbl %>% filter(element == "NTRK1"), aes(x = start, xend = start, y = as.numeric(fusion) - 0.05, yend = as.numeric(fusion) + 0.25 + 0.025)) +
-    geom_text(data = structure_tbl %>% filter(class == "gene"), aes(x = start + (stop - start)/2, y = as.numeric(fusion) - 0.075, color = fill_color), size = 4, show.legend = FALSE, fontface = "italic") +
+    geom_text(data = structure_tbl %>% filter(class == "gene"), aes(x = start + (stop - start)/2, y = as.numeric(fusion) - 0.075), color = "#000000", size = 4, show.legend = FALSE, fontface = "italic") +
     geom_text(data = structure_tbl %>% filter(class == "domain"), aes(x = start + (stop - start)/2, y = as.numeric(fusion) + 0.125), size = 4, show.legend = FALSE, color = "white") +
+    geom_text(data = structure_tbl %>% filter(class == "gene", element != "NTRK1"), aes(x = start, y = as.numeric(fusion) + 0.125), label = "5'", hjust = 1, nudge_x = -10) +
+    geom_text(data = structure_tbl %>% filter(class == "gene", element == "NTRK1"), aes(x = stop, y = as.numeric(fusion) + 0.125), label = "3'", hjust = 0, nudge_x = 10) +
     facet_wrap(~ fusion, strip.position = "left", scales = "free_y", ncol = 1) +
     labs(x = "Amino Acid Position", y = NULL) +
     scale_y_continuous(expand = c(0.05, 0.05)) +
@@ -586,15 +589,17 @@ if (TRUE) {
   plot_df <- kinases %>% 
     filter(KinasePos == "3P_KINASE", KinaseDomain == "Intact") %>% 
     group_by(geneB) %>% 
-    summarize(count = n()) %>% 
+    summarize(mmrf_count = n()) %>%
+    mutate(geneB_mmrf_count = str_c(geneB, " (", mmrf_count, ")")) %>%
+    group_by(geneB, geneB_mmrf_count) %>%
     left_join(pancan_fusions %>% 
                 separate(Fusion, into = c("geneA", "geneB"), sep = "--"), 
               by = "geneB") %>% 
-    group_by(geneB, Cancer) %>% 
+    group_by(geneB_mmrf_count, Cancer) %>% 
     summarize(count2 = n()) %>%
     filter(!is.na(Cancer))
   
-  ggplot(data = plot_df, aes(y = geneB, x = Cancer)) + 
+  ggplot(data = plot_df, aes(y = geneB_mmrf_count, x = Cancer)) + 
     geom_tile(aes(fill = factor(count2))) + 
     geom_text(data = plot_df %>% filter(count2 < 6), aes(label = count2),
               color = "#000000") +
