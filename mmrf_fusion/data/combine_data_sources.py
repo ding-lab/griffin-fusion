@@ -221,7 +221,7 @@ if regenerate_expr_file:
     mmrf, srr, ensg, gene, tpm, log10tpm = line.strip().split()
     if gene in genes_with_fusions:
       count_up += 1
-      if (count_up % 1e5) == 0: # print out progres
+      if (count_up % 1e5) == 0: # print out progress
         print(str(round(100.0*count_up/total_expr_lines, 3))+"%")
       expr_key = mmrf+":"+srr+":"+gene
       if expr_key in expr_dict:
