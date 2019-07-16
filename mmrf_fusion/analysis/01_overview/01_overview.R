@@ -53,7 +53,7 @@ if (TRUE) {
                seqfish_Translocation_CCND2_12_14, 
                seqfish_Translocation_MAF_14_16, 
                seqfish_Translocation_MAFB_14_20) %>% 
-        mutate_all(funs(replace(., is.na(.), 2))) )
+        mutate_all(list(~replace(., is.na(.), 2))) )
     
     names(pheatmap_df) <- c("Hyperdiploidy", 
                             "CNV del(13q14)", 
@@ -855,12 +855,12 @@ if (TRUE) {
     filter(n_validated >= 1) %>% pull(fusion)
   
   total_each_fusion <- fusions_primary %>% filter(fusion %in% keep_fusions) %>%
-    mutate(fusion = case_when(geneB %in% c("IGH", "IGK", "IGL") ~ str_c("*", fusion), # mark as reciprocal
+    mutate(fusion = case_when(geneB %in% c("IGH", "IGK", "IGL") ~ str_c(fusion, "*"), # mark as reciprocal
                               TRUE ~ fusion)) %>%
     group_by(fusion) %>% summarize(total = n())
   
   total_by_status <- fusions_primary %>% filter(fusion %in% keep_fusions) %>% 
-    mutate(fusion = case_when(geneB %in% c("IGH", "IGK", "IGL") ~ str_c("*", fusion), # mark as reciprocal
+    mutate(fusion = case_when(geneB %in% c("IGH", "IGK", "IGL") ~ str_c(fusion, "*"), # mark as reciprocal
                               TRUE ~ fusion)) %>%
     select(fusion, n_discordant) %>% 
     mutate(validation_status = case_when(is.na(n_discordant) ~ "Not Available", 
