@@ -22,10 +22,9 @@ library(UpSetR) # 01_overview.R
 # ==============================================================================
 # Sample lists (MMRF, SRR) of data related to samples in this analysis
 # ==============================================================================
-samples_all <- read_tsv("data/sample_list.806.fixed_visit_number.txt", 
-                        col_names = c("mmrf","srr"))
+samples_all <- read_tsv("data/sample_list.806.fixed_visit_number.txt")
 samples_primary <- read_tsv("data/sample_list.primary.txt",
-                            col_names = c("mmrf","srr"))
+                            col_names = c("mmrf", "srr"))
 
 # ==============================================================================
 # Fusion tibbles. fusions_primary contains fusions from primary time points
@@ -245,35 +244,3 @@ dis_reads_27522_4_discover <- read_tsv("data/scRNA.discordant_reads.discover.275
 # Seurat objects, run UMAP
 seurat_object_27522_1 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.27522_1.rds")), dims = 1:20)
 seurat_object_27522_4 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.27522_4.rds")), dims = 1:20)
-
-# Other single cell data that had poor quality results and is not used in this analysis
-#bulk_reads_56203_2 <- read_tsv("data/scRNA.56203_2.bulk.chr8chr21422.Chimeric.out.junction",
-#                               col_names = Chimeric.out.junction.column_names)
-#bulk_reads_47499 <- read_tsv("data/scRNA.47499.bulk.chr1114.Chimeric.out.junction",
-#                               col_names = Chimeric.out.junction.column_names)
-#bulk_reads_77570 <- read_tsv("data/scRNA.77570.bulk.chr1114.Chimeric.out.junction",
-#                             col_names = Chimeric.out.junction.column_names)
-#infercnv_56203_1 <- read_tsv("data/scRNA.56203_1.infercnv.observations.txt")
-#infercnv_56203_2 <- read_tsv("data/scRNA.56203_2.infercnv.observations.txt")
-#cell_types_47499 <- read_tsv("data/scRNA.cell_types.47499.tsv")
-#cell_types_56203_1 <- read_tsv("data/scRNA.cell_types.56203_1.tsv")
-#cell_types_56203_2 <- read_tsv("data/scRNA.cell_types.56203_2.tsv")
-#cell_types_77570 <- read_tsv("data/scRNA.cell_types.77570.tsv")
-#cell_types_81012_1 <- read_tsv("data/scRNA.cell_types.81012_1.tsv")
-#cell_types_81012_2 <- read_tsv("data/scRNA.cell_types.81012_2.tsv")
-#dis_reads_47499_discover <- read_tsv("data/scRNA.discordant_reads.discover.47499.tsv") %>% mutate(supports = "t(11;14)")
-#dis_reads_56203_1_discover <- bind_rows(read_tsv("data/scRNA.discordant_reads.discover.56203_1.MYC_IGH.tsv") %>% mutate(supports = "t(8;14)"),
-#                                        read_tsv("data/scRNA.discordant_reads.discover.56203_1.MYC_IGK.tsv") %>% mutate(supports = "t(2;14)"),
-#                                        read_tsv("data/scRNA.discordant_reads.discover.56203_1.MYC_IGL.tsv") %>% mutate(supports = "t(22;14)"))
-#dis_reads_56203_2_discover <- bind_rows(read_tsv("data/scRNA.discordant_reads.discover.56203_2.MYC_IGH.tsv") %>% mutate(supports = "t(8;14)"),
-#                                        read_tsv("data/scRNA.discordant_reads.discover.56203_2.MYC_IGK.tsv") %>% mutate(supports = "t(2;14)"),
-#                                        read_tsv("data/scRNA.discordant_reads.discover.56203_2.MYC_IGL.tsv") %>% mutate(supports = "t(22;14)"))
-#dis_reads_77570_discover <- read_tsv("data/scRNA.discordant_reads.discover.77570.tsv") %>% mutate(supports = "t(11;14)")
-#dis_reads_81012_1_discover <- read_tsv("data/scRNA.discordant_reads.discover.81012_1.tsv") %>% mutate(supports = "t(11;14)")
-#dis_reads_81012_2_discover <- read_tsv("data/scRNA.discordant_reads.discover.81012_2.tsv") %>% mutate(supports = "t(11;14)")
-#seurat_object_47499 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.47499.rds")), dims = 1:20)
-#seurat_object_56203_1 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.56203_1.rds")), dims = 1:20)
-#seurat_object_56203_2 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.56203_2.rds")), dims = 1:20)
-#seurat_object_77570 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.77570.rds")), dims = 1:20)
-#seurat_object_81012_1 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.81012_1.rds")), dims = 1:20)
-#seurat_object_81012_2 <- RunUMAP(UpdateSeuratObject(read_rds("data/scRNA.seurat_object.81012_2.rds")), dims = 1:20)
