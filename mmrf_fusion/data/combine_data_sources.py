@@ -50,15 +50,17 @@ w = open("sample_list.primary.txt","w")
 sample_dict = {}
 srr_visit_dict = {}
 srr_dict = {}
+srr_source_dict = {}
 for line in f:
-  mmrf, srr, visit = line.strip().split()
+  mmrf, srr, visit, source = line.strip().split()
   srr_visit_dict[srr] = visit
+  srr_source_dict[srr] = source
   if mmrf in sample_dict:
     sample_dict[mmrf].append(srr)
     srr_dict[srr] = len(sample_dict[mmrf])
   else:
     w.write(mmrf+"\t"+srr+"\n")
-    sample_dict[mmrf] = [srr] # guaranteed to be in visit order
+    sample_dict[mmrf] = [srr] # guaranteed to be in visit order with BM first if it exists
     srr_dict[srr] = 1
 
 f.close()
@@ -336,6 +338,7 @@ column_labels.extend(["fusion"])
 column_labels.extend(["sample_number"])
 column_labels.extend(["has_secondary"])
 column_labels.extend(["visit_number"])
+column_labels.extend(["tissue_source"])
 column_labels.extend(["geneA", "geneB", "LeftBreakpoint", "RightBreakpoint",  "chrA", "posA", "strandA", "chrB", "posB", "strandB", "JunctionReadCount", "SpanningFragCount", "FFPM", "PROT_FUSION_TYPE", "Callers", "CallerN", "called_by_EricScript", "called_by_FusionCatcher", "called_by_INTEGRATE", "called_by_PRADA", "called_by_STAR-Fusion"])
 column_labels.extend(["Overlap", "bpRangeA", "bpRangeB", "depthA", "depthB", "n_discordant", "discordant_reads","wgs_bam"])
 column_labels.extend(["sv_type", "cancer_wgs_srr", "normal_wgs_srr", "delly_support_level", "delly_evidence", "manta_support_level", "manta_evidence", "any_cancer_wgs_srr", "any_normal_wgs_srr", "any_delly_support_level", "any_delly_evidence", "any_manta_support_level", "any_manta_evidence"])
@@ -360,6 +363,7 @@ for fusion_key in sorted(filtered_fusions_dict.keys()):
   else:
     print_list.append("0")
   print_list.append(str(srr_visit_dict[srr]))
+  print_list.append(str(srr_source_dict[srr]))
   print_list.extend([ filtered_fusions_dict[fusion_key][i] for i in [2,3,4,5,6,7,8,9,10,11,14,15,16,17,18,19,20,21,22,23,24] ]) #geneA, geneB, LeftBreakpoint, RightBreakpoint, chrA, posA, strandA, chrB, posB, strandB, JunctionReadCount, SpanningFragCount, FFPM, PROT_FUSION_TYPE, Callers, CallerN, called_by_X
 
   #discordant read validation
