@@ -81,29 +81,47 @@ if (TRUE) {
       filter(srr == srr2) %>% 
       pull(fusion) %>% 
       sort()
+    if ("IGH--WHSC1" %in% list_of_fusions_srr1 | "WHSC1--IGH" %in% list_of_fusions_srr1) {
+      srr1_has_founder <- 1
+    } else {
+      srr1_has_founder <- 0
+    }
+    if ("IGH--WHSC1" %in% list_of_fusions_srr2 | "WHSC1--IGH" %in% list_of_fusions_srr2) {
+      srr2_has_founder <- 1
+    } else {
+      srr2_has_founder <- 0
+    }
+    founder_status = 1*srr1_has_founder + 2*srr2_has_founder
     n_srr1 <- length(list_of_fusions_srr1)
     n_srr2 <- length(list_of_fusions_srr2)
     overlap_srr12 <- intersect(list_of_fusions_srr1,
                                list_of_fusions_srr2) %>% length()
-    return(str_c(n_srr1, n_srr2, overlap_srr12, sep = ":"))
+    return(str_c(n_srr1, n_srr2, overlap_srr12, founder_status, sep = ":"))
   }
   
   p <- mtp_bm_samples %>% 
     rowwise() %>%
     mutate(overlaps = get_fusion_overlap(fusions_all, first_srr, second_srr)) %>%
-    separate(overlaps, into = c("n_fusions_srr1", "n_fusions_srr2", "overlap_srr12"), sep = ":") %>%
+    separate(overlaps, into = c("n_fusions_srr1", "n_fusions_srr2", "overlap_srr12", "ighwhsc1"), sep = ":") %>%
     mutate(n_fusions_srr1 = as.integer(n_fusions_srr1),
            n_fusions_srr2 = as.integer(n_fusions_srr2),
-           overlap_srr12 = as.integer(overlap_srr12)) %>%
+           overlap_srr12 = as.integer(overlap_srr12),
+           igh_whsc1 = case_when(ighwhsc1 == "0" ~ "Neither sample",
+                                 ighwhsc1 == "1" ~ "TP1 only",
+                                 ighwhsc1 == "2" ~ "TP2 only",
+                                 ighwhsc1 == "3" ~ "Both samples")) %>%
+    mutate(igh_whsc1 = factor(igh_whsc1, levels = c("Both samples", "Neither sample", "TP1 only", "TP2 only"), ordered = TRUE)) %>%
     ggplot(aes(x = n_fusions_srr1, y = n_fusions_srr2)) +
     geom_abline(linetype = 2, color = "grey50") +
     geom_smooth(method = "lm") +
-    geom_point(aes(size = overlap_srr12), shape = 16, color = "#2ca25f") +
-    geom_point(shape = 3, size = 2, color = "#000000") +
+    geom_point(aes(size = overlap_srr12, color = igh_whsc1), shape = 16) +
+    geom_point(aes(color = igh_whsc1), shape = 3, size = 2) + 
+    scale_color_brewer(palette = "Set2", drop = FALSE, direction = -1) +
     scale_size_area(breaks = c(0, 2, 4, 6, 8, 10)) +
     labs(x = "Number of Fusions (Time Point 1)",
          y = "Number of Fusions (Time Point 2)",
-         size = "Number of\nOverlapping\nFusion Calls") +
+         size = "Number of\nOverlapping\nFusion Calls",
+         color = "IGH--WHSC1\nDetected") +
     theme_bw() +
     theme(plot.background = element_blank(),
           panel.background = element_blank(),
@@ -119,25 +137,32 @@ if (TRUE) {
            p,
            device = "pdf", width = 3.5, height = 3.5, useDingbats = FALSE)
     ggsave(str_c(paper_main, "multiple_timepoints.bm.no_legend.pdf"),
-           p + guides(size = FALSE),
+           p + guides(size = FALSE, color = FALSE),
            device = "pdf", width = 3.5, height = 3.5, useDingbats = FALSE)
   
   q <- stp_bmpb_samples %>% 
     rowwise() %>%
     mutate(overlaps = get_fusion_overlap(fusions_all, first_srr, second_srr)) %>%
-    separate(overlaps, into = c("n_fusions_srr1", "n_fusions_srr2", "overlap_srr12"), sep = ":") %>%
+    separate(overlaps, into = c("n_fusions_srr1", "n_fusions_srr2", "overlap_srr12", "ighwhsc1"), sep = ":") %>%
     mutate(n_fusions_srr1 = as.integer(n_fusions_srr1),
            n_fusions_srr2 = as.integer(n_fusions_srr2),
-           overlap_srr12 = as.integer(overlap_srr12)) %>%
+           overlap_srr12 = as.integer(overlap_srr12),
+           igh_whsc1 = case_when(ighwhsc1 == "0" ~ "Neither sample",
+                                 ighwhsc1 == "1" ~ "TP1 only",
+                                 ighwhsc1 == "2" ~ "TP2 only",
+                                 ighwhsc1 == "3" ~ "Both samples")) %>%
+    mutate(igh_whsc1 = factor(igh_whsc1, levels = c("Both samples", "Neither sample", "TP1 only", "TP2 only"), ordered = TRUE)) %>%
     ggplot(aes(x = n_fusions_srr1, y = n_fusions_srr2)) +
     geom_abline(linetype = 2, color = "grey50") +
     geom_smooth(method = "lm") +
-    geom_point(aes(size = overlap_srr12), shape = 16, color = "#2ca25f") +
-    geom_point(shape = 3, size = 2, color = "#000000") +
+    geom_point(aes(size = overlap_srr12, color = igh_whsc1), shape = 16) +
+    geom_point(aes(color = igh_whsc1), shape = 3, size = 2) +
+    scale_color_brewer(palette = "Set2", drop = FALSE, direction = -1) +
     scale_size_area(breaks = c(0, 2, 4, 6, 8, 10)) +
     labs(x = "Number of Fusions (Bone Marrow)",
          y = "Number of Fusions (Peripheral Blood)",
-         size = "Number of\nOverlapping\nFusion Calls") +
+         size = "Number of\nOverlapping\nFusion Calls",
+         color = "IGH--WHSC1\nDetected") +
     theme_bw() +
     theme(plot.background = element_blank(),
           panel.background = element_blank(),
@@ -153,7 +178,7 @@ if (TRUE) {
          q,
          device = "pdf", width = 3.5, height = 3.5, useDingbats = FALSE)
   ggsave(str_c(paper_main, "same_timepoints.bmpb.no_legend.pdf"),
-         q + guides(size = FALSE),
+         q + guides(size = FALSE, color = FALSE),
          device = "pdf", width = 3.5, height = 3.5, useDingbats = FALSE)
   
   # plot it 
@@ -249,7 +274,7 @@ if (TRUE) {
 # Updated April 2019
 # ==============================================================================
 
-if (FALSE) {
+if (TRUE) {
   
   fusion_samples_mtp <- samples_all %>%
     filter(tissue_source == "BM") %>%
@@ -358,6 +383,7 @@ if (FALSE) {
                    color = pct_to_use),
                shape = 16,
                show.legend = FALSE) +
+    geom_text(aes(label = visit), size = 3, vjust = 0.5) +
     geom_text(data = fusion_plot_df %>% ungroup() %>% select(mmrf, updated_fusion, variant) %>% unique(),
               aes(label = updated_fusion, x = 1.5), nudge_y = 0.15,
               show.legend = FALSE, fontface = "italic") +
@@ -394,6 +420,7 @@ if (FALSE) {
                        labels = c("0", "0.25", "0.50", "0.75", "1.00")) +
     scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25), 
                        labels = c("0", "0.25", "0.50", "0.75", "1.00")) +
+    scale_color_brewer(palette = "Dark2") +
     guides(color = FALSE) +
     theme_bw() +
     theme(panel.background = element_blank(),
@@ -406,7 +433,7 @@ if (FALSE) {
           axis.title = element_text(size = 12))
   
   ggsave(str_c(paper_main, "fusions.pdf"), p + guides(color = FALSE),
-         width = 7, height = 7.25/8, useDingbats = FALSE)
+         width = 7.25, height = 7.25/8, useDingbats = FALSE)
   
   ggsave(str_c(paper_main, "mutations.pdf"), q,
          width = 7.25, height = 7.25/4, useDingbats = FALSE)
@@ -427,7 +454,7 @@ if (FALSE) {
     filter(mmrf %in% mmrf_to_plot | mmrf == "MMRF_1496", tissue_source == "BM") %>% 
     ggplot(aes(y = fct_rev(factor(updated_srr)), x = updated_fusion, fill = pct_to_use)) + 
     geom_tile(color = "black") +
-    geom_text(aes(label = visit.y), size = 1.75, vjust = 0.5) +
+    geom_text(aes(label = visit.y), size = 3, vjust = 0.5) +
     theme_bw() +
     facet_wrap(~ mmrf_number_only , ncol = 1, strip.position = "left", dir = "h", scales = "free_y") +
     theme(panel.grid.major = element_line(size = 0.1),
@@ -451,5 +478,5 @@ if (FALSE) {
   ggsave(str_c(paper_main, "multiple_timepoints.pdf"), x,
          device = "pdf", width = 7.25, height = 3.5, useDingbats = FALSE)
   ggsave(str_c(paper_main, "multiple_timepoints.no_legend.pdf"), x + guides(fill = FALSE),
-         device = "pdf", width = 7.25, height = 3.3, useDingbats = FALSE)
+         device = "pdf", width = 7.25, height = 3.5, useDingbats = FALSE)
 }
