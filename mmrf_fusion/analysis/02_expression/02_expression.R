@@ -10,7 +10,7 @@ paper_supp = "paper/supplemental/02_expression/"
 dir.create(paper_main, recursive = TRUE, showWarnings = FALSE)
 dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 
-rerun <- TRUE
+rerun <- FALSE
 
 # ==============================================================================
 # Measure associations between fusion status and expression and clinical info
