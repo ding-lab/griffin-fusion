@@ -10,6 +10,8 @@ paper_supp = "paper/supplemental/02_expression/"
 dir.create(paper_main, recursive = TRUE, showWarnings = FALSE)
 dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 
+rerun <- TRUE
+
 # ==============================================================================
 # Measure associations between fusion status and expression and clinical info
 # Steven Foltz (smfoltz@wustl.edu), August 2018
@@ -18,7 +20,7 @@ dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 if (TRUE) {
   
   # CHANGE TO TRUE ONLY IF YOU NEED TO CREATE TESTING FILE FOR THE FIRST TIME
-  recreate_testing_tbl <- FALSE
+  recreate_testing_tbl <- rerun
   
   # ============================================================================
   # General Functions
@@ -694,8 +696,8 @@ if (TRUE) {
   set.seed(10)
   
   # Change to TRUE only if you want to recreate all plots from the start
-  recreate_plot_df <- FALSE
-  recreate_all_plots <- FALSE
+  recreate_plot_df <- rerun
+  recreate_all_plots <- rerun
   
   dir.create(paper_supp, showWarnings = FALSE)
   dir.create(str_c(paper_supp, "all_plots"), showWarnings = FALSE)
