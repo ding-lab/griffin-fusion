@@ -21,6 +21,69 @@ if (TRUE) {
   
   samples_with_multiple_timepoints <- fusions_all %>% 
     filter(has_secondary == 1) %>% pull(mmrf) %>% unique()
+
+  # samples with multiple bone marrow samples
+  mtp_bm_samples <- samples_all %>% 
+    filter(tissue_source == "BM") %>%
+    group_by(mmrf) %>%
+    summarize(n_bm_samples = n(),
+              bm_visits = str_c(visits, sep = ":"),
+              bm_srr = str_c(srr, sep = ":")) %>%
+    filter(n_bm_samples > 1) %>%
+    mutate(first_srr = strsplit(bm_srr, split = ":")[1],
+           second_srr = strsplit(bm_srr, split = ":")[2]) %>%
+    select(mmrf, first_srr, second_srr)
+  
+  # samples with same time points BMs and PBs
+  stp_bmpb_samples <- samples_all %>%
+    group_by(mmrf, visit) %>%
+    summarize(n_samples = n(),
+              tissue_sources = str_c(tissue_source, sep = ":"),
+              source_srr = str_c(srr, sep = ":")) %>%
+    filter(n_samples > 1,
+           str_detect(tissue_sources, "BM"),
+           str_detect(tissue_sources, "PB")) %>%
+    mutate(first_srr = strsplit(source_srr, split = ":")[1],
+           second_srr = strsplit(source_srr, split = ":")[2]) %>%
+    select(mmrf, first_srr, second_srr)
+  
+  # method to overlap fusion calls from two SRRs
+  get_fusion_overlap <- function(fusion_df, srr1, srr2){
+    list_of_fusions_srr1 <- fusions_df %>% 
+      filter(srr == srr1) %>% 
+      pull(fusion) %>% 
+      sort()
+    list_of_fusions_srr2 <- fusions_df %>% 
+      filter(srr == srr2) %>% 
+      pull(fusion) %>% 
+      sort()
+    n_srr1 <- length(list_of_fusions_srr1)
+    n_srr2 <- length(list_of_fusions_srr2)
+    overlap_srr12 <- intersect(list_of_fusions_srr1,
+                               list_of_fusions_srr2) %>% length()
+    return(str_c(n_srr1, n_srr2, overlap_srr12, sep = ":"))
+  }
+  
+  mtp_bm_samples %>% mutate(overlaps = get_fusion_overlap(fusions_all, srr1, srr2)) %>%
+    separate(overlaps, into = c("n_fusions_srr1", "n_fusions_srr2", "overlap_srr12"), sep = ":") %>%
+    ggplot(aes(x = n_fusions_srr1, y = n_fusions_srr2, size = overlap_srr12, color = overlap_srr12)) %>%
+    geom_point(shape = 16) +
+    geom_point(shape = 3, size = 2, color = "#000000") +
+    geom_smooth(method = "lm") +
+    scale_size_area(breaks = c(0, 5, 10), range = c(0,15)) +
+    scale_color_brewer(palette = "BuGn") +
+    theme_bw() +
+    theme(plot.background = element_blank(),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.text = element_text(size = 8),
+          axis.ticks = element_blank(),
+          axis.title = element_text(size = 12),
+          legend.background = element_blank(),
+          legend.text = element_text(size = 10)) +
+    ggsave(str_c(paper_main, "multiple_timepoints.bm.pdf"),
+           device = "pdf", width = 3.5, height = 3.5, useDingbats = FALSE)
   
   # Fusions involving important genes
   
@@ -45,24 +108,30 @@ if (TRUE) {
     filter(fusion %in% fusions_with_important_genes, has_secondary) %>% 
     pull(mmrf) %>% unique()
   
-  keep_these_srrs <- samples_all %>% group_by(mmrf) %>% summarize(n()) %>% 
-    filter(`n()` > 1) %>% 
+  keep_these_srrs <- samples_all %>% 
+    group_by(mmrf) %>% 
+    summarize(count = n()) %>% 
+    filter(count > 1) %>% 
     left_join(samples_all, by = "mmrf") %>% 
-    mutate(mmrf_srr = str_c(mmrf, srr, sep = ": ")) %>% group_by(mmrf) %>% 
-    mutate(ticker = row_number()) %>% select(mmrf, srr, mmrf_srr, ticker) %>%
-    ungroup() %>% filter(mmrf %in% keep_these_mmrfs)
+    mutate(mmrf_srr = str_c(mmrf, srr, sep = ": ")) %>% 
+    group_by(mmrf) %>% 
+    mutate(ticker = row_number()) %>% 
+    select(mmrf, count, srr, visit, mmrf_srr, ticker) %>%
+    ungroup() %>% 
+    filter(mmrf %in% keep_these_mmrfs)
   
-  keep_these_srrs %>% left_join(fusions_all, by = c("mmrf", "srr")) %>%
+  keep_these_srrs %>% 
+    left_join(fusions_all, by = c("mmrf", "srr")) %>%
     filter(fusion %in% fusions_with_important_genes) %>%
     right_join(keep_these_srrs, by = c("mmrf", "srr")) %>% 
     mutate(mmrf_number_only = str_remove_all(mmrf, "MMRF_")) %>%
     replace_na(list(fusion = "Zero detected")) %>%
-    mutate(updated_srr = str_c(srr, ": ", ticker.y)) %>%
-    mutate(mmrf_num = str_c(mmrf, "_", ticker.y)) %>%
-    left_join(tumor_purity, by = c("srr" = "SRR_Tumor")) %>% View()
+    mutate(updated_srr = str_c(srr, ": ", visit.y)) %>%
+    left_join(tumor_purity %>% filter(Type == "RNA-Seq"), by = c("srr" = "SRR_Tumor")) %>%
     ggplot(aes(y = factor(updated_srr), x = fusion, fill = log10(FFPM + 1))) + 
     geom_tile(color = "black") +
-    geom_text(aes(label = sample_number), size = 1.75, vjust = 0.5) +
+    geom_text(aes(label = visit.y), size = 1.75, vjust = 0.5) +
+    geom_text(aes(label = TumorPurity, color = TumorPurity), x = Inf) +
     theme_bw() +
     facet_wrap(~ mmrf_number_only , ncol = 1, strip.position = "right", dir = "h", scales = "free_y") +
     theme(panel.grid.major = element_line(size = 0.1),
