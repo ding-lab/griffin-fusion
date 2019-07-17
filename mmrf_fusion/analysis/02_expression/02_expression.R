@@ -1702,13 +1702,23 @@ if (TRUE) {
                                        TRUE ~ "")) %>% #"Not recurrent")) %>%
     mutate(recurrent_color = case_when(geneB %in% recurrent_3p_intact_kinases ~ geneB,
                                        TRUE ~ "Not recurrent")) %>%
-    mutate(recurrent_color = factor(recurrent_color, levels = c(recurrent_3p_intact_kinases, "Not recurrent"), ordered = TRUE)) %>%
+    mutate(recurrent_color = factor(recurrent_color, 
+                                    levels = c(recurrent_3p_intact_kinases, "Not recurrent"), 
+                                    ordered = TRUE)) %>%
+    mutate(geneA_pct = case_when(geneA %in% c("IGH", "IGK", "IGL") ~ 0,
+                                 TRUE ~ geneA_pct),
+           geneB_pct = case_when(geneB %in% c("IGH", "IGK", "IGL") ~ 0,
+                                 TRUE ~ geneB_pct),
+           recurrent_shape = case_when(geneA %in% c("IGH", "IGK", "IGL") ~ 1,
+                                       geneB %in% c("IGH", "IGK", "IGL") ~ 1,
+                                       TRUE ~ 16)) %>%
     ggplot(aes(x = geneA_pct, y = geneB_pct)) + 
     geom_abline(linetype = 2, alpha = 0.5) +
     geom_smooth(method = "lm") + 
-    geom_point(aes(color = recurrent_color), shape = 16, show.legend = FALSE) +
+    geom_point(aes(color = recurrent_color, shape = factor(recurrent_shape)), show.legend = FALSE) +
     geom_label_repel(aes(color = recurrent_color, label = recurrent_label), fontface = "italic", show.legend = FALSE) +
     coord_fixed() + 
+    scale_shape_manual(values = c(1,16)) +
     scale_y_continuous(limits = c(0,1), expand = c(0, 0.1)) +
     scale_x_continuous(limits = c(0,1), expand = c(0, 0.1)) +
     scale_color_manual(values = c(brewer.pal(length(recurrent_3p_intact_kinases), "Dark2"), "#000000")) +
