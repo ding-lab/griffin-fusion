@@ -45,7 +45,6 @@ f.close()
 
 #read in sample list, assign primary secondary etc
 f = open("sample_list.806.fixed_visit_number.txt", "r")
-f.readline()
 w = open("sample_list.primary.txt","w")
 sample_dict = {}
 srr_visit_dict = {}
@@ -226,7 +225,7 @@ if regenerate_expr_file:
     if gene in genes_with_fusions:
       count_up += 1
       if (count_up % 1e5) == 0: # print out progress
-        print(str(round(100.0*count_up/total_expr_lines, 3))+"%")
+        print(str(round(100.0*count_up/total_expr_lines, 1))+"%")
       expr_key = mmrf+":"+srr+":"+gene
       if expr_key in expr_dict:
         sys.exit(expr_key + " already in expr_dict")
