@@ -22,7 +22,8 @@ library(UpSetR) # 01_overview.R
 # ==============================================================================
 # Sample lists (MMRF, SRR) of data related to samples in this analysis
 # ==============================================================================
-samples_all <- read_tsv("data/sample_list.806.fixed_visit_number.txt")
+samples_all <- read_tsv("data/sample_list.806.fixed_visit_number.txt",
+                        col_names = c("mmrf", "srr", "visit", "tissue_source"))
 samples_primary <- read_tsv("data/sample_list.primary.txt",
                             col_names = c("mmrf", "srr"))
 
