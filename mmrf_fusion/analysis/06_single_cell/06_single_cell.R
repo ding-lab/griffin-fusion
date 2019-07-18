@@ -176,7 +176,7 @@ plot_cell_types <- function(cell_types, seurat_object, reduction = "UMAP", id, d
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 10))
   
-  ggsave(str_c(dir, id, ".cell_types.", reduction, ".pdf"),
+  ggsave(str_c(dir, "/", id, ".cell_types.", reduction, ".pdf"),
          p,
          width = 3.5, height = 3.5, useDingbats = FALSE)
 
@@ -225,7 +225,7 @@ plot_gene_expression <- function(seurat_object, tsne_umap, ensg, reduction = "UM
         legend.title = element_text(size = 12),
         legend.text = element_text(size = 10))
   
-  ggsave(str_c(dir, id, ".expression.", gene, ".", reduction, ".pdf"),
+  ggsave(str_c(dir, "/", id, ".expression.", gene, ".", reduction, ".pdf"),
          p, 
          width = 3.5, height = 3.5, useDingbats = FALSE)
 }
@@ -283,7 +283,7 @@ plot_gene_expression_violin <- function(bulk_sc, seurat_object, tsne_umap, ensg,
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 10))
   
-  ggsave(str_c(dir, id, ".expression_violin.", gene, ".pdf"),
+  ggsave(str_c(dir, "/", id, ".expression_violin.", gene, ".pdf"),
          p, 
          width = 3.5, height = 3.5, useDingbats = FALSE)
 }
@@ -322,7 +322,7 @@ plot_two_genes_expression <- function(seurat_object, tsne_umap, ensg1, ensg2, id
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 10))
   
-  ggsave(str_c(dir, id, ".joint_expression.", gene1, ".", gene2, ".pdf"),
+  ggsave(str_c(dir, "/", id, ".joint_expression.", gene1, ".", gene2, ".pdf"),
          p, 
          width = 3.5, height = 3.5, useDingbats = FALSE)
 }
@@ -379,7 +379,7 @@ plot_gene_cnv <- function(infercnv, tsne_umap, reduction = "UMAP", id, gene, dir
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 10))
   
-  ggsave(str_c(dir, id, ".copy_number.", gene, ".pdf"),
+  ggsave(str_c(dir, "/", id, ".copy_number.", gene, ".pdf"),
          p, 
          width = 3.5, height = 3.5, useDingbats = FALSE)
 }
@@ -434,7 +434,7 @@ plot_chr_cnv <- function(infercnv, tsne_umap, reduction = "UMAP", id, chr, dir =
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 10))
   
-  ggsave(str_c(dir, id, ".copy_number.", chr, ".pdf"),
+  ggsave(str_c(dir, "/", id, ".copy_number.", chr, ".pdf"),
          p, 
          width = 3.5, height = 3.5, useDingbats = FALSE)
 }
@@ -489,14 +489,14 @@ plot_sc_read_length_distribution <- function(dis_reads, cutoff = 1024, id, dir =
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 10))
   
-  ggsave(str_c(dir, id, ".read_length_distribution.pdf"),
+  ggsave(str_c(dir, "/", id, ".read_length_distribution.pdf"),
          width = 3.5, height = 3.5, useDingbats = FALSE)
 }
 
 # ==============================================================================
 # Identify cells with chimeric transcripts
 # ==============================================================================
-plot_cell_chimeric_transcripts <- function(bulk_sc, tsne_umap, reduction = "UMAP", id, dir = paper_main, facet = FALSE){
+plot_cell_chimeric_transcripts <- function(bulk_sc, tsne_umap, reduction = "UMAP", id, dir = paper_main, facet = FALSE, color_yes_no = TRUE){
   
   if (reduction %in% c("UMAP", "t-SNE")) {
     
@@ -510,6 +510,8 @@ plot_cell_chimeric_transcripts <- function(bulk_sc, tsne_umap, reduction = "UMAP
       right_join(tsne_umap, 
                  by = c("cell_barcode" = "barcode")) %>%
       replace_na(list(color_column = "No CT Detected")) %>%
+      mutate(color_column_yes_no = case_when(color_column == "No CT Detected" ~ "No",
+                                             TRUE ~ "Yes")) %>%
       mutate(color_column = fct_infreq(color_column)) %>%
       arrange(color_column)
     
@@ -526,16 +528,25 @@ plot_cell_chimeric_transcripts <- function(bulk_sc, tsne_umap, reduction = "UMAP
   
   n_colors <- plot_df %>% pull(color_column) %>% levels() %>% length()
   
-  p <- p + geom_point(aes(color = color_column),
-                      shape = 16, 
-                      size = 1.5, 
-                      alpha = 1)
+  if (color_yes_no) {
+    p <- p + geom_point(aes(color = color_column_yes_no),
+                        shape = 16, 
+                        size = 1.5, 
+                        alpha = 1) +
+      labs(color = "Chimeric\nTranscript\nDetected") +
+      scale_color_manual(values = c("#ccebc5", "#0868ac"))
+  } else {
+    p <- p + geom_point(aes(color = color_column),
+                        shape = 16, 
+                        size = 1.5, 
+                        alpha = 1) +
+      labs(color = "Cell Contains\nChimeric Transcript") +
+      scale_color_brewer(palette = "Set1")
+  }
   
   p <- p + 
-    labs(color = "Cell Contains\nChimeric Transcript") +
     theme_bw() +
     coord_equal() +
-    scale_color_brewer(palette = "Set1") +
     scale_x_continuous(expand = c(0.01, 0.01)) +
     scale_y_continuous(expand = c(0.01, 0.01)) +
     theme(panel.background = element_blank(),
@@ -550,19 +561,19 @@ plot_cell_chimeric_transcripts <- function(bulk_sc, tsne_umap, reduction = "UMAP
   
   if (facet) {
     p <- p + facet_wrap(~ color_column, nrow = 1)
-    ggsave(str_c(dir, id, ".cells_chimeric_transcripts.", reduction, ".pdf"),
+    ggsave(str_c(dir, "/", id, ".cells_chimeric_transcripts.", reduction, ".pdf"),
            p,
-           width = n_colors*3.5, height = 3.5, useDingbats = FALSE)
+           width = n_colors*3.5 + 3.5, height = 3.5, useDingbats = FALSE)
     
-    ggsave(str_c(dir, id, ".cells_chimeric_transcripts.no_legend.", reduction, ".pdf"),
+    ggsave(str_c(dir, "/", id, ".cells_chimeric_transcripts.no_legend.", reduction, ".pdf"),
            p + guides(color = FALSE),
            width = n_colors*3.5, height = 3.5, useDingbats = FALSE)
   } else {
-    ggsave(str_c(dir, id, ".cells_chimeric_transcripts.", reduction, ".pdf"),
+    ggsave(str_c(dir, "/", id, ".cells_chimeric_transcripts.", reduction, ".pdf"),
            p,
-           width = 3.5, height = 3.5, useDingbats = FALSE)
+           width = 7, height = 3.5, useDingbats = FALSE)
     
-    ggsave(str_c(dir, id, ".cells_chimeric_transcripts.no_legend.", reduction, ".pdf"),
+    ggsave(str_c(dir, "/", id, ".cells_chimeric_transcripts.no_legend.", reduction, ".pdf"),
            p + guides(color = FALSE),
            width = 3.5, height = 3.5, useDingbats = FALSE)
   }
@@ -621,7 +632,7 @@ plot_two_genes_correlation <- function(two_genes_expression, bulk_sc, dir = pape
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 10))
   
-  ggsave(str_c(dir, id, ".", gene1, ".", gene2, ".correlation.pdf"),
+  ggsave(str_c(dir, "/", id, ".", gene1, ".", gene2, ".correlation.pdf"),
          p,
          width = 3.5, height = 3.5, useDingbats = FALSE)
 }
@@ -727,7 +738,7 @@ if (TRUE) {
     
     sc_chr14_min_max <- dis_reads %>% 
       filter(chrom == 14) %>% 
-      filter(end - start < 1024) %>%
+      filter(end - start < 128) %>%
       group_by(cell_barcode, molecular_barcode) %>% 
       summarize(min_start = min(start), max_start = max(start), 
                 min_end = min(end), max_end = max(end), 
@@ -735,7 +746,7 @@ if (TRUE) {
     
     sc_chr4_min_max <- dis_reads %>% 
       filter(chrom == 4) %>% 
-      filter(end - start < 1024) %>% 
+      filter(end - start < 128) %>% 
       group_by(cell_barcode, molecular_barcode) %>% 
       summarize(min_start = min(start), max_start = max(start), 
                 min_end = min(end), max_end = max(end), 
@@ -965,14 +976,179 @@ if (TRUE) {
             legend.background = element_blank(),
             legend.position = "bottom")
     
-    ggsave(str_c(dir, id, ".discordant_read_positions.pdf"),
+    ggsave(str_c(dir, "/", id, ".discordant_read_positions.pdf"),
            p,
            width = 14.5, height = 12,
            useDingbats = FALSE)
     
-    ggsave(str_c(dir, id, ".discordant_read_positions.no_legend.pdf"),
+    ggsave(str_c(dir, "/", id, ".discordant_read_positions.no_legend.pdf"),
            p + guides(color = FALSE, linetype = FALSE, fill = FALSE),
            width = 7.25, height = 12,
+           useDingbats = FALSE)
+  }
+  plot_bulk_sc_27522_main_figure <- function(bulk_sc_plot_df, genes = gene_spans, dir, id, use_fusion_names = TRUE, bulk_color = TRUE, color_indicates = "Fusion Name", plot_star_fusion_reads = FALSE){
+    
+    whsc1_tx_hg38 <- read_tsv("data/WHSC1_transcripts_UCSC_GenomeBrowser.hg38.txt")
+    whsc1_tx_hg38 <- whsc1_tx_hg38 %>% select(start, stop) %>% unique()
+    min_whsc1_hg38 <- whsc1_tx_hg38 %>% pull(start) %>% min()
+    max_whsc1_hg38 <- whsc1_tx_hg38 %>% pull(stop) %>% max()
+    
+    reported_translocation_breakpoints <- tribble(   ~trans, ~chrom,      ~pos,
+                                                  "t(4;14)",      4,   1871964,
+                                                  "t(4;14)",     14, 105858090)
+    chr4_breakpoint <- 1871964
+    chr14_breakpoint <- 105858090
+    
+    bulk_sc_plot_df <- bulk_sc_plot_df %>% 
+      mutate(color_column = case_when(!bulk_color ~ "black",
+                                      use_fusion_names ~ str_remove_all(str_remove_all(fusion, "NSD2"), "--"),
+                                      TRUE ~ as.character(str_detect(fusion, "IGH"))),
+             reciprocal = str_detect(fusion, "^NSD2"))
+    
+    overall_chr14_min <- bulk_sc_plot_df %>% pull(chr14_position) %>% min()
+    overall_chr14_max <- bulk_sc_plot_df %>% pull(chr14_position) %>% max() 
+    overall_chr4_min <- bulk_sc_plot_df %>% pull(chr4_position) %>% min()
+    overall_chr4_max <- bulk_sc_plot_df %>% pull(chr4_position) %>% max()
+    
+    chr4_shift = 0 - chr4_breakpoint
+    chr14_shift = 0 - chr14_breakpoint
+    
+    shifted_chr4_breakpoint = 0
+    shifted_chr14_breakpoint = 0
+    
+    chr14_gene_spans <- genes %>% 
+      filter(chromosome == "chr14") %>% 
+      filter( (start <= overall_chr14_min & end >= overall_chr14_min) | 
+                (start >= overall_chr14_min & end <= overall_chr14_max) | 
+                (start <= overall_chr14_max & end >= overall_chr14_max) ) %>% 
+      filter(str_detect(gene_name, "IGH")) %>%
+      filter(!str_detect(gene_name, "@")) %>%
+      mutate(shifted_chr14_start = start + chr14_shift,
+             shifted_chr14_end = end + chr14_shift)
+    
+    chr4_gene_spans <- genes %>% 
+      filter(chromosome == "chr4") %>% 
+      filter((start <= overall_chr4_min & end >= overall_chr4_min) | 
+               (start >= overall_chr4_min & end <= overall_chr4_max) | 
+               (start <= overall_chr4_max & end >= overall_chr4_max) ) %>% 
+      filter(strand == "+", type == "protein_coding") %>%
+      mutate(shifted_chr4_start = start + chr4_shift,
+             shifted_chr4_end = end + chr4_shift) %>%
+      mutate(gene_name = case_when(gene_name == "NSD2" ~ "WHSC1",
+                                   TRUE ~ gene_name))
+    
+    shifted_gene_boundaries <- c(chr14_gene_spans %>% pull(shifted_chr14_start) %>% min(),
+                                 chr14_gene_spans %>% pull(shifted_chr14_end) %>% max(),
+                                 chr4_gene_spans %>% pull(shifted_chr4_start) %>% min(),
+                                 chr4_gene_spans %>% pull(shifted_chr4_start) %>% max(),
+                                 chr4_gene_spans %>% pull(shifted_chr4_end) %>% max())
+    
+    gene_boundaries <- c(chr14_gene_spans %>% pull(start) %>% min(),
+                         chr14_gene_spans %>% pull(end) %>% max(),
+                         chr4_gene_spans %>% pull(start) %>% min(),
+                         chr4_gene_spans %>% pull(start) %>% max(),
+                         chr4_gene_spans %>% pull(end) %>% max())
+    
+    p <- ggplot(data = bulk_sc_plot_df) +
+      coord_cartesian(ylim = c(-2, 2)) +
+      scale_y_continuous(limits = c(-2, 2)) +
+      scale_x_continuous(breaks = shifted_gene_boundaries,
+                         labels = gene_boundaries) +
+      # transcription direction arrows
+      geom_curve(inherit.aes = FALSE, x = 6e3, xend = 6e3, y = 0.45, yend = -0.45, curvature = 1, ncp = 10, lineend = "round", show.legend = FALSE, arrow = arrow(angle = 45, length = unit(0.05, "inches"), type = "open"), color = "#969696") +
+      geom_curve(inherit.aes = FALSE, x = -6e3, xend = -6e3, y = -0.45, yend = 0.45, curvature = 1, ncp = 10, lineend = "round", show.legend = FALSE, arrow = arrow(angle = -45, length = unit(0.05, "inches"), type = "open"), color = "#969696") +
+      annotate(geom = "text", x = -6e3, y = 0, label = "Direction of\nTranscription", size = 2, color = "#969696") +
+      #chr14 genes
+      geom_rect(data = chr14_gene_spans,
+                aes(xmin = shifted_chr14_start, 
+                    xmax = shifted_chr14_end,
+                    ymin = 0.5, 
+                    ymax = 1.75),
+                fill = "#d9d9d9",
+                alpha = 1) +
+      #chr4 genes
+      geom_segment(x = min_whsc1_hg38 + chr4_shift, 
+                   xend = max_whsc1_hg38 + chr4_shift, 
+                   y = -1.125, yend = -1.125, 
+                   size = 5,
+                   color = "#d9d9d9",
+                   alpha = 0.5) +
+      geom_rect(data = whsc1_tx_hg38,
+                aes(ymin = -1.75, 
+                    ymax = -0.5, 
+                    xmin = start + chr4_shift,
+                    xmax = stop + chr4_shift),
+                inherit.aes = FALSE,
+                color = NA, 
+                fill = "#d9d9d9")
+      if (plot_star_fusion_reads) {
+        # draw bulk read curves
+        p <- p + geom_curve(data = bulk_sc_plot_df %>%
+                              filter(data_type == "Bulk Spanning/Junction Read Pair") %>%
+                              arrange(str_detect(fusion, "IGH")),
+                            aes(x = chr14_position + chr14_shift, 
+                                xend = chr4_position + chr4_shift,
+                                linetype = reciprocal,
+                                y = 0.5,
+                                yend = -0.5),
+                            color = "#0868ac",
+                            curvature = 0,
+                            ncp = 10,
+                            alpha = 0.5,
+                            lineend = "round")
+      } else {
+        # draw sc read curves
+        p <- p + geom_curve(data = bulk_sc_plot_df %>% 
+                              filter(data_type == "Single Cell Chimeric Transcript"),
+                            aes(x = chr14_position + chr14_shift, 
+                                xend = chr4_position + chr4_shift,
+                                y = 0.5,
+                                yend = -0.5),
+                            color = "#0868ac",
+                            curvature = 0,
+                            ncp = 10,
+                            lineend = "round",
+                            alpha = 0.5,
+                            show.legend = FALSE)
+      }
+    # label chr4 genes
+    p <- p + geom_text(data = chr4_gene_spans,
+                       aes(x = (shifted_chr4_end + shifted_chr4_start)/2,
+                           y = -1.125,
+                           label = gene_name),
+                       fontface = "italic") +
+      # translocation breakpoints 
+      geom_vline(xintercept = 0, linetype = 2) +
+      annotate(geom = "text", x = 0 + 1e3, y = -2, label = chr4_breakpoint, hjust = 0, vjust = 0) +
+      annotate(geom = "text", x = 0 + 1e3, y = 2, label = chr14_breakpoint, hjust = 0, vjust = 1) +
+      annotate(geom = "text", x = 0 - 1e3, y = -2, label = "chr4", hjust = 1, vjust = 0) +
+      annotate(geom = "text", x = 0 - 1e3, y = 2, label = "chr14", hjust = 1, vjust = 1) +
+      # colors
+      scale_color_brewer(palette = "Paired") +
+      scale_fill_brewer(palette = "Accent") +
+      labs(y = NULL,
+           x = "Genomic Coordinates (GRCh38)",
+        color = color_indicates,
+           linetype = "Reciprocal Fusion") +
+      theme_bw() +
+      theme(panel.background = element_blank(),
+            panel.grid.minor = element_blank(),
+            panel.grid.major.y = element_blank(),
+            panel.border = element_blank(),
+            plot.background = element_blank(),
+            axis.text.y = element_blank(),
+            axis.ticks = element_blank(),
+            legend.background = element_blank(),
+            legend.position = "bottom")
+    
+    ggsave(str_c(dir, "/", id, ".discordant_read_positions.main.pdf"),
+           p,
+           width = 14.5, height = 12,
+           useDingbats = FALSE)
+    
+    ggsave(str_c(dir, "/", id, ".discordant_read_positions.main.no_legend.pdf"),
+           p + guides(color = FALSE, linetype = FALSE, fill = FALSE),
+           width = 7.25, height = 3.25,
            useDingbats = FALSE)
   }
   
@@ -981,13 +1157,14 @@ if (TRUE) {
     
     bulk_fusion_reads_27522_1_SF_only <- get_bulk_fusion_reads_27522(bulk_reads_27522_1, star_fusion_calls_27522_1, use_SF_only = TRUE)
     bulk_fusion_reads_27522_1 <- get_bulk_fusion_reads_27522(bulk_reads_27522_1, star_fusion_calls_27522_1, use_SF_only = FALSE)
-    plot_sc_read_length_distribution(dis_reads = dis_reads_27522_1_discover, cutoff = 1024, id = "27522_1", dir = str_c(paper_supp, "27522_1"))
+    plot_sc_read_length_distribution(dis_reads = dis_reads_27522_1_discover, cutoff = 128, id = "27522_1", dir = str_c(paper_supp, "27522_1"))
     sc_chimeric_transcripts_27522_1 <- get_sc_chimeric_transcripts_27522(dis_reads_27522_1_discover)
     bulk_sc_plot_df_27522_1_SF_only <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_1_SF_only, sc_chimeric_transcripts_27522_1)
     bulk_sc_plot_df_27522_1 <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_1, sc_chimeric_transcripts_27522_1)
     
-    plot_bulk_sc_27522(bulk_sc_plot_df_27522_1_SF_only, id = "27522_1", bulk_color = FALSE, dir = str_c(paper_main, "27522_1"))
-    #plot_bulk_sc_27522(bulk_sc_plot_df_27522_1, id = "27522_1", bulk_color = FALSE, dir = str_c(paper_supp, "27522_1"))
+    plot_bulk_sc_27522_main_figure(bulk_sc_plot_df_27522_1_SF_only, id = "27522_1", bulk_color = FALSE, dir = str_c(paper_main, "27522_1"), plot_star_fusion_reads = FALSE)
+    plot_bulk_sc_27522_main_figure(bulk_sc_plot_df_27522_1_SF_only, id = "27522_1.bulk", bulk_color = FALSE, dir = str_c(paper_main, "27522_1"), plot_star_fusion_reads = TRUE)
+    plot_bulk_sc_27522(bulk_sc_plot_df_27522_1_SF_only, id = "27522_1", bulk_color = FALSE, dir = str_c(paper_supp, "27522_1"))
     
     plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_1_SF_only, 
                                    tsne_umap = get_tsne_umap(cell_types = cell_types_27522_1, seurat_object = seurat_object_27522_1), 
@@ -1049,7 +1226,7 @@ if (TRUE) {
   # 27522_4
   if (TRUE) {
     bulk_fusion_reads_27522_4 <- get_bulk_fusion_reads_27522(bulk_reads_27522_4)
-    plot_sc_read_length_distribution(dis_reads = dis_reads_27522_4_discover, cutoff = 1024, id = "27522_4", dir = str_c(paper_supp, "27522_4"))
+    plot_sc_read_length_distribution(dis_reads = dis_reads_27522_4_discover, cutoff = 128, id = "27522_4", dir = str_c(paper_supp, "27522_4"))
     sc_chimeric_transcripts_27522_4 <- get_sc_chimeric_transcripts_27522(dis_reads_27522_4_discover)
     bulk_sc_plot_df_27522_4 <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_4, sc_chimeric_transcripts_27522_4)
     plot_bulk_sc_27522(bulk_sc_plot_df_27522_4, id = "27522_4", bulk_color = FALSE, dir = str_c(paper_main, "27522_4"))
