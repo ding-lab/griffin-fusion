@@ -36,6 +36,7 @@ rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/lyao/Tools/GRCh
 
 #27522_1 
 rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/results/27522_1/chr4chr14.discovered_discordant_reads.tsv ' scRNA.discordant_reads.discover.27522_1.tsv
+rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/preQC_results/27522_1/chr4chr14.discovered_discordant_reads.tsv ' scRNA.discordant_reads.discover.27522_1.preQC.tsv
 rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/scRNA.27522_1.bulk.Chimeric.out.junction' .
 rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Datasets/mmy_scratch/Organized/27522_1/BulkRNASeq/27522_1.ANNOTATS/star-fusion.fusion_predictions.tsv' scRNA.27522_1.bulk.star-fusion.fusion_predictions.tsv
 rsync -avh 'sfoltz@katmai.wusm.wustl.edu:/diskmnt/Projects/Users/sfoltz/griffin-fusion/mmrf_fusion/analysis/06_single_cell/scRNA.27522_1.bulk.chr414.Chimeric.out.junction' .
