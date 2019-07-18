@@ -240,6 +240,7 @@ cell_types_27522_4 <- read_tsv("data/scRNA.cell_types.27522_4.tsv")
 
 # discordant reads
 dis_reads_27522_1_discover <- read_tsv("data/scRNA.discordant_reads.discover.27522_1.tsv") %>% mutate(supports = "t(4;14)")
+dis_reads_27522_1_discover_preQC <- read_tsv("data/scRNA.discordant_reads.discover.27522_1.preQC.tsv") %>% mutate(supports = "t(4;14)")
 dis_reads_27522_4_discover <- read_tsv("data/scRNA.discordant_reads.discover.27522_4.tsv") %>% mutate(supports = "t(4;14)")
 
 # Seurat objects, run UMAP
