@@ -1318,83 +1318,65 @@ if (TRUE) {
   }
 }
 
-# Draw genes
-if (FALSE) {
-  library(biomaRt) # 06_single_cell.R
-  library(Gviz) # 06_single_cell.R
-  # from Bioconductor http://bioconductor.org/packages/release/bioc/html/Gviz.html
-  bm <- useMart(biomart = "ENSEMBL_MART_ENSEMBL",
-                dataset = "hsapiens_gene_ensembl")
+# ==============================================================================
+# Explore QC of samples
+# ==============================================================================
+if (TRUE) {
+  bad_df <- read_tsv("data/bad_qc_reads_plot_df.tsv") %>%
+    filter(chromosome == 14) %>%
+    group_by(cell_barcode, molecular_barcode, sample, test, chromosome) %>% 
+    summarize(start = min(start), end = max(end)) %>%
+    ungroup() %>%
+    separate(test, by = "_", into = c("ig", "other_gene")) %>%
+    mutate(ig_name = case_when(chromosome == 2 ~ "IGK",
+                               chromosome == 14 ~ "IGH",
+                               chromosome == 22 ~ "IGL"))
   
-  # WHSC1 (aka NSD2)
-  if (TRUE) {
-    gene = "WHSC1"
-    this_chrom = "chr4"
-    this_start = 1.7e6
-    this_end = 2.0e6
-    
-    pdf(str_c(paper_main, gene, ".gene_region.pdf"), width = 20, height = 10)
-    axisTrack <- GenomeAxisTrack()
-    biomTrack <- BiomartGeneRegionTrack(genome = "hg38",
-                                        name = "ENSEMBL",
-                                        chromosome = this_chrom,
-                                        start = this_start,
-                                        end = this_end,
-                                        biomart = bm,
-                                        protein_coding = "#1b9e77",
-                                        utr3 = "#7570b3",
-                                        utr5 = "#e7298a")
-    plotTracks(list(axisTrack, biomTrack),
-               col.line = NULL,
-               col = NULL,
-               stackHeight = 0.3,
-               collapseTranscripts = "meta",
-               transcriptAnnotation = "symbol")
-    dev.off()
-    
-    pdf(str_c(paper_main, this_chrom, ".ideogram.pdf"), width = 7.5, height = 0.5)
-    ideoTrack <- IdeogramTrack(genome = "hg38", chromosome = this_chrom)
-    plotTracks(ideoTrack,
-               from = this_start, 
-               to = this_end, 
-               showId = FALSE, 
-               showBandId = FALSE, 
-               cex.bands = 0.5)
-    dev.off()
-  }
+  original_df <- bind_rows(dis_reads_27522_1_discover_preQC %>% mutate(sample = "27522_1")) %>% 
+    filter(end - start < 128) %>% 
+    group_by(sample, cell_barcode, molecular_barcode, chrom) %>% 
+    summarize(start = min(start), end = max(end)) %>%
+    mutate(other_gene = "original") %>%
+    filter(chrom == 14) %>%
+    mutate(ig_name = case_when(chrom == 2 ~ "IGK",
+                               chrom == 14 ~ "IGH",
+                               chrom == 22 ~ "IGL"))
   
-  # IGH super locus
-  if (TRUE) {
-    gene = "IGH"
-    this_chrom = "chr14"
-    this_start = 105500000
-    this_end = 107000000
-    
-    pdf(str_c(paper_main, gene, ".gene_region.pdf"), width = 20, height = 20)
-    axisTrack <- GenomeAxisTrack()
-    biomTrack <- BiomartGeneRegionTrack(genome = "hg38",
-                                        name = "ENSEMBL",
-                                        chromosome = this_chrom,
-                                        start = this_start,
-                                        end = this_end,
-                                        biomart = bm)
-    plotTracks(list(axisTrack, biomTrack),
-               col.line = NULL,
-               col = NULL,
-               stackHeight = 0.2,
-               collapseTranscripts = "meta",
-               transcriptAnnotation = "symbol")
-    dev.off()
-    
-    pdf(str_c(paper_main, this_chrom, ".ideogram.pdf"), width = 7.5, height = 0.5)
-    ideoTrack <- IdeogramTrack(genome = "hg38", chromosome = this_chrom)
-    plotTracks(ideoTrack,
-               from = this_start, 
-               to = this_end, 
-               showId = FALSE, 
-               showBandId = FALSE, 
-               cex.bands = 0.5)
-    dev.off()
-  }
-
+  ggplot(original_df, aes(x = start/1e6, fill = sample)) + 
+    geom_histogram(binwidth = 10000/1e6) +
+    facet_wrap(~ ig_name, ncol = 1, scales = "free") +
+    labs(fill = "Sample ID",
+         x = "Position (Mb)",
+         y = "Number of 'Chimeric Transcripts'") +
+    theme_bw() +
+    ggsave(str_c(paper_supp, "pre_QC_discovery.pdf"), width = 10, height = 20, useDingbats = FALSE)
+  
+  
+  ggplot(bad_df, aes(x = start/1e6, fill = other_gene)) + 
+    geom_histogram(binwidth = 10000/1e6) +
+    facet_wrap(~ ig_name, ncol = 1, scales = "free") +
+    labs(fill = "'Partner' Gene",
+         x = "Position (Mb)",
+         y = "Number of 'Chimeric Transcripts'") +
+    theme_bw() #+
+  
+  bind_rows(bad_df %>% 
+              select(other_gene, start) %>% 
+              rename("my_color" = "other_gene") %>% 
+              mutate(my_facet = "IGH with Other Genes (multiple samples)"), 
+            original_df %>% ungroup() %>% 
+              select(start) %>% 
+              mutate(my_color = "WHSC1",
+                     my_facet = "IGH with WHSC1 (27522_1 only)")) %>% 
+    ggplot(aes(x = start/1e6, fill = my_color)) + 
+    geom_vline(xintercept = 105854501/1e6, linetype = 2, color = "#bdbdbd") +
+    geom_vline(xintercept = 105922264/1e6, linetype = 2, color = "#bdbdbd") +
+    geom_histogram(binwidth = 10000/1e6) + 
+    facet_wrap( ~ my_facet, ncol = 1, scales = "free_y") +
+    labs(fill = "'Partner' Gene",
+         x = "Genomic Coordinates (Mb) (GRCh38)",
+         y = "Number of 'Chimeric Transcripts'") +
+    theme_bw() +
+    ggsave(str_c(paper_supp, "single_cell_QC.pdf"), width = 7.5, height = 8.5, useDingbats = FALSE)
+  
 }
