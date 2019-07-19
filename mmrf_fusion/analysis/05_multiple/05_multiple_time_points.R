@@ -129,16 +129,16 @@ if (TRUE) {
           panel.grid.minor = element_blank(),
           axis.text = element_text(size = 8),
           axis.ticks = element_blank(),
-          axis.title = element_text(size = 12),
+          axis.title = element_text(size = 10),
           legend.background = element_blank(),
           legend.text = element_text(size = 10))
   
     ggsave(str_c(paper_main, "multiple_timepoints.bm.pdf"),
            p,
-           device = "pdf", width = 3.5, height = 3.5, useDingbats = FALSE)
+           device = "pdf", width = 2.75, height = 7.5, useDingbats = FALSE)
     ggsave(str_c(paper_main, "multiple_timepoints.bm.no_legend.pdf"),
            p + guides(size = FALSE, color = FALSE),
-           device = "pdf", width = 3.5, height = 3.5, useDingbats = FALSE)
+           device = "pdf", width = 2.75, height = 2.75, useDingbats = FALSE)
   
   q <- stp_bmpb_samples %>% 
     rowwise() %>%
@@ -170,16 +170,16 @@ if (TRUE) {
           panel.grid.minor = element_blank(),
           axis.text = element_text(size = 8),
           axis.ticks = element_blank(),
-          axis.title = element_text(size = 12),
+          axis.title = element_text(size = 10),
           legend.background = element_blank(),
           legend.text = element_text(size = 10))
   
   ggsave(str_c(paper_main, "same_timepoints.bmpb.pdf"),
          q,
-         device = "pdf", width = 3.5, height = 3.5, useDingbats = FALSE)
+         device = "pdf", width = 2.75, height = 7.5, useDingbats = FALSE)
   ggsave(str_c(paper_main, "same_timepoints.bmpb.no_legend.pdf"),
          q + guides(size = FALSE, color = FALSE),
-         device = "pdf", width = 3.5, height = 3.5, useDingbats = FALSE)
+         device = "pdf", width = 2.75, height = 2.75, useDingbats = FALSE)
   
   # plot it 
   keep_these_mmrfs <- fusions_all %>% 
@@ -420,23 +420,23 @@ if (TRUE) {
                        labels = c("0", "0.25", "0.50", "0.75", "1.00")) +
     scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25), 
                        labels = c("0", "0.25", "0.50", "0.75", "1.00")) +
-    scale_color_brewer(palette = "Dark2") +
+    scale_color_brewer(palette = "Dark2", na.value = "#bdbdbd") +
     guides(color = FALSE) +
     theme_bw() +
     theme(panel.background = element_blank(),
           panel.grid.minor = element_blank(),
           panel.border = element_blank(),
           axis.ticks = element_blank(),
-          strip.text = element_blank(),
+          #strip.text = element_blank(),
           strip.background = element_blank(),
           axis.text = element_text(size = 8),
           axis.title = element_text(size = 12))
   
   ggsave(str_c(paper_main, "fusions.pdf"), p + guides(color = FALSE),
-         width = 7.25, height = 7.25/8, useDingbats = FALSE)
+         width = 7.25, height = 1.5, useDingbats = FALSE)
   
   ggsave(str_c(paper_main, "mutations.pdf"), q,
-         width = 7.25, height = 7.25/4, useDingbats = FALSE)
+         width = 7.25, height = 7.25/3, useDingbats = FALSE)
   
   x <- keep_these_srrs %>% 
     left_join(fusions_all, by = c("mmrf", "srr")) %>%
