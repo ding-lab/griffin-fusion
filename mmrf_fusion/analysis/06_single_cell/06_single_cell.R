@@ -1049,22 +1049,18 @@ if (TRUE) {
                          chr4_gene_spans %>% pull(start) %>% max(),
                          chr4_gene_spans %>% pull(end) %>% max())
     
-    p <- ggplot(data = bulk_sc_plot_df) +
+    p <- ggplot(data = bulk_sc_plot_df %>% arrange(data_type)) +
       coord_cartesian(ylim = c(-2, 2)) +
       scale_y_continuous(limits = c(-2, 2)) +
       scale_x_continuous(breaks = shifted_gene_boundaries,
                          labels = gene_boundaries) +
-      # transcription direction arrows
-      geom_curve(inherit.aes = FALSE, x = 6e3, xend = 6e3, y = 0.45, yend = -0.45, curvature = 1, ncp = 10, lineend = "round", show.legend = FALSE, arrow = arrow(angle = 45, length = unit(0.05, "inches"), type = "open"), color = "#969696") +
-      geom_curve(inherit.aes = FALSE, x = -6e3, xend = -6e3, y = -0.45, yend = 0.45, curvature = 1, ncp = 10, lineend = "round", show.legend = FALSE, arrow = arrow(angle = -45, length = unit(0.05, "inches"), type = "open"), color = "#969696") +
-      annotate(geom = "text", x = -6e3, y = 0, label = "Direction of\nTranscription", size = 2, color = "#969696") +
       #chr14 genes
       geom_rect(data = chr14_gene_spans,
                 aes(xmin = shifted_chr14_start, 
                     xmax = shifted_chr14_end,
                     ymin = 0.5, 
                     ymax = 1.75),
-                fill = "#d9d9d9",
+                fill = "#bdbdbd",
                 alpha = 1) +
       #chr4 genes
       geom_segment(x = min_whsc1_hg38 + chr4_shift, 
@@ -1080,37 +1076,20 @@ if (TRUE) {
                     xmax = stop + chr4_shift),
                 inherit.aes = FALSE,
                 color = NA, 
-                fill = "#d9d9d9")
-      if (plot_star_fusion_reads) {
-        # draw bulk read curves
-        p <- p + geom_curve(data = bulk_sc_plot_df %>%
-                              filter(data_type == "Bulk Spanning/Junction Read Pair") %>%
-                              arrange(str_detect(fusion, "IGH")),
-                            aes(x = chr14_position + chr14_shift, 
-                                xend = chr4_position + chr4_shift,
-                                linetype = reciprocal,
-                                y = 0.5,
-                                yend = -0.5),
-                            color = "#0868ac",
-                            curvature = 0,
-                            ncp = 10,
-                            alpha = 0.5,
-                            lineend = "round")
-      } else {
-        # draw sc read curves
-        p <- p + geom_curve(data = bulk_sc_plot_df %>% 
-                              filter(data_type == "Single Cell Chimeric Transcript"),
-                            aes(x = chr14_position + chr14_shift, 
-                                xend = chr4_position + chr4_shift,
-                                y = 0.5,
-                                yend = -0.5),
-                            color = "#0868ac",
-                            curvature = 0,
-                            ncp = 10,
-                            lineend = "round",
-                            alpha = 0.5,
-                            show.legend = FALSE)
-      }
+                fill = "#bdbdbd")
+    
+    p <- p + geom_curve(#data = bulk_sc_plot_df, # %>% arrange(data_type),
+                        aes(x = chr14_position + chr14_shift, 
+                            xend = chr4_position + chr4_shift,
+                            linetype = data_type,
+                            y = 0.5,
+                            yend = -0.5,
+                            color = data_type),
+                        curvature = 0,
+                        ncp = 10,
+                        #alpha = 0.5,
+                        lineend = "round")
+    
     # label chr4 genes
     p <- p + geom_text(data = chr4_gene_spans,
                        aes(x = (shifted_chr4_end + shifted_chr4_start)/2,
@@ -1123,13 +1102,18 @@ if (TRUE) {
       annotate(geom = "text", x = 0 + 1e3, y = 2, label = chr14_breakpoint, hjust = 0, vjust = 1) +
       annotate(geom = "text", x = 0 - 1e3, y = -2, label = "chr4", hjust = 1, vjust = 0) +
       annotate(geom = "text", x = 0 - 1e3, y = 2, label = "chr14", hjust = 1, vjust = 1) +
+      # transcription direction arrows
+      geom_curve(inherit.aes = FALSE, x = 6e3, xend = 6e3, y = 0.45, yend = -0.45, curvature = 1, ncp = 10, lineend = "round", show.legend = FALSE, arrow = arrow(angle = 45, length = unit(0.05, "inches"), type = "open"), color = "#980043") +
+      geom_curve(inherit.aes = FALSE, x = -6e3, xend = -6e3, y = -0.45, yend = 0.45, curvature = 1, ncp = 10, lineend = "round", show.legend = FALSE, arrow = arrow(angle = -45, length = unit(0.05, "inches"), type = "open"), color = "#980043") +
+      annotate(geom = "text", x = -6.75e3, y = 0, label = "Direction of\nTranscription", size = 2, color = "#980043") +
       # colors
-      scale_color_brewer(palette = "Paired") +
+      scale_linetype_manual(values = c(2,1)) +
+      scale_color_manual(values = c("#a6cee3", "#33a02c")) +
       scale_fill_brewer(palette = "Accent") +
       labs(y = NULL,
            x = "Genomic Coordinates (GRCh38)",
-        color = color_indicates,
-           linetype = "Reciprocal Fusion") +
+           color = "Data Source",
+           linetype = "Data Source") +
       theme_bw() +
       theme(panel.background = element_blank(),
             panel.grid.minor = element_blank(),
@@ -1148,7 +1132,7 @@ if (TRUE) {
     
     ggsave(str_c(dir, "/", id, ".discordant_read_positions.main.no_legend.pdf"),
            p + guides(color = FALSE, linetype = FALSE, fill = FALSE),
-           width = 7.25, height = 3.25,
+           width = 7.25, height = 2.75,
            useDingbats = FALSE)
   }
   
@@ -1163,7 +1147,7 @@ if (TRUE) {
     bulk_sc_plot_df_27522_1 <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_1, sc_chimeric_transcripts_27522_1)
     
     plot_bulk_sc_27522_main_figure(bulk_sc_plot_df_27522_1_SF_only, id = "27522_1", bulk_color = FALSE, dir = str_c(paper_main, "27522_1"), plot_star_fusion_reads = FALSE)
-    plot_bulk_sc_27522_main_figure(bulk_sc_plot_df_27522_1_SF_only, id = "27522_1.bulk", bulk_color = FALSE, dir = str_c(paper_main, "27522_1"), plot_star_fusion_reads = TRUE)
+    #plot_bulk_sc_27522_main_figure(bulk_sc_plot_df_27522_1_SF_only, id = "27522_1.bulk", bulk_color = FALSE, dir = str_c(paper_main, "27522_1"), plot_star_fusion_reads = TRUE)
     plot_bulk_sc_27522(bulk_sc_plot_df_27522_1_SF_only, id = "27522_1", bulk_color = FALSE, dir = str_c(paper_supp, "27522_1"))
     
     plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_1_SF_only, 
