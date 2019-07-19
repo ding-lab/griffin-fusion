@@ -1788,5 +1788,5 @@ if (TRUE) {
           legend.position = "bottom"
     ) +
     ggsave(str_c(paper_supp, "CBX7--CSNK1E.expression.pdf"),
-           width = 6, height = 6, useDingbats = FALSE)  
+           width = 7.5, height = 7.5, useDingbats = FALSE)  
 }

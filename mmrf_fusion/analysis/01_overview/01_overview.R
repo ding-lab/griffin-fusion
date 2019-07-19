@@ -784,7 +784,7 @@ if (TRUE) {
           strip.background = element_blank(),
           strip.text = element_text(size = 12)) +
     ggsave(str_c(paper_supp, "histogram_n_fusions_per_sample.pdf"), 
-           device = "pdf", width = 10, height = 5, useDingbats = FALSE)
+           device = "pdf", width = 7.25, height = 5, useDingbats = FALSE)
   
   # Plot frequency of number of fusions per sample
   
@@ -916,7 +916,7 @@ if (TRUE) {
   names(upsetr_df) <- c("EricScript", "FusionCatcher", "INTEGRATE", 
                         "PRADA", "STAR-Fusion")
   pdf(file = str_c(paper_supp, "tool_overlap.upsetr.pdf"), 
-     width = 8.5, height = 5, useDingbats = FALSE)
+     width = 7.25, height = 5, useDingbats = FALSE)
   upset(upsetr_df, nsets = ncol(upsetr_df), nintersects = NA, order.by = "freq",
         set_size.angles = 90,
         text.scale = 1.5, point.size = 3, line.size = 1)

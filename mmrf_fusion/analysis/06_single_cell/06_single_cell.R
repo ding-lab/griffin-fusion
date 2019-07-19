@@ -163,7 +163,7 @@ plot_cell_types <- function(cell_types, seurat_object, reduction = "UMAP", id, d
                 size = 3.5) +
     theme_bw() +
     coord_fixed() +
-    scale_color_brewer(palette = "Paired", drop = FALSE, direction = -1) +
+    scale_color_brewer(palette = "Set3", drop = FALSE, direction = -1) +
     scale_x_continuous(expand = c(0.01, 0.01)) +
     scale_y_continuous(expand = c(0.01, 0.01)) +
     theme(panel.background = element_blank(),
@@ -534,7 +534,7 @@ plot_cell_chimeric_transcripts <- function(bulk_sc, tsne_umap, reduction = "UMAP
                         size = 1.5, 
                         alpha = 1) +
       labs(color = "Chimeric\nTranscript\nDetected") +
-      scale_color_manual(values = c("#ccebc5", "#0868ac"))
+      scale_color_manual(values = c("#e7e1ef", "#dd1c77"))
   } else {
     p <- p + geom_point(aes(color = color_column),
                         shape = 16, 
@@ -1103,9 +1103,9 @@ if (TRUE) {
       annotate(geom = "text", x = 0 - 1e3, y = -2, label = "chr4", hjust = 1, vjust = 0) +
       annotate(geom = "text", x = 0 - 1e3, y = 2, label = "chr14", hjust = 1, vjust = 1) +
       # transcription direction arrows
-      geom_curve(inherit.aes = FALSE, x = 6e3, xend = 6e3, y = 0.45, yend = -0.45, curvature = 1, ncp = 10, lineend = "round", show.legend = FALSE, arrow = arrow(angle = 45, length = unit(0.05, "inches"), type = "open"), color = "#980043") +
-      geom_curve(inherit.aes = FALSE, x = -6e3, xend = -6e3, y = -0.45, yend = 0.45, curvature = 1, ncp = 10, lineend = "round", show.legend = FALSE, arrow = arrow(angle = -45, length = unit(0.05, "inches"), type = "open"), color = "#980043") +
-      annotate(geom = "text", x = -6.75e3, y = 0, label = "Direction of\nTranscription", size = 2, color = "#980043") +
+      geom_curve(inherit.aes = FALSE, x = 6e3, xend = 6e3, y = 0.45, yend = -0.45, curvature = 1, ncp = 10, lineend = "round", show.legend = FALSE, arrow = arrow(angle = 45, length = unit(0.05, "inches"), type = "open"), color = "#000000") +
+      geom_curve(inherit.aes = FALSE, x = -6e3, xend = -6e3, y = -0.45, yend = 0.45, curvature = 1, ncp = 10, lineend = "round", show.legend = FALSE, arrow = arrow(angle = -45, length = unit(0.05, "inches"), type = "open"), color = "#000000") +
+      annotate(geom = "text", x = -6.75e3, y = 0, label = "Direction of\nTranscription", size = 2, color = "#000000") +
       # colors
       scale_linetype_manual(values = c(2,1)) +
       scale_color_manual(values = c("#a6cee3", "#33a02c")) +

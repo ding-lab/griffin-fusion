@@ -618,7 +618,7 @@ if (TRUE) {
           axis.text.x = element_text(size = 10, angle = 90, vjust = 0.5, hjust = 1),
           axis.title = element_text(size = 12)) +
     ggsave(str_c(paper_supp, "TCGA_kinase_fusions.pdf"),
-           width = 7.5, height = 9)
+           width = 7.25, height = 7)
   
 }
 
