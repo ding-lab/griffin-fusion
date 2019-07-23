@@ -893,7 +893,7 @@ if (TRUE) {
           axis.title = element_text(size = 12),
           axis.text.y = element_text(face = "italic", size = 10),
           legend.position = "bottom") +
-    labs(x = NULL, fill = NULL, y = "Number of Fusions Detected (per Fusion)")
+    labs(x = NULL, fill = NULL, y = "Top Recurrent Validated Fusions (Number of Samples)")
     
   ggsave(str_c(paper_main, "top_recurrent_validated_fusions.pdf"), p,
            device = "pdf", width = 7.25, height = 7.25/1.618, useDingbats = FALSE)

@@ -1241,7 +1241,7 @@ if (TRUE) {
     
     p <- p + labs(x = str_c(gene_list[1], " Expression TPM (log10)"),
                   y = str_c(gene_list[2], " Expression TPM (log10)"), 
-                  color = "Fusion status",
+                  color = "Fusion Status",
                   shape = translocation_formatted)
     
     p <- p + theme_bw()
@@ -1723,7 +1723,7 @@ if (TRUE) {
     scale_x_continuous(limits = c(0,1), expand = c(0, 0.1)) +
     scale_color_manual(values = c(brewer.pal(length(recurrent_3p_intact_kinases), "Dark2"), "#000000")) +
     geom_text(data = cor_tibble, aes(x = .99, y = 0.01, label = str_c("cor = ", round(c, 2))), vjust = 0, hjust = 1, color = "blue", size = 2.5) +
-    labs(x = "5' Gene Expression Percentile", y = "3' Expression Percentile") +
+    labs(x = "5' Gene Expression Percentile", y = "3' Intact Kinase Expression Percentile") +
     theme_bw() +
     theme(panel.background = element_blank(),
           panel.border = element_blank(),
@@ -1788,5 +1788,5 @@ if (TRUE) {
           legend.position = "bottom"
     ) +
     ggsave(str_c(paper_supp, "CBX7--CSNK1E.expression.pdf"),
-           width = 7.5, height = 7.5, useDingbats = FALSE)  
+           width = 3.5, height = 3.5, useDingbats = FALSE)  
 }

@@ -515,11 +515,9 @@ if (TRUE) {
           axis.title = element_text(size = 12)
     )
   
-  ggsave(str_c(paper_supp, "kinase_groups.with_legend.pdf"), p, 
-         width = 7.25, height = 7.25/1.618, useDingbats = FALSE)
   ggsave(str_c(paper_supp, "kinase_groups.without_legend.pdf"), 
          p + guides(fill = FALSE), 
-         width = 7.25, height = 7.25/1.618, useDingbats = FALSE)
+         width = 7.25, height = 3.5, useDingbats = FALSE)
   
 }
 

@@ -203,7 +203,7 @@ if (TRUE) {
               fill = "#3182bd")
   
   ggsave(str_c(paper_supp, "igh_whsc1_fusion_breakpoints.pdf"), p,
-         width = 7.25, height = 3)
+         width = 7.25, height = 3, useDingbats = FALSE)
   
   
   q <- ggplot(plot_df, aes(x = chr14_genome_position/1e6, y = chr4_genome_position/1e6)) +
@@ -232,7 +232,45 @@ if (TRUE) {
               fill = "#3182bd")
 
   ggsave(str_c(paper_supp, "igh_whsc1_genome_breakpoints.pdf"), q,
-         width = 7.25, height = 3)
+         width = 7.25, height = 3, useDingbats = FALSE)
+  
+  r <- ggplot(plot_df, aes(x = chr4_genome_position/1e6, y = posB/1e6)) +
+    geom_abline(linetype = 2, color = "grey50") +
+    geom_point(shape = 3, alpha = 1) +
+    labs(x = "WHSC1 Genome Breakpoint (chr4 Mb)", 
+         y = "WHSC1 Fusion Breakpoint (chr4 Mb)") +
+    coord_cartesian(ylim = c(1.83, 1.92),
+                    xlim = c(1.83, 1.92)) +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          #axis.text.x = element_text(angle = 90, vjust = 0.5),
+          strip.background = element_blank(),
+          strip.text = element_text(size = 10),
+          axis.text = element_text(size = 8),
+          axis.title = element_text(size = 10),
+          legend.position = "bottom") +
+    geom_segment(x = 1.84, xend = 1.84, y = min_whsc1, yend = Inf, color = "#9ecae1") +
+    geom_rect(data = whsc1_tx,
+              aes(ymin = start/1e6, 
+                  ymax = stop/1e6, 
+                  xmin = 1.84 - .0025,
+                  xmax = 1.84 + .0025),
+              inherit.aes = FALSE,
+              color = NA, 
+              fill = "#3182bd") +
+    geom_segment(y = 1.84, yend = 1.84, x = min_whsc1, xend = Inf, color = "#9ecae1") +
+    geom_rect(data = whsc1_tx,
+              aes(xmin = start/1e6, 
+                  xmax = stop/1e6, 
+                  ymin = 1.84 - .0025,
+                  ymax = 1.84 + .0025),
+              inherit.aes = FALSE,
+              color = NA, 
+              fill = "#3182bd")
+  
+  ggsave(str_c(paper_supp, "whsc1_genome_fusion_breakpoints.pdf"), r,
+         width = 3.5, height = 3.5, useDingbats = FALSE)
   
 }
 
