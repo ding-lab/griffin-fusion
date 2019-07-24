@@ -269,8 +269,8 @@ if (TRUE) {
               color = NA, 
               fill = "#3182bd")
   
-  ggsave(str_c(paper_supp, "whsc1_genome_fusion_breakpoints.pdf"), r,
-         width = 3.5, height = 3.5, useDingbats = FALSE)
+  ggsave(str_c(paper_main, "whsc1_genome_fusion_breakpoints.pdf"), r,
+         width = 4.5, height = 4.5, useDingbats = FALSE)
   
 }
 
@@ -440,7 +440,7 @@ if (TRUE) {
           strip.background = element_blank(),
           strip.placement = "outside",
           axis.ticks = element_blank(),
-          axis.text = element_text(size = 8),) +
-    ggsave(str_c(paper_main, "PVT1_MYC.breakpoints.pdf"),
-           width = 4.5, height = 4.5, useDingbats = FALSE)
+          axis.text = element_text(size = 8)) +
+    ggsave(str_c(paper_supp, "PVT1_MYC.breakpoints.pdf"),
+           width = 3.5, height = 3.5, useDingbats = FALSE)
 }

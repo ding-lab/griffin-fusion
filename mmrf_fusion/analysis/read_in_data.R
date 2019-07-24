@@ -48,13 +48,13 @@ fusions_hard_primary <- fusions_hard_all %>%
 wgs_discordant_read_validation_rate <- fusions_primary %>% 
   filter(!is.na(n_discordant), 
          Overlap != "Overlapping_regions") %>% 
-  mutate(validated = n_discordant >= 1) %>%
+  mutate(validated = n_discordant >= 3) %>%
   pull(validated) %>% mean()
 
 significantly_under_validated_fusions <- fusions_primary %>% 
   filter(!is.na(n_discordant), 
          Overlap != "Overlapping_regions") %>% 
-  mutate(validated = n_discordant >= 1) %>% 
+  mutate(validated = n_discordant >= 3) %>% 
   group_by(fusion) %>% 
   summarize(n = n(), n_validated = sum(validated)) %>%
   arrange(desc(n)) %>%

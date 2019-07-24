@@ -849,7 +849,7 @@ if (TRUE) {
   keep_fusions <- fusions_primary %>% group_by(fusion) %>% 
     summarize(count = n(), 
               n_not_na = sum(!is.na(n_discordant)), 
-              n_validated = sum(!is.na(n_discordant) & n_discordant > 0)) %>% 
+              n_validated = sum(!is.na(n_discordant) & n_discordant >= 3)) %>% 
     filter(n_not_na > 1) %>%
     mutate(validation_pct = 100*n_validated/n_not_na) %>%
     filter(n_validated >= 1) %>% pull(fusion)
@@ -864,7 +864,7 @@ if (TRUE) {
                               TRUE ~ fusion)) %>%
     select(fusion, n_discordant) %>% 
     mutate(validation_status = case_when(is.na(n_discordant) ~ "Not Available", 
-                                         n_discordant > 0 ~ "WGS Validated", 
+                                         n_discordant >= 3 ~ "WGS Validated", 
                                          TRUE ~ "Not Validated" )) %>% 
     group_by(fusion, validation_status) %>% 
     summarize(count = n())

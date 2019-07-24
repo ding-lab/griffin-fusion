@@ -342,7 +342,7 @@ if (TRUE) {
     select(mmrf, visit, srr, data_type, variant_type, Hugo_Symbol, detection_level) %>%
     rename("variant" = "Hugo_Symbol")
   
-  mmrf_to_plot <- c("MMRF_1433", "MMRF_1783", "MMRF_2401", "MMRF_2490", "MMRF_1496")
+  mmrf_to_plot <- c("MMRF_1433", "MMRF_1496", "MMRF_1656", "MMRF_2490")
   
   fusion_plot_df <- mtp_fusions_with_fusions %>% 
     filter(mmrf %in% mmrf_to_plot) %>% 
@@ -415,7 +415,7 @@ if (TRUE) {
     geom_label_repel(fontface = "italic") +
     facet_wrap(~mmrf, nrow = 1) +
     labs(x = "Visit 1 Variant Allele Frequency (VAF)", 
-         y = "Visit 2 VAF") +
+         y = "Visit 2, 3, or 4 VAF") +
     scale_y_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25), 
                        labels = c("0", "0.25", "0.50", "0.75", "1.00")) +
     scale_x_continuous(limits = c(0, 1), breaks = seq(0, 1, 0.25), 
@@ -436,7 +436,7 @@ if (TRUE) {
          width = 7.25, height = 1.5, useDingbats = FALSE)
   
   ggsave(str_c(paper_main, "mutations.pdf"), q,
-         width = 7.25, height = 2, useDingbats = FALSE)
+         width = 7.25, height = 2.25, useDingbats = FALSE)
   
   x <- keep_these_srrs %>% 
     left_join(fusions_all, by = c("mmrf", "srr")) %>%

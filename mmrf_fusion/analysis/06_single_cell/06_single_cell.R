@@ -534,7 +534,7 @@ plot_cell_chimeric_transcripts <- function(bulk_sc, tsne_umap, reduction = "UMAP
                         size = 1.5, 
                         alpha = 1) +
       labs(color = "Chimeric\nTranscript\nDetected") +
-      scale_color_manual(values = c("#e7e1ef", "#dd1c77"))
+      scale_color_manual(values = c("#d9d9d9", "#ff00ff"))
   } else {
     p <- p + geom_point(aes(color = color_column),
                         shape = 16, 
