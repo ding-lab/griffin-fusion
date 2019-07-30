@@ -1357,7 +1357,7 @@ if (TRUE) {
     geom_histogram(binwidth = 10000/1e6) + 
     facet_wrap( ~ my_facet, ncol = 1, scales = "free_y") +
     labs(fill = "'Partner' Gene",
-         x = "Genomic Coordinates (Mb) (GRCh38)",
+         x = "IGH chr14 Genomic Coordinates (Mb) (GRCh38)",
          y = "Number of 'Chimeric Transcripts'") +
     theme_bw() +
     ggsave(str_c(paper_supp, "single_cell_QC.pdf"), width = 7.5, height = 8.5, useDingbats = FALSE)
