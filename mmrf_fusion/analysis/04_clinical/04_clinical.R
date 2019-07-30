@@ -112,7 +112,7 @@ if (TRUE) {
   n_tests_genes <- 1
   
   for (this_fusion in fusions_gt2) {
-    print(this_fusion)
+    #print(this_fusion)
     
     EFS_tibble <- seqfish_clinical_info %>%
       filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
@@ -152,7 +152,7 @@ if (TRUE) {
     }
   
   for (this_gene in genes_gt2) {
-    print(this_gene)
+    #print(this_gene)
     
     EFS_tibble <- seqfish_clinical_info %>%
       filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
@@ -193,8 +193,8 @@ if (TRUE) {
     }
   }
   
-  print(coxph_model_EFS_list %>% names())
-  print(coxph_model_Death_list %>% names())
+  #print(coxph_model_EFS_list %>% names())
+  #print(coxph_model_Death_list %>% names())
   
   # Make EFS survival figures for IGH--WHSC1 and PVT1--IGL/MYC--IGL
   plot_survival_list <- list()
@@ -597,6 +597,8 @@ if (TRUE) {
     summarize(count2 = n()) %>%
     filter(!is.na(Cancer))
   
+  n_3p_kinase_cancer_types <- plot_df %>% pull(Cancer) %>% unique() %>% length()
+  
   ggplot(data = plot_df, aes(y = geneB_mmrf_count, x = Cancer)) + 
     geom_tile(aes(fill = factor(count2))) + 
     geom_text(data = plot_df %>% filter(count2 < 6), aes(label = count2),
@@ -650,3 +652,20 @@ if (TRUE) {
            width = 7.25, height = 3)
 }
 
+# ==============================================================================
+# Fusion druggable/clinical paragraph output
+# ==============================================================================
+n_tcga_ntrk1 <- pancan_fusions %>% 
+  filter(str_detect(Fusion, pattern = "--NTRK1")) %>%
+  pull(Cancer) %>% unique() %>% length()
+print(str_c("Number of TCGA cancer types with 3' NTRK1 fusion: ", n_tcga_ntrk1))
+print("Number of fusion genes in DEPO. All sensitive?")
+drug_df %>% pull(Effect) %>% table() %>% print()
+print("Example: BRAF fusions are druggable:")
+drug_df %>% filter(gene == "BRAF") %>% print()
+print(str_c("Number of TCGA cancer types with overlapping 3' kinase: ", n_3p_kinase_cancer_types))
+print("Info for NTRK1 story: ")
+fusions_all %>% filter(geneB == "NTRK1") %>% 
+  select(mmrf, srr, fusion, sample_number, has_secondary, visit_number, 
+         LeftBreakpoint, RightBreakpoint, PROT_FUSION_TYPE, Callers, n_discordant, 
+         geneA_pct, geneB_pct, geneA_log2ratio_cnv, geneB_log2ratio_cnv) %>% print()

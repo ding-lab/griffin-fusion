@@ -79,7 +79,7 @@ if (TRUE) {
                      seed = 10, 
                      pretty = TRUE)
   
-  # Panel B look at FGFR3 CNV
+  # WHSC1 FGFR3 CNV
   p <- bind_cols(expression_primary %>% filter(gene == "FGFR3") %>% 
                    select(mmrf, log10tpm, pct, gene_avg_cnv), 
                  expression_primary %>% filter(gene == "WHSC1") %>% 
@@ -171,6 +171,14 @@ if (TRUE) {
     mutate(high_expression = case_when(log10(tpm + 1) > 1 ~ "FGFR3 Expression High",
                                        TRUE ~ "FGFR3 Expression Low")) %>%
     ungroup()
+  
+  n_samples_with_IGHWHSC1_wgs_breakpoint <- plot_df %>% nrow()
+  igh_breakpoint_max <- plot_df %>% pull(chr14_genome_position) %>% max()
+  igh_breakpoint_min <- plot_df %>% pull(chr14_genome_position) %>% min()
+  whsc1_breakpoint_max <- plot_df %>% pull(chr4_genome_position) %>% max()
+  whsc1_breakpoint_min <- plot_df %>% pull(chr4_genome_position) %>% min()
+  igh_breakpoint_range <- (igh_breakpoint_max - igh_breakpoint_min)/1e6
+  whsc1_breakpoint_range <- (whsc1_breakpoint_max - whsc1_breakpoint_min)/1e6
   
   min_chr14 <- min(min(plot_df$posA), min(plot_df$chr14_genome_position))/1e6
   max_chr14 <- max(max(plot_df$posA), max(plot_df$chr14_genome_position))/1e6
@@ -444,3 +452,82 @@ if (TRUE) {
     ggsave(str_c(paper_supp, "PVT1_MYC.breakpoints.pdf"),
            width = 3.5, height = 3.5, useDingbats = FALSE)
 }
+
+# ==============================================================================
+# Fusion WHSC1/MYC paragraph output
+# ==============================================================================
+n_whsc1_fgfr3 <- fusions_primary %>% 
+  filter(fusion %in% c("IGH--WHSC1", "IGH--FGFR3", 
+                       "WHSC1--IGH", "FGFR3--IGH")) %>% 
+  select(mmrf, srr) %>% 
+  unique() %>% 
+  left_join(expression_primary %>% filter(gene == "FGFR3"), by = "mmrf") %>% 
+  nrow()
+n_whsc1_fgfr3_high <- fusions_primary %>% 
+  filter(fusion %in% c("IGH--WHSC1", "IGH--FGFR3", 
+                       "WHSC1--IGH", "FGFR3--IGH")) %>% 
+  select(mmrf, srr) %>% 
+  unique() %>% 
+  left_join(expression_primary %>% filter(gene == "FGFR3"), by = "mmrf") %>% 
+  filter(log10tpm > 1) %>% 
+  nrow()
+n_with_high_fgfr3 <- expression_primary %>% 
+  filter(gene == "FGFR3", log10tpm > 1) %>% 
+  nrow()
+n_with_high_fgfr3_and_mutation_calls <- samples_primary %>% 
+  left_join(samples_all, by = "srr") %>% 
+  mutate(Tumor_Sample_Barcode = str_c(mmrf.x, "_", visit)) %>% 
+  left_join(mutation_calls %>% 
+              select(Tumor_Sample_Barcode, Matched_Norm_Sample_Barcode) %>% 
+              unique(), 
+            by = "Tumor_Sample_Barcode") %>% 
+  left_join(mutation_calls %>% 
+              filter(Hugo_Symbol == "FGFR3", CLIN_SIG == "pathogenic") %>% 
+              select(Hugo_Symbol, Tumor_Sample_Barcode) %>% 
+              unique(), 
+            by = "Tumor_Sample_Barcode") %>% 
+  left_join(expression_primary %>% 
+              filter(gene == "FGFR3"), 
+            by = "srr") %>% 
+  filter(log10tpm > 1, 
+         !is.na(Matched_Norm_Sample_Barcode)) %>% 
+  nrow()
+n_with_high_fgfr3_and_fgfr3_mutation_calls <- samples_primary %>% 
+  left_join(samples_all, by = "srr") %>% 
+  mutate(Tumor_Sample_Barcode = str_c(mmrf.x, "_", visit)) %>% 
+  left_join(mutation_calls %>% 
+              select(Tumor_Sample_Barcode, Matched_Norm_Sample_Barcode) %>% 
+              unique(), 
+            by = "Tumor_Sample_Barcode") %>% 
+  left_join(mutation_calls %>% 
+              filter(Hugo_Symbol == "FGFR3", CLIN_SIG == "pathogenic") %>% 
+              select(Hugo_Symbol, Tumor_Sample_Barcode) %>% 
+              unique(), 
+            by = "Tumor_Sample_Barcode") %>% 
+  left_join(expression_primary %>% 
+              filter(gene == "FGFR3"),
+            by = "srr") %>% 
+  filter(log10tpm > 1, 
+         !is.na(Matched_Norm_Sample_Barcode),
+         Hugo_Symbol == "FGFR3") %>% 
+  nrow()
+n_myc_fusions_with_wgs <- fusions_primary %>% 
+  filter((geneA %in% c("PVT1", "MYC") & geneB %in% c("IGH", "IGK", "IGL")) |
+           (geneB %in% c("PVT1", "MYC") & geneA %in% c("IGH", "IGK", "IGL"))) %>%
+  filter(!is.na(n_discordant)) %>% nrow()
+n_myc_fusions_validated <- fusions_primary %>%
+  filter((geneA %in% c("PVT1", "MYC") & geneB %in% c("IGH", "IGK", "IGL")) |
+           (geneB %in% c("PVT1", "MYC") & geneA %in% c("IGH", "IGK", "IGL"))) %>%
+  filter(!is.na(n_discordant), n_discordant >= 3) %>% nrow()
+print(str_c("WHSC1 fusions with high FGFR3 expression: ",
+            n_whsc1_fgfr3_high, "/", 
+            n_whsc1_fgfr3, " = ", 
+            round(100*n_whsc1_fgfr3_high/n_whsc1_fgfr3, 2), "%"))
+print(str_c("FGFR3 high expression with FGFR3 mutation: ", 
+            n_with_high_fgfr3_and_fgfr3_mutation_calls, "/", 
+            n_with_high_fgfr3_and_mutation_calls, " = ", 
+            round(100*n_with_high_fgfr3_and_fgfr3_mutation_calls/n_with_high_fgfr3_and_mutation_calls, 2), "%"))
+print(str_c("Number of samples with IGH--WHSC1 fusion and WGS breakpoint: ", n_samples_with_IGHWHSC1_wgs_breakpoint))
+print(str_c("IGH chr14 genomic breakpoint range: ", round(igh_breakpoint_range, 2)))
+print(str_c("WHSC1 chr4 genomic breakpoint range: ", round(whsc1_breakpoint_range, 2)))
+print(str_c("MYC/PVT1 IG fusions validated: ", n_myc_fusions_validated, "/", n_myc_fusions_with_wgs, " = ", round(100*n_myc_fusions_validated/n_myc_fusions_with_wgs, 2), "%"))

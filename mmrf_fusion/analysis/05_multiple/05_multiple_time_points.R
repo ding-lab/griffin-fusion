@@ -37,8 +37,8 @@ if (TRUE) {
   
   # Samples with multiple timepoints
   
-  samples_with_multiple_timepoints <- fusions_all %>% 
-    filter(has_secondary == 1) %>% pull(mmrf) %>% unique()
+  #samples_with_multiple_timepoints <- fusions_all %>% 
+  #  filter(has_secondary == 1) %>% pull(mmrf) %>% unique()
 
   # samples with multiple bone marrow samples
   mtp_bm_samples <- samples_all %>% 
@@ -99,7 +99,7 @@ if (TRUE) {
     return(str_c(n_srr1, n_srr2, overlap_srr12, founder_status, sep = ":"))
   }
   
-  p <- mtp_bm_samples %>% 
+  p_df <- mtp_bm_samples %>% 
     rowwise() %>%
     mutate(overlaps = get_fusion_overlap(fusions_all, first_srr, second_srr)) %>%
     separate(overlaps, into = c("n_fusions_srr1", "n_fusions_srr2", "overlap_srr12", "ighwhsc1"), sep = ":") %>%
@@ -110,8 +110,15 @@ if (TRUE) {
                                  ighwhsc1 == "1" ~ "TP1 only",
                                  ighwhsc1 == "2" ~ "TP2 only",
                                  ighwhsc1 == "3" ~ "Both samples")) %>%
-    mutate(igh_whsc1 = factor(igh_whsc1, levels = c("Both samples", "Neither sample", "TP1 only", "TP2 only"), ordered = TRUE)) %>%
-    ggplot(aes(x = n_fusions_srr1, y = n_fusions_srr2)) +
+    mutate(igh_whsc1 = factor(igh_whsc1, levels = c("Both samples", "Neither sample", "TP1 only", "TP2 only"), ordered = TRUE))
+  
+  n_patients_two_bm <- p_df %>% pull(mmrf) %>% unique() %>% length()
+  table_two_bm_ighwhsc1 <- p_df %>% pull(igh_whsc1) %>% table()
+  info_tp1_ighwhsc1_falsenegative <- p_df %>% filter(igh_whsc1 == "TP2 only") %>% 
+    select(mmrf) %>% left_join(expression_primary, by = "mmrf") %>% 
+    filter(gene == "WHSC1") %>% select(mmrf, srr, gene, pct)
+  
+  p <- ggplot(data = p_df, aes(x = n_fusions_srr1, y = n_fusions_srr2)) +
     geom_abline(linetype = 2, color = "grey50") +
     geom_smooth(method = "lm") +
     geom_point(aes(size = overlap_srr12, color = igh_whsc1), shape = 16) +
@@ -140,7 +147,7 @@ if (TRUE) {
            p + guides(size = FALSE, color = FALSE),
            device = "pdf", width = 2.75, height = 2.75, useDingbats = FALSE)
   
-  q <- stp_bmpb_samples %>% 
+  q_df <- stp_bmpb_samples %>% 
     rowwise() %>%
     mutate(overlaps = get_fusion_overlap(fusions_all, first_srr, second_srr)) %>%
     separate(overlaps, into = c("n_fusions_srr1", "n_fusions_srr2", "overlap_srr12", "ighwhsc1"), sep = ":") %>%
@@ -151,8 +158,13 @@ if (TRUE) {
                                  ighwhsc1 == "1" ~ "TP1 only",
                                  ighwhsc1 == "2" ~ "TP2 only",
                                  ighwhsc1 == "3" ~ "Both samples")) %>%
-    mutate(igh_whsc1 = factor(igh_whsc1, levels = c("Both samples", "Neither sample", "TP1 only", "TP2 only"), ordered = TRUE)) %>%
-    ggplot(aes(x = n_fusions_srr1, y = n_fusions_srr2)) +
+    mutate(igh_whsc1 = factor(igh_whsc1, levels = c("Both samples", "Neither sample", "TP1 only", "TP2 only"), ordered = TRUE))
+  
+  n_patients_bmpb <- q_df %>% pull(mmrf) %>% unique() %>% length()
+  n_visits_bmpb <- q_df %>% nrow()
+  cor_bmpb_n_fusions <- cor.test(q_df %>% pull(n_fusions_srr1), q_df %>% pull(n_fusions_srr2))
+    
+  q <- ggplot(data = q_df, aes(x = n_fusions_srr1, y = n_fusions_srr2)) +
     geom_abline(linetype = 2, color = "grey50") +
     geom_smooth(method = "lm") +
     geom_point(aes(size = overlap_srr12, color = igh_whsc1), shape = 16) +
@@ -480,3 +492,17 @@ if (TRUE) {
   ggsave(str_c(paper_main, "multiple_timepoints.no_legend.pdf"), x + guides(fill = FALSE),
          device = "pdf", width = 7.25, height = 3.5, useDingbats = FALSE)
 }
+
+# ==============================================================================
+# Fusion multiple time points paragraph output
+# ==============================================================================
+
+print(str_c("Number of patients with two BM samples: ", n_patients_two_bm))
+print("Table of IGH--WHSC1 fusions detected in BM samples:")
+print(table_two_bm_ighwhsc1)
+print("Info about patient with IGH--WHSC1 only at time point 2:")
+print(info_tp1_ighwhsc1_falsenegative)
+print(str_c("Number of patients with BM and PB samples: ", n_patients_bmpb))
+print(str_c("Number of clinic visits for BM PB comparison: ", n_visits_bmpb))
+print("Correlation between n_fusions BM and PB: ")
+print(cor_bmpb_n_fusions)

@@ -1790,3 +1790,41 @@ if (TRUE) {
     ggsave(str_c(paper_supp, "CBX7--CSNK1E.expression.pdf"),
            width = 3.5, height = 3.5, useDingbats = FALSE)  
 }
+
+# ==============================================================================
+# Fusion expression paragraph output
+# ==============================================================================
+n_significant_expr_genes <- testing_tbl_pvalue_adjusted %>% 
+  filter(event_type == "Fusion Expression" | 
+           event_type == "Fusions Expression Outlier") %>% 
+  filter(median_value > 0.9 | fdr < 0.05) %>% nrow()
+n_significant_expr_genes_interesting <- testing_tbl_pvalue_adjusted %>% 
+  filter(event_type == "Fusion Expression" | 
+           event_type == "Fusions Expression Outlier") %>% 
+  filter(median_value > 0.9 | fdr < 0.05) %>% 
+  filter(event1 %in% unique(sort(c(drivers$X1, kinases2$X1, oncogenes$X1)))) %>%
+  nrow()
+n_whsc1_outlier_no_fusion <- expression_primary %>% 
+  filter(gene == "WHSC1") %>% 
+  filter(outlier_over_tpm == 1) %>% 
+  left_join(fusions_primary %>% 
+              filter(str_detect(fusion, "WHSC1")) %>% 
+              select(mmrf, srr) %>% 
+              unique(), by = "mmrf") %>% 
+  filter(is.na(srr.y)) %>% 
+  nrow()
+kinase_3p_intact_cor <- kinases %>% 
+  filter(KinasePos == "3P_KINASE", KinaseDomain == "Intact") %>% 
+  group_by(KinasePos, KinaseDomain) %>% 
+  summarize(x = cor(geneA_pct, geneB_pct, use = "pairwise.complete.obs")) %>% 
+  ungroup() %>% 
+  pull(x)
+overall_cor <- cor(fusions_primary %>% pull(geneA_pct), 
+                   fusions_primary %>% pull(geneB_pct), 
+                   use = "pairwise.complete.obs")
+print(str_c("Significantly overexpressed genes: ", n_significant_expr_genes))
+print(str_c("Significantly overexpressed genes of interest: ", n_significant_expr_genes_interesting))
+print(str_c("WHSC1 expression outlier but no WHSC1 fusion: ", n_whsc1_outlier_no_fusion))
+print(str_c("Correlation of 3' intact kinase expression: ", round(kinase_3p_intact_cor, 3)))
+print(str_c("Correlation of all expression: ", round(overall_cor, 3)))
+      

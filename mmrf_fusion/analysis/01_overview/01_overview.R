@@ -290,6 +290,15 @@ if (TRUE) {
   n_samples_wgs <- file_locations %>% filter(X14 != "NA,NA") %>% nrow()
   n_samples_wgs_na <- file_locations %>% filter(X14 == "NA,NA") %>% nrow()
   
+  print(str_c("Number of patients: ", n_samples_primary))
+  print(str_c("Number with WGS: ", n_samples_wgs, "/", n_samples_primary, " = ", round(100*n_samples_wgs/n_samples_primary, digits = 1), "%"))
+  print(str_c("Number with additional samples: ", samples_all %>% 
+                group_by(mmrf) %>% 
+                summarize(count = n()) %>% 
+                filter(count > 1) %>% 
+                nrow()))
+  print(str_c("Number of total RNA samples: ", n_samples_total))
+  
   # ============================================================================
   # Summary table output
   # ============================================================================
@@ -938,3 +947,39 @@ soft_filtered %>%
          "Filter" = "filter") %>%
   arrange(desc(`Fusion Count`), `Filter`) %>%
   write_tsv(str_c(paper_supp, "soft_filtering.tsv"))
+
+# ==============================================================================
+# Fusion overview paragraph output
+# ==============================================================================
+n_igh_whsc1 <- fusions_primary %>% 
+  filter(fusion %in% c("IGH--WHSC1", "WHSC1--IGH")) %>% 
+  pull(srr) %>% unique() %>% length()
+n_igh_whsc1_with_wgs <- fusions_primary %>% 
+  filter(fusion %in% c("IGH--WHSC1")) %>% 
+  filter(!is.na(n_discordant)) %>% 
+  pull(srr) %>% unique() %>% length()
+n_igh_whsc1_validated <- fusions_primary %>% 
+  filter(fusion %in% c("IGH--WHSC1")) %>% 
+  filter(!is.na(n_discordant), n_discordant >= 3) %>% 
+  pull(srr) %>% unique() %>% length()
+n_fusions_with_wgs <- fusions_primary %>% filter(!is.na(n_discordant)) %>% nrow()
+n_fusions_validated <- fusions_primary %>% filter(!is.na(n_discordant), n_discordant >= 3) %>% nrow()
+post_filtering_validation_rate <- n_fusions_validated/n_fusions_with_wgs
+n_igh_fusions <- fusions_primary %>% 
+  filter(geneA %in% c("IGH", "IGK", "IGL") | 
+           geneB %in% c("IGH", "IGK", "IGL")) %>% nrow()
+n_fusions_total <- fusions_primary %>% nrow()
+prop_igh_fusions <- n_igh_fusions/n_fusions_total
+myc_pvt1_ig_fusions <- fusions_primary %>% 
+  filter(geneA %in% c("MYC", "PVT1") & geneB %in% c("IGH", "IGK", "IGL")) %>% 
+  pull(fusion) %>% table() %>% sort()
+print(str_c("IGH WHSC1 fusions: ", n_igh_whsc1, "/", n_samples_primary, " = ", round(100*n_igh_whsc1/n_samples_primary, 1)))
+print(str_c("IGH WHSC1 validated: ", n_igh_whsc1_validated, "/", n_igh_whsc1_with_wgs, " = ", round(100*n_igh_whsc1_validated/n_igh_whsc1_with_wgs, 1)))
+print(str_c("Overall fusion validation rate: ", round(100*post_filtering_validation_rate, 1), "%"))
+print(str_c("Fusions involving IGH/IGK/IGL: ", n_igh_fusions, "/", n_fusions_total, " = ", round(100*prop_igh_fusions, 1), "%"))
+print("MYC or PVT1 and IG fusions: ")
+print(myc_pvt1_ig_fusions)
+print(str_c("Number of fusion tools: (out of ", n_fusions_total, ")"))
+fusions_primary %>% pull(CallerN) %>% table()
+fusions_primary %>% pull(CallerN) %>% table()/n_fusions_total
+print(str_c("Number of significantly undervalidated fusions: ", significantly_under_validated_fusions %>% length()))

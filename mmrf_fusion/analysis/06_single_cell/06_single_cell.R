@@ -1147,7 +1147,6 @@ if (TRUE) {
     bulk_sc_plot_df_27522_1 <- get_bulk_sc_plot_df_27522(bulk_fusion_reads_27522_1, sc_chimeric_transcripts_27522_1)
     
     plot_bulk_sc_27522_main_figure(bulk_sc_plot_df_27522_1_SF_only, id = "27522_1", bulk_color = FALSE, dir = str_c(paper_main, "27522_1"), plot_star_fusion_reads = FALSE)
-    #plot_bulk_sc_27522_main_figure(bulk_sc_plot_df_27522_1_SF_only, id = "27522_1.bulk", bulk_color = FALSE, dir = str_c(paper_main, "27522_1"), plot_star_fusion_reads = TRUE)
     plot_bulk_sc_27522(bulk_sc_plot_df_27522_1_SF_only, id = "27522_1", bulk_color = FALSE, dir = str_c(paper_supp, "27522_1"))
     
     plot_cell_chimeric_transcripts(bulk_sc = bulk_sc_plot_df_27522_1_SF_only, 
@@ -1364,3 +1363,27 @@ if (TRUE) {
     ggsave(str_c(paper_supp, "single_cell_QC.pdf"), width = 7.5, height = 8.5, useDingbats = FALSE)
   
 }
+
+# ==============================================================================
+# Fusion single cells paragraph output
+# ==============================================================================
+n_cells_27522_1 <- get_tsne_umap(cell_types = cell_types_27522_1, 
+                                 seurat_object = seurat_object_27522_1) %>% 
+  nrow()
+cells_27522_1 <- get_tsne_umap(cell_types = cell_types_27522_1, 
+                                    seurat_object = seurat_object_27522_1) %>% 
+  pull(cell_type) %>% table() %>% sort()
+print(str_c("Total number of cells: ", n_cells_27522_1))
+print("Number of cells by cell type:")
+print(cells_27522_1)
+print("Percentage of cells by cell type:")
+print(cells_27522_1/(n_cells_27522_1/100))
+
+n_cells_chimeric_transcripts <- bulk_sc_plot_df_27522_1_SF_only %>% 
+  filter(data_type == "Single Cell Chimeric Transcript") %>% 
+  separate(identifier, into = c("cell", "tx"), sep = ":") %>% 
+  pull(cell) %>% unique() %>% length()
+n_plasma_cells <- get_tsne_umap(cell_types = cell_types_27522_1, 
+                                seurat_object = seurat_object_27522_1) %>% 
+  filter(cell_type == "Plasma Cells") %>% nrow()
+print(str_c("Percentage of plasma cells with chimeric transcript detected: ", n_cells_chimeric_transcripts, "/", n_plasma_cells, " = ", round(100*n_cells_chimeric_transcripts/n_plasma_cells, 2), "%"))
