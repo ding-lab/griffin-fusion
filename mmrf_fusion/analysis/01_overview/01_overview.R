@@ -980,6 +980,6 @@ print(str_c("Fusions involving IGH/IGK/IGL: ", n_igh_fusions, "/", n_fusions_tot
 print("MYC or PVT1 and IG fusions: ")
 print(myc_pvt1_ig_fusions)
 print(str_c("Number of fusion tools: (out of ", n_fusions_total, ")"))
-fusions_primary %>% pull(CallerN) %>% table()
-fusions_primary %>% pull(CallerN) %>% table()/n_fusions_total
+print(fusions_primary %>% pull(CallerN) %>% table())
+print(fusions_primary %>% pull(CallerN) %>% table()/n_fusions_total)
 print(str_c("Number of significantly undervalidated fusions: ", significantly_under_validated_fusions %>% length()))

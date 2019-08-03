@@ -1664,28 +1664,32 @@ if (TRUE) {
 # Intact only
 # Written April 2019 -- Main
 # ==============================================================================
+map3k14_intact_manual_review <- c("SRR1567033", "SRR1567038", "SRR1567063",
+                                  "SRR1587262", "SRR1606185", "SRR2128822",
+                                  "SRR2129791", "SRR3163577", "SRR3163590",
+                                  "SRR4189146", "SRR4189260", "SRR4189769",
+                                  "SRR4189780", "SRR4189926", "SRR4189989")
 
 if (TRUE) {
   
-  cor_tibble <- kinases %>% 
+  cor_tibble <- kinases %>%
+    filter(KinasePos == "3P_KINASE" & 
+             (KinaseDomain == "Intact" | 
+                (geneB == "MAP3K14" & SampleID %in% map3k14_intact_manual_review))) %>% 
     mutate(kinase_expression = case_when(KinasePos == "5P_KINASE" ~ geneA_pct,
                                          KinasePos == "3P_KINASE" ~ geneB_pct)) %>%
-    group_by(KinasePos, KinaseDomain) %>% 
-    summarize(c = cor(geneA_pct, geneB_pct, use = "pairwise.complete.obs")) %>% 
-    ungroup() %>% 
     mutate(KinasePos = case_when(KinasePos == "5P_KINASE" ~ "5' Kinase",
                                  KinasePos == "3P_KINASE" ~ "3' Kinase")) %>%
     mutate(KinaseDomain = case_when(KinaseDomain == "Intact" ~ "Domain Intact",
                                     KinaseDomain == "Disrupted" ~ "Domain Disrupted")) %>%
-    filter(KinaseDomain == "Domain Intact") %>%
-    filter(KinasePos == "3' Kinase")
+    summarize(c = cor(geneA_pct, geneB_pct, use = "pairwise.complete.obs"))
   
   recurrent_3p_intact_kinases <- kinases %>% 
     mutate(KinasePos = case_when(KinasePos == "5P_KINASE" ~ "5' Kinase",
                                  KinasePos == "3P_KINASE" ~ "3' Kinase")) %>%
     mutate(KinaseDomain = case_when(KinaseDomain == "Intact" ~ "Domain Intact",
                                     KinaseDomain == "Disrupted" ~ "Domain Disrupted")) %>%
-    filter(KinaseDomain == "Domain Intact") %>%
+    filter(KinaseDomain == "Domain Intact" | (geneB == "MAP3K14" & SampleID %in% map3k14_intact_manual_review)) %>%
     filter(KinasePos == "3' Kinase") %>% 
     group_by(geneB) %>% 
     summarize(count = n()) %>% 
@@ -1696,7 +1700,7 @@ if (TRUE) {
                                            KinasePos == "3P_KINASE" ~ "3' Kinase")) %>%
     mutate(KinaseDomain = case_when(KinaseDomain == "Intact" ~ "Domain Intact",
                                     KinaseDomain == "Disrupted" ~ "Domain Disrupted")) %>%
-    filter(KinaseDomain == "Domain Intact") %>%
+    filter(KinaseDomain == "Domain Intact" | (geneB == "MAP3K14" & SampleID %in% map3k14_intact_manual_review)) %>%
     filter(KinasePos == "3' Kinase") %>%
     mutate(recurrent_label = case_when(geneB %in% recurrent_3p_intact_kinases ~ geneB,
                                        TRUE ~ "")) %>% #"Not recurrent")) %>%
@@ -1814,8 +1818,9 @@ n_whsc1_outlier_no_fusion <- expression_primary %>%
   filter(is.na(srr.y)) %>% 
   nrow()
 kinase_3p_intact_cor <- kinases %>% 
-  filter(KinasePos == "3P_KINASE", KinaseDomain == "Intact") %>% 
-  group_by(KinasePos, KinaseDomain) %>% 
+  filter(KinasePos == "3P_KINASE" &
+           KinaseDomain == "Intact" | 
+           (geneB == "MAP3K14" & SampleID %in% map3k14_intact_manual_review)) %>% 
   summarize(x = cor(geneA_pct, geneB_pct, use = "pairwise.complete.obs")) %>% 
   ungroup() %>% 
   pull(x)
@@ -1827,4 +1832,3 @@ print(str_c("Significantly overexpressed genes of interest: ", n_significant_exp
 print(str_c("WHSC1 expression outlier but no WHSC1 fusion: ", n_whsc1_outlier_no_fusion))
 print(str_c("Correlation of 3' intact kinase expression: ", round(kinase_3p_intact_cor, 3)))
 print(str_c("Correlation of all expression: ", round(overall_cor, 3)))
-      

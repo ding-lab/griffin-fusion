@@ -585,7 +585,9 @@ if (TRUE) {
 
 if (TRUE) {
   plot_df <- kinases %>% 
-    filter(KinasePos == "3P_KINASE", KinaseDomain == "Intact") %>% 
+    filter(KinasePos == "3P_KINASE" &
+             KinaseDomain == "Intact" |
+             (geneB == "MAP3K14" & SampleID %in% map3k14_intact_manual_review)) %>% 
     group_by(geneB) %>% 
     summarize(mmrf_count = n()) %>%
     mutate(geneB_mmrf_count = str_c(geneB, " (", mmrf_count, ")")) %>%
