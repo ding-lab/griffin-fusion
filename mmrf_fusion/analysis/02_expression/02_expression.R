@@ -1545,6 +1545,16 @@ if (TRUE) {
     fusions_primary %>% filter(geneA %in% hi, drug_geneA == 1) %>% pull(geneA),
     fusions_primary %>% filter(geneB %in% hi, drug_geneB == 1) %>% pull(geneB))))
   
+  samples_with_overexpressed_interesting_genes <- fusions_primary %>%
+    filter(geneA %in% overexpressed_interesting_genes | 
+             geneB %in% overexpressed_interesting_genes) %>%
+    mutate(interesting_gene = case_when(geneA %in% overexpressed_interesting_genes ~ geneA,
+                                        geneB %in% overexpressed_interesting_genes ~ geneB)) %>%
+    select(srr, interesting_gene) %>% 
+    unique() %>%
+    group_by(interesting_gene) %>%
+    summarize(count = n())
+  
   gene_attributes_A <- fusions_primary %>% 
     filter(geneA %in% overexpressed_interesting_genes) %>%
     mutate(gene = geneA) %>%
@@ -1832,3 +1842,5 @@ print(str_c("Significantly overexpressed genes of interest: ", n_significant_exp
 print(str_c("WHSC1 expression outlier but no WHSC1 fusion: ", n_whsc1_outlier_no_fusion))
 print(str_c("Correlation of 3' intact kinase expression: ", round(kinase_3p_intact_cor, 3)))
 print(str_c("Correlation of all expression: ", round(overall_cor, 3)))
+print("This number of samples with fusions in interesting genes:")
+print(samples_with_overexpressed_interesting_genes)
