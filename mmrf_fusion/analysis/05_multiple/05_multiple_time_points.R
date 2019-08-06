@@ -110,7 +110,12 @@ if (TRUE) {
                                  ighwhsc1 == "1" ~ "TP1 only",
                                  ighwhsc1 == "2" ~ "TP2 only",
                                  ighwhsc1 == "3" ~ "Both samples")) %>%
+    rowwise() %>%
+    mutate(min_srr12 = min(n_fusions_srr1, n_fusions_srr2)) %>%
+    ungroup() %>% 
     mutate(igh_whsc1 = factor(igh_whsc1, levels = c("Both samples", "Neither sample", "TP1 only", "TP2 only"), ordered = TRUE))
+  
+  p_df_min_max <- p_df %>% pull(min_srr12) %>% max()
   
   n_patients_two_bm <- p_df %>% pull(mmrf) %>% unique() %>% length()
   table_two_bm_ighwhsc1 <- p_df %>% pull(igh_whsc1) %>% table()
@@ -140,11 +145,40 @@ if (TRUE) {
           legend.background = element_blank(),
           legend.text = element_text(size = 10))
   
+  p_min_overlap <- ggplot(data = p_df, aes(x = min_srr12, y = overlap_srr12)) +
+    geom_abline(linetype = 2, color = "grey50") +
+    geom_smooth(method = "lm") +
+    geom_point(aes(color = igh_whsc1), shape = 16) +
+    geom_point(aes(color = igh_whsc1), shape = 3, size = 2) + 
+    scale_color_brewer(palette = "Set2", drop = FALSE, direction = -1) +
+    scale_size_area(breaks = c(0, 2, 4, 6, 8, 10)) +
+    labs(x = "Minimum Fusions (Time Point 1 or 2)",
+         y = "Overlapping Fusions (Time Point 1 and 2)",
+         size = "Number of\nOverlapping\nFusion Calls",
+         color = "IGH--WHSC1\nDetected") +
+    theme_bw() +
+    xlim(0, p_df_min_max) + ylim(0, p_df_min_max) +
+    theme(plot.background = element_blank(),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.text = element_text(size = 8),
+          axis.ticks = element_blank(),
+          axis.title = element_text(size = 10),
+          legend.background = element_blank(),
+          legend.text = element_text(size = 10))
+  
     ggsave(str_c(paper_main, "multiple_timepoints.bm.pdf"),
            p,
            device = "pdf", width = 2.75, height = 7.5, useDingbats = FALSE)
     ggsave(str_c(paper_main, "multiple_timepoints.bm.no_legend.pdf"),
            p + guides(size = FALSE, color = FALSE),
+           device = "pdf", width = 2.75, height = 2.75, useDingbats = FALSE)
+    ggsave(str_c(paper_supp, "multiple_timepoints.bm.min_overlap.pdf"),
+           p_min_overlap,
+           device = "pdf", width = 2.75, height = 7.5, useDingbats = FALSE)
+    ggsave(str_c(paper_supp, "multiple_timepoints.bm.min_overlap.no_legend.pdf"),
+           p_min_overlap + guides(size = FALSE, color = FALSE),
            device = "pdf", width = 2.75, height = 2.75, useDingbats = FALSE)
   
   q_df <- stp_bmpb_samples %>% 
@@ -158,7 +192,12 @@ if (TRUE) {
                                  ighwhsc1 == "1" ~ "TP1 only",
                                  ighwhsc1 == "2" ~ "TP2 only",
                                  ighwhsc1 == "3" ~ "Both samples")) %>%
+    rowwise() %>%
+    mutate(min_srr12 = min(n_fusions_srr1, n_fusions_srr2)) %>%
+    ungroup() %>% 
     mutate(igh_whsc1 = factor(igh_whsc1, levels = c("Both samples", "Neither sample", "TP1 only", "TP2 only"), ordered = TRUE))
+  
+  q_df_min_max <- q_df %>% pull(min_srr12) %>% max()
   
   n_patients_bmpb <- q_df %>% pull(mmrf) %>% unique() %>% length()
   n_visits_bmpb <- q_df %>% nrow()
@@ -186,11 +225,40 @@ if (TRUE) {
           legend.background = element_blank(),
           legend.text = element_text(size = 10))
   
+  q_min_overlap <- ggplot(data = q_df, aes(x = min_srr12, y = overlap_srr12)) +
+    geom_abline(linetype = 2, color = "grey50") +
+    geom_smooth(method = "lm") +
+    geom_point(aes(color = igh_whsc1), shape = 16) +
+    geom_point(aes(color = igh_whsc1), shape = 3, size = 2) +
+    scale_color_brewer(palette = "Set2", drop = FALSE, direction = -1) +
+    scale_size_area(breaks = c(0, 2, 4, 6, 8, 10)) +
+    labs(x = "Minimum Fusions (PB or BM)",
+         y = "Overlapping Fusions (PB and BM)",
+         size = "Number of\nOverlapping\nFusion Calls",
+         color = "IGH--WHSC1\nDetected") +
+    theme_bw() +
+    xlim(0, q_df_min_max) + ylim(0, q_df_min_max) +
+    theme(plot.background = element_blank(),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          panel.grid.minor = element_blank(),
+          axis.text = element_text(size = 8),
+          axis.ticks = element_blank(),
+          axis.title = element_text(size = 10),
+          legend.background = element_blank(),
+          legend.text = element_text(size = 10))
+  
   ggsave(str_c(paper_main, "same_timepoints.bmpb.pdf"),
          q,
          device = "pdf", width = 2.75, height = 7.5, useDingbats = FALSE)
   ggsave(str_c(paper_main, "same_timepoints.bmpb.no_legend.pdf"),
          q + guides(size = FALSE, color = FALSE),
+         device = "pdf", width = 2.75, height = 2.75, useDingbats = FALSE)
+  ggsave(str_c(paper_supp, "same_timepoints.bmpb.min_overlap.pdf"),
+         q_min_overlap,
+         device = "pdf", width = 2.75, height = 7.5, useDingbats = FALSE)
+  ggsave(str_c(paper_supp, "same_timepoints.bmpb.min_overlap.no_legend.pdf"),
+         q_min_overlap + guides(size = FALSE, color = FALSE),
          device = "pdf", width = 2.75, height = 2.75, useDingbats = FALSE)
   
   # plot it 
