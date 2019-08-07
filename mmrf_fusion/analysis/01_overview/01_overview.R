@@ -971,7 +971,8 @@ n_igh_fusions <- fusions_primary %>%
 n_fusions_total <- fusions_primary %>% nrow()
 prop_igh_fusions <- n_igh_fusions/n_fusions_total
 myc_pvt1_ig_fusions <- fusions_primary %>% 
-  filter(geneA %in% c("MYC", "PVT1") & geneB %in% c("IGH", "IGK", "IGL")) %>% 
+  filter((geneA %in% c("MYC", "PVT1") & geneB %in% c("IGH", "IGK", "IGL")) |
+           (geneB %in% c("MYC", "PVT1") & geneA %in% c("IGH", "IGK", "IGL"))) %>%
   pull(fusion) %>% table() %>% sort()
 print(str_c("IGH WHSC1 fusions: ", n_igh_whsc1, "/", n_samples_primary, " = ", round(100*n_igh_whsc1/n_samples_primary, 1)))
 print(str_c("IGH WHSC1 validated: ", n_igh_whsc1_validated, "/", n_igh_whsc1_with_wgs, " = ", round(100*n_igh_whsc1_validated/n_igh_whsc1_with_wgs, 1)))
