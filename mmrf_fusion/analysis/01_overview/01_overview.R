@@ -637,7 +637,7 @@ if (TRUE) {
   # Survival table 
   # ============================================================================
   
-  summary_tibble <- tribble(
+  survival_tibble <- tribble(
     ~`Category`, ~`ISS Stage`, ~`N Samples`, ~`N Events`, ~`N Censored`, ~`Median Survival (Days)`, ~`95% Confidence Interval (Days)`,
     "Event Free", "Stage I", 
     summary(EFS_fit)$table["ISS_Stage=1","records"],
@@ -702,7 +702,7 @@ if (TRUE) {
   
   )
 
-  write_tsv(summary_tibble, str_c(paper_supp, "survival_table.txt"), 
+  write_tsv(survival_tibble, str_c(paper_supp, "survival_table.txt"), 
             na = "NA", append = FALSE, col_names = TRUE)
 
 }
@@ -984,3 +984,4 @@ print(str_c("Number of fusion tools: (out of ", n_fusions_total, ")"))
 print(fusions_primary %>% pull(CallerN) %>% table())
 print(fusions_primary %>% pull(CallerN) %>% table()/n_fusions_total)
 print(str_c("Number of significantly undervalidated fusions: ", significantly_under_validated_fusions %>% length()))
+
