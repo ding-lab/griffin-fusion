@@ -292,6 +292,7 @@ if (TRUE) {
   
   print(str_c("Number of patients: ", n_samples_primary))
   print(str_c("Number with WGS: ", n_samples_wgs, "/", n_samples_primary, " = ", round(100*n_samples_wgs/n_samples_primary, digits = 1), "%"))
+  print(str_c("Number with Seq-FISH: ", n_samples_seqfish, "/", n_samples_primary, " = ", round(100*n_samples_seqfish/n_samples_primary, digits = 1), "%"))
   print(str_c("Number with additional samples: ", samples_all %>% 
                 group_by(mmrf) %>% 
                 summarize(count = n()) %>% 
