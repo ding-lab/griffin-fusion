@@ -11,7 +11,9 @@ write_tsv(summary_tibble,
           na = "NA", append = FALSE, col_names = TRUE)
 
 # Table S2 fusions reported from all samples
-write_tsv(fusions_all %>% select(-wgs_bam), 
+write_tsv(fusions_all %>% 
+            select(-wgs_bam) %>%
+            select(-discordant_reads),
           str_c(supp_tables, "Table_S2.Fusion_Calls.tsv"), 
           na = "NA", append = FALSE, col_names = TRUE)
 
