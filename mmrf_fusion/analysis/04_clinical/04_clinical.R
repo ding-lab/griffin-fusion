@@ -671,3 +671,10 @@ fusions_all %>% filter(geneB == "NTRK1") %>%
   select(mmrf, srr, fusion, sample_number, has_secondary, visit_number, 
          LeftBreakpoint, RightBreakpoint, PROT_FUSION_TYPE, Callers, n_discordant, 
          geneA_pct, geneB_pct, geneA_log2ratio_cnv, geneB_log2ratio_cnv) %>% print()
+
+n_patients_druggable <- fusions_primary %>% 
+  filter(drug_geneA == 1 | drug_geneB == 1 | drug_fusion == 1) %>% 
+  pull(mmrf) %>% unique() %>% length()
+print(str_c("Proportion of patients with druggable fusion: ", 
+            n_patients_druggable, "/", n_samples_primary, " = ", 
+            round(100*n_patients_druggable/n_samples_primary, 2), "%"))
