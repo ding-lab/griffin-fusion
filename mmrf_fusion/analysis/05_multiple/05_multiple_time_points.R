@@ -168,18 +168,18 @@ if (TRUE) {
           legend.background = element_blank(),
           legend.text = element_text(size = 10))
   
-    ggsave(str_c(paper_main, "multiple_timepoints.bm.pdf"),
-           p,
-           device = "pdf", width = 2.75, height = 7.5, useDingbats = FALSE)
-    ggsave(str_c(paper_main, "multiple_timepoints.bm.no_legend.pdf"),
-           p + guides(size = FALSE, color = FALSE),
-           device = "pdf", width = 2.75, height = 2.75, useDingbats = FALSE)
-    ggsave(str_c(paper_supp, "multiple_timepoints.bm.min_overlap.pdf"),
-           p_min_overlap,
-           device = "pdf", width = 2.75, height = 7.5, useDingbats = FALSE)
-    ggsave(str_c(paper_supp, "multiple_timepoints.bm.min_overlap.no_legend.pdf"),
-           p_min_overlap + guides(size = FALSE, color = FALSE),
-           device = "pdf", width = 2.75, height = 2.75, useDingbats = FALSE)
+  ggsave(str_c(paper_main, "multiple_timepoints.bm.pdf"),
+         p,
+         device = "pdf", width = 2.75, height = 7.5, useDingbats = FALSE)
+  ggsave(str_c(paper_main, "multiple_timepoints.bm.no_legend.pdf"),
+         p + guides(size = FALSE, color = FALSE),
+         device = "pdf", width = 2.75, height = 2.75, useDingbats = FALSE)
+  ggsave(str_c(paper_supp, "multiple_timepoints.bm.min_overlap.pdf"),
+         p_min_overlap,
+         device = "pdf", width = 2.75, height = 7.5, useDingbats = FALSE)
+  ggsave(str_c(paper_supp, "multiple_timepoints.bm.min_overlap.no_legend.pdf"),
+         p_min_overlap + guides(size = FALSE, color = FALSE),
+         device = "pdf", width = 2.75, height = 2.75, useDingbats = FALSE)
   
   q_df <- stp_bmpb_samples %>% 
     rowwise() %>%
@@ -194,10 +194,12 @@ if (TRUE) {
                                  ighwhsc1 == "3" ~ "Both samples")) %>%
     rowwise() %>%
     mutate(min_srr12 = min(n_fusions_srr1, n_fusions_srr2)) %>%
+    mutate(max_srr12 = max(n_fusions_srr1, n_fusions_srr2)) %>%
     ungroup() %>% 
     mutate(igh_whsc1 = factor(igh_whsc1, levels = c("Both samples", "Neither sample", "TP1 only", "TP2 only"), ordered = TRUE))
   
   q_df_min_max <- q_df %>% pull(min_srr12) %>% max()
+  q_df_max <- q_df %>% pull(max_srr12) %>% max()
   
   n_patients_bmpb <- q_df %>% pull(mmrf) %>% unique() %>% length()
   n_visits_bmpb <- q_df %>% nrow()
@@ -247,6 +249,68 @@ if (TRUE) {
           axis.title = element_text(size = 10),
           legend.background = element_blank(),
           legend.text = element_text(size = 10))
+  
+  q_lines <- ggplot(data = q_df %>% mutate(patient_visit = factor(str_c(mmrf, first_srr, second_srr))) %>% mutate(patient_visit = fct_reorder2(patient_visit, overlap_srr12 - max_srr12, overlap_srr12, .desc = TRUE)) %>% mutate(patient_visit = fct_rev(patient_visit))) +
+    geom_segment(aes(x = overlap_srr12, 
+                     xend = min_srr12,
+                     y = patient_visit,
+                     yend = patient_visit,
+                     color = igh_whsc1)) +
+    geom_segment(aes(x = n_fusions_srr1,
+                     xend = n_fusions_srr2,
+                     y = patient_visit,
+                     yend = patient_visit,
+                     color = igh_whsc1),
+                 linetype = 3) +
+    geom_point(aes(x = overlap_srr12, 
+                   y = patient_visit,
+                   color = igh_whsc1),
+               fill = "#ffffff",
+               shape = 21,
+               size = 3) +
+    geom_point(aes(x = n_fusions_srr1, #BM
+                   y = patient_visit,
+                   color = igh_whsc1),
+               shape = 16) +
+    geom_point(aes(x = n_fusions_srr2, #PB
+                   y = patient_visit,
+                   color = igh_whsc1),
+               shape = 4,
+               size = 2) +
+    #geom_text(aes(x = n_fusions_srr1, 
+    #              y = patient_visit,
+    #              color = igh_whsc1),
+    #          vjust = 0,
+    #          nudge_y = 0.1,
+    #          label = "BM") +
+    #geom_text(aes(x = n_fusions_srr2, 
+    #              y = patient_visit,
+    #              color = igh_whsc1),
+    #          vjust = 1,
+    #          nudge_y = -0.1,
+    #          label = "PB") +
+    scale_x_continuous(breaks = seq(0, q_df_max, 3)) +
+    scale_color_brewer(palette = "Set2", drop = FALSE, direction = -1) +
+    labs(x = "Number of Fusions",
+         y = "Bone Marrow + Peripheral Blood Pair") +
+    theme_bw() +
+    theme(plot.background = element_blank(),
+          panel.background = element_blank(),
+          panel.border = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.grid.major.y = element_blank(),
+          axis.text.x = element_text(size = 8),
+          axis.text.y = element_blank(),
+          axis.ticks = element_blank(),
+          axis.title = element_text(size = 10),
+          legend.background = element_blank(),
+          legend.text = element_text(size = 10))
+  ggsave(str_c(paper_main, "same_timepoints.bmpb.lines.no_legend.pdf"),
+         q_lines + guides(size = FALSE, color = FALSE),
+         device = "pdf", width = 2.75, height = 2.75, useDingbats = FALSE)
+  ggsave(str_c(paper_main, "same_timepoints.bmpb.lines.pdf"),
+         q_lines,
+         device = "pdf", width = 2*2.75, height = 2.75, useDingbats = FALSE)
   
   ggsave(str_c(paper_main, "same_timepoints.bmpb.pdf"),
          q,
