@@ -1,6 +1,6 @@
 # ==============================================================================
-# scRNA analysis
-# Steven Foltz (smfoltz@wustl.edu), May 2019
+# scRNA analysis (in-house samples)
+# Steven Foltz (smfoltz@wustl.edu)
 # ==============================================================================
 
 paper_main = "paper/main/06_single_cell/"

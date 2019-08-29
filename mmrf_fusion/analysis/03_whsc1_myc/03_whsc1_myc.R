@@ -1,6 +1,6 @@
 # ==============================================================================
 # WHSC1/FGFR3 and MYC/PVT1 (MMRF Fusions)
-# Steven Foltz (smfoltz@wustl.edu), April 2019, copied here July 2019
+# Steven Foltz (smfoltz@wustl.edu)
 # ==============================================================================
 
 paper_main = "paper/main/03_whsc1_myc/"

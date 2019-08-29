@@ -1,6 +1,6 @@
 # ==============================================================================
-# Multiple time points
-# Steven Foltz (smfoltz@wustl.edu), April 2019
+# Multiple samples
+# Steven Foltz (smfoltz@wustl.edu)
 # ==============================================================================
 
 paper_main = "paper/main/05_multiple/"

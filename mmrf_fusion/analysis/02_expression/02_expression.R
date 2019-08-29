@@ -1,6 +1,6 @@
 # ==============================================================================
 # Expression (MMRF Fusions)
-# Steven Foltz (smfoltz@wustl.edu), April 2019
+# Steven Foltz (smfoltz@wustl.edu)
 # ==============================================================================
 
 paper_main = "paper/main/02_expression/"
