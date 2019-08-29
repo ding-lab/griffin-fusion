@@ -1,3 +1,3 @@
-Fusion analysis of MMRF (Multiple Myeloma Research Foundation) CoMMpass Study data
+# Multiple Myeloma fusion gene analysis
 
-807 RNA-seq samples. Multiple fusion callers. Lots of fun!
+742 patients (806 samples) fusion gene discovery Multiple Myeloma Research Foundation (MMRF) CoMMpass Study.
