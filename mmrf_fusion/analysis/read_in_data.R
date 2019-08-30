@@ -172,6 +172,32 @@ mutation_calls <- read_tsv("data/wxs_bm_data.withmutect.merged.maf.rc.caller.ren
                                                  IMPACT = "c"))
 
 # ==============================================================================
+# Mutational signature info from Yize
+# ==============================================================================
+
+mut_initial <- mutation_calls %>% select(Tumor_Sample_Barcode, Matched_Norm_Sample_Barcode) %>% 
+  unique() %>% 
+  separate(Tumor_Sample_Barcode, into = c("MMRF1", "MMRF_num1", "visit"), by = "_") %>%
+  separate(Matched_Norm_Sample_Barcode, into = c("MMRF2", "MMRF_num2", "SRR1", "SRR2", "N")) %>%
+  mutate(visit = as.numeric(visit))
+
+mutsig_initial <- read_excel("/Users/sfoltz/Desktop/MMRF_signature_903/Tables/Table1.MMRF_signature.xlsx",
+                     sheet = "Fraction") %>%
+  separate(ID, into = c("MMRF2", "MMRF_num2", "SRR1", "SRR2", "T"), by = "_")
+
+mutsig <- mutsig_initial %>% 
+  left_join(mut_initial, by = c("MMRF_num2", "SRR1", "SRR2")) %>% 
+  filter(!is.na(visit)) %>% 
+  mutate(mmrf = str_c(MMRF2.x, MMRF_num2, sep = "_")) %>% 
+  select(mmrf, visit, W1, W2) %>% 
+  left_join(samples_all %>% filter(srr %in% samples_primary$srr), 
+            by = c("mmrf", "visit")) %>% 
+  filter(!is.na(srr)) %>%
+  rename("APOBEC" = "W1") %>%
+  rename("Signature5" = "W2") %>%
+  select(mmrf, srr, visit, APOBEC, Signature5)
+
+# ==============================================================================
 # Sample names used by Hua
 # ==============================================================================
 matched_names <- read_tsv("data/sample_infor.v20170912.plus.v4.matchedName.All.out")

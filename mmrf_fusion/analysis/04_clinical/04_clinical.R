@@ -86,8 +86,8 @@ if (TRUE) {
     filter(!is.na(fusion)) %>%
     select(fusion) %>% 
     group_by(fusion) %>%
-    summarize(count = n()) %>% 
-    filter(count > 10) %>% 
+    summarize(count = n()) %>%
+    filter(count >= 10) %>% 
     pull(fusion)
   
   genes_gt2 <- bind_rows(seqfish_clinical_info %>%
@@ -105,7 +105,7 @@ if (TRUE) {
     filter(!(gene %in% c("IGH", "IGK", "IGL", "IGHpseudo"))) %>%
     group_by(gene) %>% 
     summarize(count = n()) %>% 
-    filter(count > 10) %>% 
+    filter(count >= 10) %>% 
     pull(gene)
   
   n_tests_fusions <- 1
@@ -193,8 +193,9 @@ if (TRUE) {
     }
   }
   
-  #print(coxph_model_EFS_list %>% names())
-  #print(coxph_model_Death_list %>% names())
+  
+  print(coxph_model_EFS_list %>% names())
+  print(coxph_model_Death_list %>% names())
   
   # Make EFS survival figures for IGH--WHSC1 and PVT1--IGL/MYC--IGL
   plot_survival_list <- list()
@@ -341,6 +342,8 @@ if (TRUE) {
                    conf.int.alpha = 0.1))
   dev.off()
 }
+
+stop()
 
 ################################################################################
 # Look at other clinical associations
@@ -653,6 +656,102 @@ if (TRUE) {
     ggsave(str_c(paper_supp, "TCGA_NTRK1_partners.pdf"),
            width = 7.25, height = 3)
 }
+
+# ==============================================================================
+# APOBEC signature association with fusion events
+# ==============================================================================
+
+apobec_q25 <- mutsig %>% pull(APOBEC) %>% quantile(.25)
+apobec_q75 <- mutsig %>% pull(APOBEC) %>% quantile(.75)
+apobec_iqr <- apobec_q75 - apobec_q25
+apobec_outlier_gt <- as.numeric(apobec_q75 + 1.5*apobec_iqr)
+
+genes_gt2 <- rbind(fusions_primary %>% 
+                     filter(mmrf %in% mutsig$mmrf) %>% 
+                     select(mmrf, visit_number, geneA) %>% 
+                     select(geneA) %>% 
+                     rename("gene" = "geneA"), 
+                   fusions_primary %>% 
+                     filter(mmrf %in% mutsig$mmrf) %>% 
+                     select(mmrf, visit_number, geneB) %>% 
+                     select(geneB) %>% 
+                     rename("gene" = "geneB")) %>% 
+  group_by(gene) %>% 
+  summarize(count = n()) %>% 
+  filter(count > 2) %>% pull(gene)
+
+outlier_apobec <- rbind(fusions_primary %>%
+                          filter(mmrf %in% mutsig$mmrf) %>% 
+                          left_join(mutsig, by = "mmrf") %>% 
+                          filter(geneA %in% genes_gt2) %>%
+                          rename("gene" = "geneA") %>%
+                          select(mmrf, visit_number, gene, APOBEC) %>%
+                          unique(),
+                        fusions_primary %>%
+                          filter(mmrf %in% mutsig$mmrf) %>% 
+                          left_join(mutsig, by = "mmrf") %>% 
+                          filter(geneB %in% genes_gt2) %>%
+                          rename("gene" = "geneB") %>%
+                          select(mmrf, visit_number, gene, APOBEC) %>%
+                          unique()) %>%
+  unique() %>%
+  group_by(gene) %>%
+  summarize(apobec_median = median(APOBEC),
+            count = n()) %>%
+  filter(apobec_median > apobec_outlier_gt,
+         count >= 3)
+
+apobec_background_high <- rbind(mutsig %>% 
+                                  mutate(gene = "All samples") %>% 
+                                  select(mmrf, srr, visit, gene, APOBEC),
+                                rbind(fusions_primary %>% 
+                                        filter(mmrf %in% mutsig$mmrf) %>%
+                                        filter(geneA %in% outlier_apobec$gene) %>%
+                                        rename("gene" = "geneA", "visit" = "visit_number") %>% 
+                                        select(mmrf, srr, visit, gene),
+                                      fusions_primary %>% 
+                                        filter(mmrf %in% mutsig$mmrf) %>%
+                                        filter(geneB %in% outlier_apobec$gene) %>%
+                                        rename("gene" = "geneB", "visit" = "visit_number") %>% 
+                                        select(mmrf, srr, visit, gene)) %>% 
+                                  unique() %>% 
+                                  left_join(mutsig, by = c("mmrf", "srr", "visit")) %>% 
+                                  select(mmrf, srr, visit, gene, APOBEC)) %>%
+  mutate(my_alpha = case_when(gene == "All samples" ~ 0.75,
+                              TRUE ~ 1)) %>%
+  mutate(my_size = case_when(gene == "All samples" ~ 1,
+                             TRUE ~ 2))
+
+ggplot(apobec_background_high, 
+       aes(x = fct_reorder(gene, APOBEC), y = APOBEC)) +
+  geom_violin(scale = "width",
+              color = "black",
+              draw_quantiles = 0.5) +
+  geom_jitter(aes(color = gene,
+                  size = my_size,
+                  alpha = my_alpha), 
+              size = 2,
+              shape = 16, height = 0, width = 0.1) +
+  geom_hline(yintercept = apobec_outlier_gt, linetype = 2) +
+  annotate("text", x = "MAF", y = apobec_outlier_gt, 
+           label = str_c("Outliers >\n", round(apobec_outlier_gt, 3)),
+           vjust = 0.5) +
+  guides(alpha = FALSE, color = FALSE) +
+  scale_y_continuous(expand = c(0,0), limits = c(-0.05, 1)) +
+  labs(x = "Gene", y = "APOBEC Signature Score") +
+  theme_bw() +
+  theme(panel.background = element_blank(),
+        panel.grid.minor = element_blank(),
+        panel.grid.major.x = element_blank(),
+        panel.border = element_blank(),
+        axis.ticks = element_blank(),
+        axis.text.x = element_text(vjust = 0.5, size = 10),
+        axis.text.y = element_text(size = 8),
+        legend.position = "bottom",
+        legend.direction = "vertical",
+        axis.title = element_text(size = 12)) +
+  ggsave(str_c(paper_supp, "apobec.pdf"), width = 3.5, height = 3.5, useDingbats = FALSE)
+
 
 # ==============================================================================
 # Fusion druggable/clinical paragraph output
