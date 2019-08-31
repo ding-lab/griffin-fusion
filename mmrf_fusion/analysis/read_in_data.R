@@ -181,7 +181,7 @@ mut_initial <- mutation_calls %>% select(Tumor_Sample_Barcode, Matched_Norm_Samp
   separate(Matched_Norm_Sample_Barcode, into = c("MMRF2", "MMRF_num2", "SRR1", "SRR2", "N")) %>%
   mutate(visit = as.numeric(visit))
 
-mutsig_initial <- read_excel("/Users/sfoltz/Desktop/MMRF_signature_903/Tables/Table1.MMRF_signature.xlsx",
+mutsig_initial <- read_excel("data/Table1.MMRF_signature.xlsx",
                      sheet = "Fraction") %>%
   separate(ID, into = c("MMRF2", "MMRF_num2", "SRR1", "SRR2", "T"), by = "_")
 
@@ -197,6 +197,8 @@ mutsig <- mutsig_initial %>%
   rename("Signature5" = "W2") %>%
   select(mmrf, srr, visit, APOBEC, Signature5)
 
+rm(mut_initial)
+rm(mutsig_initial)
 # ==============================================================================
 # Sample names used by Hua
 # ==============================================================================
