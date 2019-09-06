@@ -77,6 +77,24 @@ fusions_primary <- fusions_primary %>%
   filter(!(fusion %in% significantly_under_validated_fusions))
 
 # ==============================================================================
+# TCGA pan-cancer paper Low Pass similar coverage validation rate
+# ==============================================================================
+tcga_validation_rate_df <- read_tsv("data/tcga_pancancer_fusions.validation.txt")
+n_fusions_validated_tcga <- tcga_validation_rate_df %>% 
+  filter(Distance == 100000, 
+         Coverage == "LowPass", 
+         ReadsCount < 200, 
+         ReadsCount >= 3) %>% 
+  nrow()
+n_fusions_with_wgs_tcga <- tcga_validation_rate_df %>% 
+  filter(Distance == 100000, 
+         Coverage == "LowPass", 
+         ReadsCount < 200, 
+         ReadsCount >= 0) %>% 
+  nrow()
+tcga_validation_rate <- n_fusions_validated_tcga/n_fusions_with_wgs_tcga
+
+# ==============================================================================
 # seqFISH and clinical information
 # ==============================================================================
 seqfish_clinical_info <- read_tsv("data/seqfish_clinical.txt")
@@ -199,6 +217,7 @@ mutsig <- mutsig_initial %>%
 
 rm(mut_initial)
 rm(mutsig_initial)
+
 # ==============================================================================
 # Sample names used by Hua
 # ==============================================================================

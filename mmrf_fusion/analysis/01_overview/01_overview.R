@@ -978,6 +978,7 @@ myc_pvt1_ig_fusions <- fusions_primary %>%
 print(str_c("IGH WHSC1 fusions: ", n_igh_whsc1, "/", n_samples_primary, " = ", round(100*n_igh_whsc1/n_samples_primary, 1)))
 print(str_c("IGH WHSC1 validated: ", n_igh_whsc1_validated, "/", n_igh_whsc1_with_wgs, " = ", round(100*n_igh_whsc1_validated/n_igh_whsc1_with_wgs, 1)))
 print(str_c("Overall fusion validation rate: ", round(100*post_filtering_validation_rate, 1), "%"))
+print(str_c("TCGA Pancancer fusion validation rate: ", round(100*tcga_validation_rate, 1), "%"))
 print(str_c("Fusions involving IGH/IGK/IGL: ", n_igh_fusions, "/", n_fusions_total, " = ", round(100*prop_igh_fusions, 1), "%"))
 print("MYC or PVT1 and IG fusions: ")
 print(myc_pvt1_ig_fusions)
@@ -985,4 +986,3 @@ print(str_c("Number of fusion tools: (out of ", n_fusions_total, ")"))
 print(fusions_primary %>% pull(CallerN) %>% table())
 print(fusions_primary %>% pull(CallerN) %>% table()/n_fusions_total)
 print(str_c("Number of significantly undervalidated fusions: ", significantly_under_validated_fusions %>% length()))
-
