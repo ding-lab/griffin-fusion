@@ -626,6 +626,38 @@ if (TRUE) {
 }
 
 # ==============================================================================
+# PB BM%
+# ==============================================================================
+
+if (TRUE) {
+  seqfish_clinical_info %>%
+    left_join(samples_all %>% filter(tissue_source == "PB") %>% select(mmrf, tissue_source) %>% unique(), by = "mmrf") %>%
+    ggplot(aes(x = tissue_source, y = BM_Plasma_Cell_Percent)) +
+    geom_violin(color = "black",
+                draw_quantiles = 0.5) +
+    geom_jitter(height = 0, width = 0.2, shape = 16, alpha = 0.25) + 
+    theme_bw() +
+    scale_y_continuous(expand = c(0,0), limits = c(-0.02, 100)) +
+    scale_x_discrete(expand = c(0,0), labels = c("Has PB sample", "No PB sample")) +
+    labs(x = "Tissue Source", y = "Bone Marrow Plasma Cell Percentage (%)") +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          plot.background = element_blank(),
+          panel.grid.minor = element_blank(),
+          panel.grid.major.x = element_blank(),
+          strip.background = element_blank(),
+          axis.ticks = element_blank(),
+          panel.spacing.x = unit(0.1, units = "inches"),
+          axis.title = element_text(size = 12),
+          #axis.text.x = element_blank(),
+          strip.text = element_text(size = 10)
+    ) +
+    ggsave(str_c(paper_supp, "peripheral_blood_bm_pct.pdf"),
+           width = 3.5, height = 3.5, useDingbats = FALSE)
+  
+}
+
+# ==============================================================================
 # Fusion multiple time points paragraph output
 # ==============================================================================
 
