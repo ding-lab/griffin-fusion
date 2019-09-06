@@ -98,6 +98,66 @@ tcga_validation_rate <- n_fusions_validated_tcga/n_fusions_with_wgs_tcga
 # seqFISH and clinical information
 # ==============================================================================
 seqfish_clinical_info <- read_tsv("data/seqfish_clinical.txt")
+updated_seqfish <- read_tsv("data/MMRF_CoMMpass_IA14a_LongInsert_Canonical_Ig_Translocations.txt")
+
+updated_seqfish_IGHKL <- updated_seqfish %>%
+  mutate(updated_seqfish_t_IGH_WHSC1 = case_when(SeqWGS_WHSC1_CALL == 1 & SeqWGS_WHSC1_iGSOURCE == 1 ~ 1,
+                                                 TRUE ~ 0),
+         updated_seqfish_t_IGK_WHSC1 = case_when(SeqWGS_WHSC1_CALL == 1 & SeqWGS_WHSC1_iGSOURCE == 2 ~ 1,
+                                                 TRUE ~ 0),
+         updated_seqfish_t_IGL_WHSC1 = case_when(SeqWGS_WHSC1_CALL == 1 & SeqWGS_WHSC1_iGSOURCE == 3 ~ 1,
+                                                 TRUE ~ 0),
+         updated_seqfish_t_IGH_CCND3 = case_when(SeqWGS_CCND3_CALL == 1 & SeqWGS_CCND3_iGSOURCE == 1 ~ 1,
+                                                 TRUE ~ 0),
+         updated_seqfish_t_IGK_CCND3 = case_when(SeqWGS_CCND3_CALL == 1 & SeqWGS_CCND3_iGSOURCE == 2 ~ 1,
+                                                 TRUE ~ 0),
+         updated_seqfish_t_IGL_CCND3 = case_when(SeqWGS_CCND3_CALL == 1 & SeqWGS_CCND3_iGSOURCE == 3 ~ 1,
+                                                 TRUE ~ 0),
+         updated_seqfish_t_IGH_MYC = case_when(SeqWGS_MYC_CALL == 1 & SeqWGS_MYC_iGSOURCE == 1 ~ 1,
+                                               TRUE ~ 0),
+         updated_seqfish_t_IGK_MYC = case_when(SeqWGS_MYC_CALL == 1 & SeqWGS_MYC_iGSOURCE == 2 ~ 1,
+                                               TRUE ~ 0),
+         updated_seqfish_t_IGL_MYC = case_when(SeqWGS_MYC_CALL == 1 & SeqWGS_MYC_iGSOURCE == 3 ~ 1,
+                                               TRUE ~ 0),
+         updated_seqfish_t_IGH_MAFA = case_when(SeqWGS_MAFA_CALL == 1 & SeqWGS_MAFA_iGSOURCE == 1 ~ 1,
+                                                TRUE ~ 0),
+         updated_seqfish_t_IGK_MAFA = case_when(SeqWGS_MAFA_CALL == 1 & SeqWGS_MAFA_iGSOURCE == 2 ~ 1,
+                                                TRUE ~ 0),
+         updated_seqfish_t_IGL_MAFA = case_when(SeqWGS_MAFA_CALL == 1 & SeqWGS_MAFA_iGSOURCE == 3 ~ 1,
+                                                TRUE ~ 0),
+         updated_seqfish_t_IGH_CCND1 = case_when(SeqWGS_CCND1_CALL == 1 & SeqWGS_CCND1_iGSOURCE == 1 ~ 1,
+                                                 TRUE ~ 0),
+         updated_seqfish_t_IGK_CCND1 = case_when(SeqWGS_CCND1_CALL == 1 & SeqWGS_CCND1_iGSOURCE == 2 ~ 1,
+                                                 TRUE ~ 0),
+         updated_seqfish_t_IGL_CCND1 = case_when(SeqWGS_CCND1_CALL == 1 & SeqWGS_CCND1_iGSOURCE == 3 ~ 1,
+                                                 TRUE ~ 0),
+         updated_seqfish_t_IGH_CCND2 = case_when(SeqWGS_CCND2_CALL == 1 & SeqWGS_CCND2_iGSOURCE == 1 ~ 1,
+                                                 TRUE ~ 0),
+         updated_seqfish_t_IGK_CCND2 = case_when(SeqWGS_CCND2_CALL == 1 & SeqWGS_CCND2_iGSOURCE == 2 ~ 1,
+                                                 TRUE ~ 0),
+         updated_seqfish_t_IGL_CCND2 = case_when(SeqWGS_CCND2_CALL == 1 & SeqWGS_CCND2_iGSOURCE == 3 ~ 1,
+                                                 TRUE ~ 0),
+         updated_seqfish_t_IGH_MAF = case_when(SeqWGS_MAF_CALL == 1 & SeqWGS_MAF_iGSOURCE == 1 ~ 1,
+                                               TRUE ~ 0),
+         updated_seqfish_t_IGK_MAF = case_when(SeqWGS_MAF_CALL == 1 & SeqWGS_MAF_iGSOURCE == 2 ~ 1,
+                                               TRUE ~ 0),
+         updated_seqfish_t_IGL_MAF = case_when(SeqWGS_MAF_CALL == 1 & SeqWGS_MAF_iGSOURCE == 3 ~ 1,
+                                               TRUE ~ 0),
+         updated_seqfish_t_IGH_MAFB = case_when(SeqWGS_MAFB_CALL == 1 & SeqWGS_MAFB_iGSOURCE == 1 ~ 1,
+                                                TRUE ~ 0),
+         updated_seqfish_t_IGK_MAFB = case_when(SeqWGS_MAFB_CALL == 1 & SeqWGS_MAFB_iGSOURCE == 2 ~ 1,
+                                                TRUE ~ 0),
+         updated_seqfish_t_IGL_MAFB = case_when(SeqWGS_MAFB_CALL == 1 & SeqWGS_MAFB_iGSOURCE == 3 ~ 1,
+                                                TRUE ~ 0) ) %>% 
+  select(Study_Visit_iD, starts_with("updated_seqfish_t_IG")) %>%
+  rename("seqfish_Study_Visit_ID" = "Study_Visit_iD")
+
+seqfish_clinical_info <- seqfish_clinical_info %>% 
+  left_join(updated_seqfish_IGHKL, 
+            by = "seqfish_Study_Visit_ID") %>%
+  left_join(fusions_primary %>% group_by(mmrf) %>% summarize(total_fusions = n()), 
+            by = "mmrf") %>% 
+  replace_na(list(total_fusions = 0))
 
 # ==============================================================================
 # Gene expression data
