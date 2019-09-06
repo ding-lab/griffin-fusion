@@ -11,7 +11,7 @@ dir.create(paper_main, recursive = TRUE, showWarnings = FALSE)
 dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 
 # CHANGE TO TRUE ONLY IF YOU NEED TO CREATE TESTING FILE FOR THE FIRST TIME
-rerun <- TRUE
+rerun <- FALSE
 
 # ==============================================================================
 # Measure associations between fusion status and expression and clinical info
