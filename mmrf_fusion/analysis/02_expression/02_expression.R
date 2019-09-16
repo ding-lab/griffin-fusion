@@ -503,11 +503,7 @@ if (TRUE) {
                           "updated_seqfish_t_IGK_MAFB",
                           "updated_seqfish_t_IGL_MAFB")
   
-  seqfish_variable_names <- c("seqfish_CN_del_13q14", 
-                              "seqfish_CN_del_13q34", 
-                              "seqfish_CN_del_17p13", 
-                              "seqfish_CN_gain_1q21", 
-                              "seqfish_Hyperdiploidy", 
+  seqfish_variable_names <- c("SeqWGS_Cp_Hyperdiploid_Call", 
                               "updated_seqfish_t_IGH_WHSC1",
                               "updated_seqfish_t_IGK_WHSC1",
                               "updated_seqfish_t_IGL_WHSC1",
@@ -846,14 +842,14 @@ if (TRUE) {
   # Assign seqFISH and clinical variables to approapiate lists
   # ============================================================================
   
-  seqfish_gene_names <- c("seqfish_Translocation_WHSC1_4_14", 
-                          "seqfish_Translocation_CCND3_6_14", 
-                          "seqfish_Translocation_MYC_8_14", 
-                          "seqfish_Translocation_MAFA_8_14", 
-                          "seqfish_Translocation_CCND1_11_14", 
-                          "seqfish_Translocation_CCND2_12_14", 
-                          "seqfish_Translocation_MAF_14_16", 
-                          "seqfish_Translocation_MAFB_14_20")
+  seqfish_gene_names <- c("updated_seqfish_t_IGH_WHSC1",
+                          "updated_seqfish_t_IGH_CCND3",
+                          "updated_seqfish_t_IGH_MYC",
+                          "updated_seqfish_t_IGH_MAFA",
+                          "updated_seqfish_t_IGH_CCND1",
+                          "updated_seqfish_t_IGH_CCND2",
+                          "updated_seqfish_t_IGH_MAF",
+                          "updated_seqfish_t_IGH_MAFB")
   
   seqfish_gene_names_formatted <- c("Translocation t(4;14) WHSC1", 
                                     "Translocation t(6;14) CCND3", 
@@ -875,36 +871,6 @@ if (TRUE) {
   
   seqfish_genes <- c("WHSC1", "CCND3", "MYC", "MAFA", 
                      "CCND1", "CCND2", "MAF", "MAFB")
-  
-  
-  seqfish_variable_names <- c("seqfish_CN_del_13q14", 
-                              "seqfish_CN_del_13q34", 
-                              "seqfish_CN_del_17p13", 
-                              "seqfish_CN_gain_1q21", 
-                              "seqfish_Hyperdiploidy", 
-                              "seqfish_Translocation_WHSC1_4_14", 
-                              "seqfish_Translocation_CCND3_6_14", 
-                              "seqfish_Translocation_MYC_8_14", 
-                              "seqfish_Translocation_MAFA_8_14", 
-                              "seqfish_Translocation_CCND1_11_14", 
-                              "seqfish_Translocation_CCND2_12_14", 
-                              "seqfish_Translocation_MAF_14_16", 
-                              "seqfish_Translocation_MAFB_14_20")
-  
-  discrete_clinical_variable_names <- c("age_ge_66", 
-                                        "Female", 
-                                        "Race_White", 
-                                        "Race_Black", 
-                                        "Race_Other", 
-                                        "race", 
-                                        "ECOG", 
-                                        "ISS_Stage",
-                                        "Bone_lesions", 
-                                        "Plasmacytoma")
-  
-  continuous_clinical_variable_names <- c("Age", 
-                                          "BM_Plasma_Cell_Percent", 
-                                          "LDH")
   
   # ============================================================================
   # Prepare lists of fusions and genes for testing (avoid testing rare events)
@@ -1821,60 +1787,6 @@ if (TRUE) {
           axis.ticks = element_blank()) +
     ggsave(str_c(paper_main, "kinase_expression_correlation.intact.pdf"),
            height = 4, width = 4, useDingbats = FALSE)
-}
-
-# ==============================================================================
-# Expression correlation of CBX7--CSNK1E the only recurrent fusion with
-# 3' intact kinase
-# Written April 2019 -- Supplemental
-# ==============================================================================
-
-if (TRUE) {
-  geneA <- "CBX7"
-  geneB <- "CSNK1E"
-  this_fusion = str_c(geneA, "--", geneB)
-  
-  fusion_samples <- kinases %>% 
-    filter(KinasePos == "3P_KINASE", KinaseDomain == "Intact") %>% 
-    filter(Fusion == this_fusion) %>% 
-    pull(SampleID)
-  
-  geneA_expr <- expression_primary %>% filter(gene == geneA) %>%
-    select(srr, gene, log10tpm, pct) %>%
-    rename(geneA = gene, geneA_log10tpm = log10tpm, geneA_pct = pct)
-  
-  geneB_expr <- expression_primary %>% filter(gene == geneB) %>%
-    select(srr, gene, log10tpm, pct) %>%
-    rename(geneB = gene, geneB_log10tpm = log10tpm, geneB_pct = pct)
-  
-  geneA_geneB_expr <- geneA_expr %>% left_join(geneB_expr, by = "srr") %>%
-    mutate(has_fusion = srr %in% fusion_samples) %>%
-    arrange(has_fusion)
-  
-  ggplot(geneA_geneB_expr, 
-         aes(x = geneA_pct, y = geneB_pct, color = has_fusion)) +
-    geom_point(shape = 16, size = 2) + 
-    coord_fixed() + 
-    geom_segment(x = 0, xend = 1, y = 0, yend = 1, 
-                 linetype = 2, show.legend = FALSE,
-                 color = "grey90") +
-    scale_x_continuous(expand = c(0.01, 0.01), limits = c(0,1)) +
-    scale_y_continuous(expand = c(0.01, 0.01), limits = c(0,1)) +
-    scale_color_manual(values = c("grey90", "black")) +
-    labs(x = str_c(geneA, " Expression Percentile"),
-         y = str_c(geneB, " Expression Percentile"),
-         color = str_c(this_fusion, "\nFusion Reported")) +
-    theme_bw() +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank(),
-          panel.grid = element_blank(),
-          axis.ticks = element_blank(),
-          axis.text = element_text(size = 8),
-          axis.title = element_text(size = 10),
-          legend.position = "bottom"
-    ) +
-    ggsave(str_c(paper_supp, "CBX7--CSNK1E.expression.pdf"),
-           width = 3.5, height = 3.5, useDingbats = FALSE)  
 }
 
 # ==============================================================================

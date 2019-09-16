@@ -164,37 +164,37 @@ if (TRUE) {
   # Plot two different heatmaps and upsetrs: hyperdiploid, non-hyperdiploid
   # ============================================================================
   
-  hyperdiploid_status <- c(1, 0)
-  hyperdiploid_string <- c("hyperdiploid", "non-hyperdiploid")
-  for (i in 1:2) {
-    h_status <- hyperdiploid_status[i]
-    h_string <- hyperdiploid_string[i]
-    plot_tibble <- seqfish_clinical_info %>% 
-      filter(seqfish_Hyperdiploidy == h_status)
-    plot_seqfish_heatmap(plot_tibble, 
-                         str_c(paper_supp, "heatmap.", h_string, ".pdf"))
-    plot_seqfish_upsetr(plot_tibble, 
-                        str_c(paper_supp, "upsetr.", h_string, ".pdf")) 
-    
-  }
+  #hyperdiploid_status <- c(1, 0)
+  #hyperdiploid_string <- c("hyperdiploid", "non-hyperdiploid")
+  #for (i in 1:2) {
+  #  h_status <- hyperdiploid_status[i]
+  #  h_string <- hyperdiploid_string[i]
+  #  plot_tibble <- seqfish_clinical_info %>% 
+  #    filter(HRD == h_status)
+  #  plot_seqfish_heatmap(plot_tibble, 
+  #                       str_c(paper_supp, "heatmap.", h_string, ".pdf"))
+  #  plot_seqfish_upsetr(plot_tibble, 
+  #                      str_c(paper_supp, "upsetr.", h_string, ".pdf")) 
+  #  
+  #}
   
   # ============================================================================
   # Plot one upsetr for all samples
   # ============================================================================
   
-  plot_tibble <- seqfish_clinical_info %>% filter(!is.na(seqfish_Hyperdiploidy))
-  plot_seqfish_upsetr(plot_tibble, str_c(paper_supp, "upsetr.both.pdf"))
+  #plot_tibble <- seqfish_clinical_info %>% filter(!is.na(seqfish_Hyperdiploidy))
+  #plot_seqfish_upsetr(plot_tibble, str_c(paper_supp, "upsetr.both.pdf"))
   
   # ============================================================================
   # Number of non/hyperdiploid samples
   # ============================================================================
   
   n_hyperdiploid_samples <- seqfish_clinical_info %>% 
-    filter(seqfish_Hyperdiploidy == 1) %>% nrow()
+    filter(SeqWGS_Cp_Hyperdiploid_Call == 1) %>% nrow()
   n_nonhyperdiploid_samples <- seqfish_clinical_info %>% 
-    filter(seqfish_Hyperdiploidy == 0) %>% nrow()
+    filter(SeqWGS_Cp_Hyperdiploid_Call == 0) %>% nrow()
   n_na_hyperdiploid_samples <- seqfish_clinical_info %>% 
-    filter(is.na(seqfish_Hyperdiploidy)) %>% nrow()
+    filter(is.na(SeqWGS_Cp_Hyperdiploid_Call)) %>% nrow()
   
   # ============================================================================
   # Important clinical features
@@ -286,13 +286,21 @@ if (TRUE) {
     filter(!is.na(seqfish_Study_Visit_ID)) %>% nrow()
   n_samples_seqfish_na <- seqfish_clinical_info %>% 
     filter(is.na(seqfish_Study_Visit_ID)) %>% nrow()
+  
+  n_samples_t_seqfish <- seqfish_clinical_info %>% select(updated_seqfish_t_IGH_WHSC1) %>% filter(!is.na(updated_seqfish_t_IGH_WHSC1)) %>% nrow()
+  n_samples_t_seqfish_na <- seqfish_clinical_info %>% select(updated_seqfish_t_IGH_WHSC1) %>% filter(is.na(updated_seqfish_t_IGH_WHSC1)) %>% nrow()
+  
+  n_samples_cnv_seqfish <- seqfish_clinical_info %>% select(SeqWGS_Cp_12p13_20percent) %>% filter(!is.na(SeqWGS_Cp_12p13_20percent)) %>% nrow()
+  n_samples_cnv_seqfish_na <- seqfish_clinical_info %>% select(SeqWGS_Cp_12p13_20percent) %>% filter(is.na(SeqWGS_Cp_12p13_20percent)) %>% nrow()
+  
   # X14 is the column of SRR,SRR for WGS tumor,normal
   n_samples_wgs <- file_locations %>% filter(X14 != "NA,NA") %>% nrow()
   n_samples_wgs_na <- file_locations %>% filter(X14 == "NA,NA") %>% nrow()
   
   print(str_c("Number of patients: ", n_samples_primary))
   print(str_c("Number with WGS: ", n_samples_wgs, "/", n_samples_primary, " = ", round(100*n_samples_wgs/n_samples_primary, digits = 1), "%"))
-  print(str_c("Number with Seq-FISH: ", n_samples_seqfish, "/", n_samples_primary, " = ", round(100*n_samples_seqfish/n_samples_primary, digits = 1), "%"))
+  print(str_c("Number with Seq-FISH translocations: ", n_samples_t_seqfish, "/", n_samples_primary, " = ", round(100*n_samples_t_seqfish/n_samples_primary, digits = 1), "%"))
+  print(str_c("Number with Seq-FISH CNV: ", n_samples_cnv_seqfish, "/", n_samples_primary, " = ", round(100*n_samples_cnv_seqfish/n_samples_primary, digits = 1), "%"))
   print(str_c("Number with additional samples: ", samples_all %>% 
                 group_by(mmrf) %>% 
                 summarize(count = n()) %>% 
@@ -331,7 +339,7 @@ if (TRUE) {
     ".",
     n_samples_primary - age_na,
     age_na,
-    ".",
+    1 - age_na/n_samples_primary,
     as.numeric(str_split(age_summary[1,1], ":", simplify = TRUE)[1,2]),
     as.numeric(str_split(age_summary[2,1], ":", simplify = TRUE)[1,2]),
     as.numeric(str_split(age_summary[3,1], ":", simplify = TRUE)[1,2]),
@@ -343,7 +351,7 @@ if (TRUE) {
     ".",
     n_samples_primary - plasma_na,
     plasma_na,
-    ".",
+    1 - plasma_na/n_samples_primary,
     as.numeric(str_split(plasma_summary[1,1], ":", simplify = TRUE)[1,2]),
     as.numeric(str_split(plasma_summary[2,1], ":", simplify = TRUE)[1,2]),
     as.numeric(str_split(plasma_summary[3,1], ":", simplify = TRUE)[1,2]),
@@ -355,7 +363,7 @@ if (TRUE) {
     ".",
     n_samples_primary - ldh_na,
     ldh_na,
-    ".",
+    1 - ldh_na/n_samples_primary,
     as.numeric(str_split(ldh_summary[1,1], ":", simplify = TRUE)[1,2]),
     as.numeric(str_split(ldh_summary[2,1], ":", simplify = TRUE)[1,2]),
     as.numeric(str_split(ldh_summary[3,1], ":", simplify = TRUE)[1,2]),
@@ -377,6 +385,13 @@ if (TRUE) {
     ".",
     as.numeric(str_split(sex_summary[1,1], ":", 
                          simplify = TRUE)[1,2])/n_samples_primary,
+    ".", ".", ".", ".", ".", ".",
+    
+    "Sex",
+    "Not available",
+    sex_na,
+    ".",
+    sex_na/n_samples_primary,
     ".", ".", ".", ".", ".", ".",
     
     "Race",
@@ -401,6 +416,13 @@ if (TRUE) {
     ".",
     as.numeric(str_split(race_summary[3,1], ":", 
                          simplify = TRUE)[1,2])/n_samples_primary,
+    ".", ".", ".", ".", ".", ".",
+    
+    "Race",
+    "Not available",
+    race_na,
+    ".",
+    race_na/n_samples_primary,
     ".", ".", ".", ".", ".", ".",
     
     "ECOG",
@@ -499,6 +521,13 @@ if (TRUE) {
                          simplify = TRUE)[1,2])/n_samples_primary,
     ".", ".", ".", ".", ".", ".",
     
+    "Bone lesions",
+    "Not available",
+    bone_na,
+    ".",
+    bone_na/n_samples_primary,
+    ".", ".", ".", ".", ".", ".",
+    
     "Plasmacytoma",
     "No",
     as.numeric(str_split(plasmacytoma_summary[1,1], ":", simplify = TRUE)[1,2]),
@@ -513,6 +542,13 @@ if (TRUE) {
     ".",
     as.numeric(str_split(plasmacytoma_summary[2,1], ":", 
                          simplify = TRUE)[1,2])/n_samples_primary,
+    ".", ".", ".", ".", ".", ".", 
+    
+    "Plasmacytoma",
+    "Not available",
+    plasmacytoma_na,
+    ".",
+    plasmacytoma_na/n_samples_primary,
     ".", ".", ".", ".", ".", ".", 
     
     "Number of samples",
@@ -530,31 +566,24 @@ if (TRUE) {
     ".", ".", ".", ".", ".", ".",
     
     "Number of samples",
-    "Primary (with RNA-seq + seqFISH)",
-    n_samples_seqfish,
-    ".",
-    n_samples_seqfish/n_samples_primary,
+    "Primary (with RNA-seq + seqFISH translocations)",
+    n_samples_t_seqfish,
+    n_samples_t_seqfish_na,
+    n_samples_t_seqfish/n_samples_primary,
     ".", ".", ".", ".", ".", ".",
     
     "Number of samples",
-    "Primary (with RNA-seq + seqFISH missing)",
-    n_samples_seqfish_na,
-    ".",
-    n_samples_seqfish_na/n_samples_primary,
+    "Primary (with RNA-seq + seqFISH CNV)",
+    n_samples_cnv_seqfish,
+    n_samples_cnv_seqfish_na,
+    n_samples_cnv_seqfish/n_samples_primary,
     ".", ".", ".", ".", ".", ".",
     
     "Number of samples",
     "Primary (with RNA-seq + WGS)",
     n_samples_wgs,
-    ".",
-    n_samples_wgs/n_samples_primary,
-    ".", ".", ".", ".", ".", ".",
-    
-    "Number of samples",
-    "Primary (with RNA-seq + WGS missing)",
     n_samples_wgs_na,
-    ".",
-    n_samples_wgs_na/n_samples_primary,
+    n_samples_wgs/n_samples_primary,
     ".", ".", ".", ".", ".", "."
   )
   
@@ -577,7 +606,7 @@ if (TRUE) {
   # Use EFS_censor == 0 because that is TRUE for death, FALSE for censored
   # Stratify by Stage
   EFS_tibble <- seqfish_clinical_info %>% 
-    filter(!is.na(ISS_Stage), !is.na(EFS_censor))
+    filter(!is.na(ISS_Stage), !is.na(EFS))
   EFS_fit <- survfit(Surv(EFS, EFS_censor == 0) ~ ISS_Stage, 
                      data = EFS_tibble)
   
@@ -594,7 +623,7 @@ if (TRUE) {
   # Some survival stats
   # Number of samples necessary data
   seqfish_clinical_info %>% 
-    filter(is.na(ISS_Stage) | is.na(EFS_censor)) %>% nrow()
+    filter(is.na(ISS_Stage) | is.na(EFS)) %>% nrow()
   # Number of censored samples
   summary(EFS_fit)$table[,"n.start"] - summary(EFS_fit)$table[,"events"]
   # Number of samples with event (progression, death)
@@ -606,14 +635,11 @@ if (TRUE) {
   # Create Death survival object
   # ============================================================================
   
-  # Use EFS_censor == 0 because that is TRUE for death, FALSE for censored
+  # Use OS_censor == 0 because that is TRUE for death, FALSE for censored
   # Stratify by Stage
   death_tibble <- seqfish_clinical_info %>% 
-    filter(!is.na(ISS_Stage), !is.na(D_PT_lstalive)) %>% rowwise() %>% 
-    mutate( time_on_trial = max(D_PT_deathdy, D_PT_lstalive, na.rm = TRUE), 
-            death = as.numeric(!is.na(D_PT_deathdy)))
-  death_fit <- survfit(Surv(time_on_trial, death) ~ ISS_Stage, 
-                       data = death_tibble)
+    filter(!is.na(ISS_Stage), !is.na(OS))
+  death_fit <- survfit(Surv(OS, OS_censor == 0) ~ ISS_Stage, data = death_tibble)
   
   # Plot survival curve stratified by Stage
   pdf(str_c(paper_supp, "overall_survival.pdf"), width = 7.25, height = 5)
@@ -626,7 +652,7 @@ if (TRUE) {
   
   # Some survival stats
   seqfish_clinical_info %>% 
-    filter(is.na(ISS_Stage) | is.na(D_PT_lstalive)) %>% nrow()
+    filter(is.na(ISS_Stage) | is.na(OS)) %>% nrow()
   # Number of censored samples
   summary(death_fit)$table[,"n.start"] - summary(death_fit)$table[,"events"]
   # Number of samples with event (progression, death)
@@ -718,33 +744,33 @@ if (TRUE) {
   # Create data frame for plotting
   
   n_hdp <- seqfish_clinical_info %>% 
-    filter(seqfish_Hyperdiploidy == 1) %>% nrow()
+    filter(SeqWGS_Cp_Hyperdiploid_Call == 1) %>% nrow()
   n_not_hdp <- seqfish_clinical_info %>% 
-    filter(seqfish_Hyperdiploidy == 0) %>% nrow()
+    filter(SeqWGS_Cp_Hyperdiploid_Call == 0) %>% nrow()
   n_na_hdp <- seqfish_clinical_info %>% 
-    filter(is.na(seqfish_Hyperdiploidy)) %>% nrow()
-  hpd_key <- tribble(~seqfish_Hyperdiploidy, ~hyperdiploid_categories, ~count,
+    filter(is.na(SeqWGS_Cp_Hyperdiploid_Call)) %>% nrow()
+  hpd_key <- tribble(~SeqWGS_Cp_Hyperdiploid_Call, ~hyperdiploid_categories, ~count,
                      0, str_c("Non-Hyperdiploid (", n_not_hdp, ")"), n_not_hdp,
                      1, str_c("Hyperdiploid (", n_hdp, ")"), n_hdp,
                      NA, str_c("Not Available (", n_na_hdp, ")"), n_na_hdp
   )
   
-  plot_df <- seqfish_clinical_info %>% select(mmrf, seqfish_Hyperdiploidy) %>% 
+  plot_df <- seqfish_clinical_info %>% select(mmrf, SeqWGS_Cp_Hyperdiploid_Call) %>% 
     left_join(fusions_primary, by = "mmrf") %>%
-    group_by(mmrf, seqfish_Hyperdiploidy, srr) %>% 
+    group_by(mmrf, SeqWGS_Cp_Hyperdiploid_Call, srr) %>% 
     summarize(n = n(), 
               n_ig = sum(geneA %in% c("IGH", "IGL", "IGK") | 
                            geneB %in% c("IGH", "IGL", "IGK"))) %>%
     ungroup() %>%
     mutate(n_fusions = n - is.na(srr)) %>%
-    left_join(hpd_key, by = "seqfish_Hyperdiploidy")
+    left_join(hpd_key, by = "SeqWGS_Cp_Hyperdiploid_Call")
   
   # t-test to compare number of fusions between hyperdiploidy and not
   
   n_fusions_with_hyperdiploid_info <- seqfish_clinical_info %>% 
     left_join(fusions_primary, by = "mmrf") %>% 
-    filter(!is.na(seqfish_Hyperdiploidy)) %>% 
-    group_by(mmrf, srr, seqfish_Hyperdiploidy)  %>% 
+    filter(!is.na(SeqWGS_Cp_Hyperdiploid_Call)) %>% 
+    group_by(mmrf, srr, SeqWGS_Cp_Hyperdiploid_Call)  %>% 
     summarize(n = n(),
               n_ig = sum(geneA %in% c("IGH", "IGL", "IGK") | 
                            geneB %in% c("IGH", "IGL", "IGK"))) %>% 
@@ -752,28 +778,25 @@ if (TRUE) {
     mutate(n_corrected = n - is.na(srr))
   
   n_fusions_hyperdiploid <- n_fusions_with_hyperdiploid_info %>% 
-    filter(seqfish_Hyperdiploidy == 1) %>% pull(n_corrected)
+    filter(SeqWGS_Cp_Hyperdiploid_Call == 1) %>% pull(n_corrected)
   n_fusions_nonhyperdiploid <- n_fusions_with_hyperdiploid_info %>% 
-    filter(seqfish_Hyperdiploidy == 0) %>% pull(n_corrected)
+    filter(SeqWGS_Cp_Hyperdiploid_Call == 0) %>% pull(n_corrected)
   n_fusions_hyperdiploid_ig <- n_fusions_with_hyperdiploid_info %>% 
-    filter(seqfish_Hyperdiploidy == 1) %>% pull(n_ig)
+    filter(SeqWGS_Cp_Hyperdiploid_Call == 1) %>% pull(n_ig)
   n_fusions_nonhyperdiploid_ig <- n_fusions_with_hyperdiploid_info %>%
-    filter(seqfish_Hyperdiploidy == 0) %>% pull(n_ig)
+    filter(SeqWGS_Cp_Hyperdiploid_Call == 0) %>% pull(n_ig)
   if ( t.test(n_fusions_hyperdiploid, n_fusions_nonhyperdiploid)$p.value < 0.05) {
     print("Number of fusions significantly different between non- and hyperdiploid.")
+    print(t.test(n_fusions_hyperdiploid, n_fusions_nonhyperdiploid))
   } else {
     print("Number of fusions not significantly different between non- and hyperdiploid.")
   }
   if ( t.test(n_fusions_hyperdiploid_ig, n_fusions_nonhyperdiploid_ig)$p.value < 0.05) {
     print("Number of IG fusions significantly different between non- and hyperdiploid.")
+    print(t.test(n_fusions_hyperdiploid_ig, n_fusions_nonhyperdiploid_ig))
   } else {
     print("Number of IG fusions not significantly different between non- and hyperdiploid.")
   }
-  
-  t.test(n_fusions_with_hyperdiploid_info %>% 
-    filter(seqfish_Hyperdiploidy == 1) %>% pull(n_ig),
-  n_fusions_with_hyperdiploid_info %>% 
-    filter(seqfish_Hyperdiploidy == 0) %>% pull(n_ig))
   
   # Plot number of fusions per sample
   
@@ -831,7 +854,7 @@ if (TRUE) {
                        labels = c(0, 3, 20, 40, 60)) +
     scale_y_continuous() +
     annotation_custom(tableGrob(n_fusion_all, rows = NULL, 
-                                cols = c("HRD Status", "Median", "Mean", "Max", "IG"),
+                                cols = c("Hyperdiploid Status", "Median", "Mean", "Max", "IG"),
                                 theme = ttheme_default(core = list(fg_params = list(col = matrix(c("#a6cee3", "#1f78b4", "#b2df8a", rep("#000000", 17)), nrow = 4, byrow = FALSE),
                                                                                     fontface = matrix(rep(c("bold", "plain", "plain", "plain", "plain"), 4), nrow = 4, byrow = TRUE),
                                                                                     fontsize = 8)), 

@@ -73,19 +73,19 @@ if (TRUE) {
                                str_detect(fusion_labels, pattern = "IGK") ~ "IGK",
                                str_detect(fusion_labels, pattern = "IGL") ~ "IGL",
                                TRUE ~ "Neither\nReported"),
-           other_gene = case_when(fusion_labels == "MYC mutation" ~ "MYC mutation",
-                                  str_detect(fusion_labels, pattern = "MYC") ~ "MYC",
-                                  str_detect(fusion_labels, pattern = "PVT1") ~ "PVT1",
-                                  TRUE ~ "Neither\nReported"),
+           other_gene = case_when(fusion_labels == "MYC mutation" ~ "MYC\nmutation",
+                                  str_detect(fusion_labels, pattern = "MYC") ~ "MYC\nfusion",
+                                  str_detect(fusion_labels, pattern = "PVT1") ~ "PVT1\nfusion",
+                                  TRUE ~ "No mutation\nor fusion"),
            my_alpha = case_when(fusion_labels == "MYC mutation" ~ 1,
                                 str_detect(fusion_labels, pattern = "MYC") ~ 1,
                                 str_detect(fusion_labels, pattern = "PVT1") ~ 1,
                                 TRUE ~ 0.25)) %>%
     mutate(fusion_labels = replace_na(fusion_labels, "Neither\nReported")) %>%
-    mutate(other_gene = factor(other_gene, levels = c("Neither\nReported",
-                                                      "MYC mutation",
-                                                      "MYC",
-                                                      "PVT1"),
+    mutate(other_gene = factor(other_gene, levels = c("No mutation\nor fusion",
+                                                      "MYC\nmutation",
+                                                      "MYC\nfusion",
+                                                      "PVT1\nfusion"),
                                ordered = TRUE),
            ig_gene = factor(ig_gene, levels = c("Neither\nReported",
                                                 "IGH",
@@ -105,6 +105,7 @@ if (TRUE) {
                     color = other_gene,
                     shape = ig_gene,
                     alpha = my_alpha),
+                width = 0.1,
                 height = 0) +
     scale_shape_manual(values = c(1, 17, 15, 16)) +
     scale_y_continuous(limits = c(0, max_myc_expr)) +
@@ -214,8 +215,8 @@ if (TRUE) {
           strip.placement = "outside",
           axis.ticks = element_blank(),
           axis.text = element_text(size = 8)) +
-    ggsave(str_c(paper_main, "PVT1_MYC.breakpoints.pdf"),
-           width = 7.5, height = 4, useDingbats = FALSE)
+    ggsave(str_c(paper_supp, "PVT1_MYC.breakpoints.pdf"),
+           width = 7.25, height = 4, useDingbats = FALSE)
 }
 
 # SURVIVAL MYC--IGL vs. PVT1--IGL
@@ -233,7 +234,8 @@ if (TRUE) {
     filter(mmrf %in% mmrf_with_primary_mutation_calls)
   
   # There are no overlaps in samples with all EFS parameters but could be in general
-  
+  plot_survival_list <- list()
+  plot_survival_list[["base_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age, data = EFS_tibble)
   plot_survival_list[["PVT1_MYC_fusion_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fusion, data = EFS_tibble)
   plot_survival_list[["anova_PVT1_MYC_fusion_EFS"]] <- anova(plot_survival_list[["base_EFS"]], plot_survival_list[["PVT1_MYC_fusion_EFS"]]) # Significant
   
@@ -247,7 +249,16 @@ if (TRUE) {
                    xlab = "Time (days)", 
                    ylab = "Event-Free Survival Probability",
                    palette = viridis(4, direction = -1),
-                   ggtheme = theme_survminer(),
+                   ggtheme = theme_survminer(base_size = 12,
+                                             base_family = "",
+                                             font.main = c(12, "plain", "black"),
+                                             font.submain = c(12, "plain", "black"),
+                                             font.x = c(12, "plain", "black"),
+                                             font.y = c(12, "plain", "black"),
+                                             font.caption = c(12, "plain", "black"),
+                                             font.tickslab = c(8, "plain", "black"),
+                                             legend = c("top", "bottom", "left", "right", "none"),
+                                             font.legend = c(8, "plain", "black")),
                    conf.int.alpha = 0.1))
   dev.off()
   pdf(str_c(paper_main, "PVT1_MYC.EFS.without_legend.pdf"),
@@ -259,7 +270,16 @@ if (TRUE) {
                    xlab = "Time (days)", 
                    ylab = "Event-Free Survival Probability",
                    palette = viridis(4, direction = -1),
-                   ggtheme = theme_survminer(),
+                   ggtheme = theme_survminer(base_size = 12,
+                                             base_family = "",
+                                             font.main = c(12, "plain", "black"),
+                                             font.submain = c(12, "plain", "black"),
+                                             font.x = c(12, "plain", "black"),
+                                             font.y = c(12, "plain", "black"),
+                                             font.caption = c(12, "plain", "black"),
+                                             font.tickslab = c(8, "plain", "black"),
+                                             legend = c("top", "bottom", "left", "right", "none"),
+                                             font.legend = c(8, "plain", "black")),
                    conf.int.alpha = 0.1))
   dev.off()
 }

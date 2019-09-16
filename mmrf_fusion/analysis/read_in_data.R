@@ -17,6 +17,7 @@ library(RColorBrewer) # 01_overview.R
 library(Seurat) # 06_scRNA.R
 library(survival) # 01_overview.R
 library(survminer) # 01_overview.R
+library(viridis)
 library(UpSetR) # 01_overview.R
 
 # ==============================================================================
@@ -97,7 +98,28 @@ tcga_validation_rate <- n_fusions_validated_tcga/n_fusions_with_wgs_tcga
 # ==============================================================================
 # seqFISH and clinical information
 # ==============================================================================
-seqfish_clinical_info <- read_tsv("data/seqfish_clinical.txt")
+#seqfish_clinical_info <- read_tsv("data/seqfish_clinical.txt")
+updated_clinical <- read_csv("data/Clinical_data.20190913.csv") %>% 
+  select("Spectrum_Seq", "public_id",
+         "ECOG", "Plasma_Cell_Percent", "ISS", "LDH", "Bone_Lesions", "Plasmacytoma", 
+         "Age", "EFS", "EFS_censor","OS", "OS_censor", 
+         "Female", "White", "AA_Black", "Other_race") %>% 
+  rename("mmrf" = "public_id", "BM_Plasma_Cell_Percent" = "Plasma_Cell_Percent",
+         "ISS_Stage" = "ISS", "Bone_lesions" = "Bone_Lesions", 
+         "Race_White" = "White", "Race_Black" = "AA_Black", "Race_Other" = "Other_race") %>% 
+  mutate(age_ge_66 = Age >= 66, race = Race_White + 2*Race_Black + 3*Race_Other) %>% 
+  filter(mmrf %in% samples_primary$mmrf)
+once_only <- updated_clinical %>% group_by(mmrf) %>% summarize(count = n()) %>% filter(count == 1) %>% pull(mmrf)
+updated_clinical <- updated_clinical %>% filter(mmrf %in% once_only |
+                                                  Spectrum_Seq == str_c(mmrf, "_1")) %>%
+  right_join(samples_primary %>% select(mmrf), by = "mmrf") %>%
+  rename("seqfish_Study_Visit_ID" = "Spectrum_Seq") %>%
+  mutate(seqfish_Study_Visit_ID = str_c(seqfish_Study_Visit_ID, "_BM"))
+
+updated_cnv <- read_tsv("data/MMRF_CoMMpass_IA14a_CNA_LongInsert_FISH_CN_All_Specimens.txt") %>% 
+  select(Study_Visit_ID, ends_with("20percent"), SeqWGS_Cp_Hyperdiploid_Call) %>%
+  rename("seqfish_Study_Visit_ID" = "Study_Visit_ID")
+
 updated_seqfish <- read_tsv("data/MMRF_CoMMpass_IA14a_LongInsert_Canonical_Ig_Translocations.txt")
 
 updated_seqfish_IGHKL <- updated_seqfish %>%
@@ -152,12 +174,17 @@ updated_seqfish_IGHKL <- updated_seqfish %>%
   select(Study_Visit_iD, starts_with("updated_seqfish_t_IG")) %>%
   rename("seqfish_Study_Visit_ID" = "Study_Visit_iD")
 
-seqfish_clinical_info <- seqfish_clinical_info %>% 
+#seqfish_clinical_info <- seqfish_clinical_info
+seqfish_clinical_info <- updated_clinical %>% 
   left_join(updated_seqfish_IGHKL, 
+            by = "seqfish_Study_Visit_ID") %>%
+  left_join(updated_cnv, 
             by = "seqfish_Study_Visit_ID") %>%
   left_join(fusions_primary %>% group_by(mmrf) %>% summarize(total_fusions = n()), 
             by = "mmrf") %>% 
-  replace_na(list(total_fusions = 0))
+  replace_na(list(total_fusions = 0)) %>%
+  mutate_at(c("Female", "Race_White", "Race_Black", "Race_Other", "race", 
+              "ECOG", "ISS_Stage", "Bone_lesions", "Plasmacytoma"), as.factor)
 
 # ==============================================================================
 # Gene expression data

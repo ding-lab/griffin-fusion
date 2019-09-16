@@ -78,7 +78,6 @@ if (TRUE) {
 if (TRUE) {
   
   coxph_model_EFS_list <- list()
-  coxph_model_Death_list <- list()
   
   fusions_gt2 <- seqfish_clinical_info %>%
     filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
@@ -119,14 +118,6 @@ if (TRUE) {
       left_join(fusions_primary %>% filter(fusion == this_fusion), by = "mmrf") %>% 
       select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor) %>%
       replace_na(list(fusion = "_None"))
-    Death_tibble <- seqfish_clinical_info %>% 
-      filter(!is.na(ISS_Stage), !is.na(D_PT_lstalive), !is.na(Age)) %>%
-      rowwise() %>% 
-      mutate( time_on_trial = max(D_PT_deathdy, D_PT_lstalive, na.rm = TRUE), 
-              death = as.numeric(!is.na(D_PT_deathdy))) %>%
-      left_join(fusions_primary %>% filter(fusion == this_fusion), by = "mmrf") %>% 
-      select(mmrf, Age, fusion, ISS_Stage, time_on_trial, death) %>%
-      replace_na(list(fusion = "_None"))
     
     if (EFS_tibble %>% pull(fusion) %>% unique() %>% length() > 1) {
       baseline_coxph_model_EFS <- coxph(Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age, data = EFS_tibble)
@@ -138,18 +129,7 @@ if (TRUE) {
         coxph_model_EFS_list[[this_fusion]] <- coxph_model_EFS
       }
     }
-    
-    if (Death_tibble %>% pull(fusion) %>% unique() %>% length() > 1) {
-      baseline_coxph_model_Death <- coxph(Surv(time_on_trial, death == 1) ~ ISS_Stage + Age, data = Death_tibble)
-      coxph_model_Death <- coxph(Surv(time_on_trial, death == 1) ~ ISS_Stage + Age + fusion, data = Death_tibble)
-      p_value_Death <- summary(coxph_model_Death)$coefficients[str_c("fusion", this_fusion), 5]
-      p_value_model_comparison <- anova(baseline_coxph_model_Death, coxph_model_Death)["P(>|Chi|)"][2,1]
-      
-      if (p_value_Death < 0.05/n_tests_fusions & p_value_model_comparison < 0.05/n_tests_fusions) {
-        coxph_model_Death_list[[this_fusion]] <- coxph_model_Death
-      }
-      }
-    }
+  }
   
   for (this_gene in genes_gt2) {
     #print(this_gene)
@@ -158,15 +138,6 @@ if (TRUE) {
       filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
       left_join(fusions_primary %>% filter(geneA == this_gene | geneB == this_gene), by = "mmrf") %>% 
       select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor) %>% 
-      mutate(gene = case_when(is.na(fusion) ~ "_None", 
-                              TRUE ~ this_gene))
-    Death_tibble <- seqfish_clinical_info %>% 
-      filter(!is.na(ISS_Stage), !is.na(D_PT_lstalive), !is.na(Age)) %>% 
-      rowwise() %>% 
-      mutate( time_on_trial = max(D_PT_deathdy, D_PT_lstalive, na.rm = TRUE), 
-              death = as.numeric(!is.na(D_PT_deathdy))) %>%
-      left_join(fusions_primary %>% filter(geneA == this_gene | geneB == this_gene), by = "mmrf") %>% 
-      select(mmrf, Age, fusion, ISS_Stage, time_on_trial, death) %>% 
       mutate(gene = case_when(is.na(fusion) ~ "_None", 
                               TRUE ~ this_gene))
     
@@ -180,21 +151,9 @@ if (TRUE) {
         coxph_model_EFS_list[[this_gene]] <- coxph_model_EFS
       }
     }
-    
-    if (Death_tibble %>% pull(gene) %>% unique() %>% length() > 1) {
-      baseline_coxph_model_Death <- coxph(Surv(time_on_trial, death == 1) ~ ISS_Stage + Age, data = Death_tibble)
-      coxph_model_Death <- coxph(Surv(time_on_trial, death == 1) ~ ISS_Stage + Age + gene, data = Death_tibble)
-      p_value_Death <- summary(coxph_model_Death)$coefficients[str_c("gene", this_gene), 5]
-      p_value_model_comparison <- anova(baseline_coxph_model_Death, coxph_model_Death)["P(>|Chi|)"][2,1]
-      
-      if (p_value_Death < 0.05/n_tests_fusions & p_value_model_comparison < 0.05/n_tests_fusions) {
-        coxph_model_Death_list[[this_gene]] <- coxph_model_Death
-      }
-    }
   }
   
   print(coxph_model_EFS_list %>% names())
-  print(coxph_model_Death_list %>% names())
 }
 
 ################################################################################
@@ -312,14 +271,13 @@ if (TRUE) {
     ungroup() %>%
     select(Cancer, fusion, count) %>%
     rename("Fusion" = "fusion", "TCGA_Sample_Count" = "count") %>%
-    write_tsv(str_c(paper_supp, "TCGA_overlap.tsv"))
+    write_tsv(str_c(paper_main, "TCGA_overlap.tsv"))
   
   p <- ggplot(x, aes(x = factor(Fusion, levels = c("SND1--BRAF", "TPM3--NTRK1", "NOTCH2--SEC22B"), ordered = TRUE), 
                 y = TCGA_Sample_Count, 
                 fill = Cancer)) + 
     geom_col(alpha = 0.75) + 
     scale_fill_brewer(palette = "BuPu") +
-    #scale_fill_manual(values = c("#FAD2D9","#A084BD","#7E1918","#00A99D","#F9ED32","#FBE3C7")) +
     theme_bw() +
     labs(x = NULL, y = "TCGA Sample Count") +
     scale_y_continuous(position = "right", expand = c(0.01,0.01)) +
@@ -335,9 +293,9 @@ if (TRUE) {
           legend.title = element_text(size = 12),
           legend.text = element_text(size = 10))
   
-  ggsave(str_c(paper_supp, "TCGA_connection.pdf"), p,
+  ggsave(str_c(paper_main, "TCGA_connection.pdf"), p,
                width = 10, height = 5)
-  ggsave(str_c(paper_supp, "TCGA_connection.no_legend.pdf"), p + guides(fill = FALSE),
+  ggsave(str_c(paper_main, "TCGA_connection.no_legend.pdf"), p + guides(fill = FALSE),
                width = 3, height = 2)
 }
 
@@ -353,7 +311,7 @@ if (TRUE) {
     ungroup() %>%
     ggplot(aes(x = fct_reorder(kinase_group_full_name, count), y = count)) +
     geom_col(position = "dodge") +
-    coord_flip(expand = c(0,0)) +
+    coord_flip(expand = FALSE) +
     labs(y = "Fusion Count", x = "Kinase Group") +
     scale_y_continuous(position = "right") +
     theme_bw() +
@@ -373,6 +331,60 @@ if (TRUE) {
          p + guides(fill = FALSE), 
          width = 7.25, height = 3.5, useDingbats = FALSE)
   
+}
+
+# ==============================================================================
+# Expression correlation of CBX7--CSNK1E the only recurrent fusion with
+# 3' intact kinase
+# Written April 2019 -- Supplemental
+# ==============================================================================
+
+if (FALSE) {
+  geneA <- "CBX7"
+  geneB <- "CSNK1E"
+  this_fusion = str_c(geneA, "--", geneB)
+  
+  fusion_samples <- kinases %>% 
+    filter(KinasePos == "3P_KINASE", KinaseDomain == "Intact") %>% 
+    filter(Fusion == this_fusion) %>% 
+    pull(SampleID)
+  
+  geneA_expr <- expression_primary %>% filter(gene == geneA) %>%
+    select(srr, gene, log10tpm, pct) %>%
+    rename(geneA = gene, geneA_log10tpm = log10tpm, geneA_pct = pct)
+  
+  geneB_expr <- expression_primary %>% filter(gene == geneB) %>%
+    select(srr, gene, log10tpm, pct) %>%
+    rename(geneB = gene, geneB_log10tpm = log10tpm, geneB_pct = pct)
+  
+  geneA_geneB_expr <- geneA_expr %>% left_join(geneB_expr, by = "srr") %>%
+    mutate(has_fusion = srr %in% fusion_samples) %>%
+    arrange(has_fusion)
+  
+  ggplot(geneA_geneB_expr, 
+         aes(x = geneA_pct, y = geneB_pct, color = has_fusion)) +
+    geom_point(shape = 16, size = 2) + 
+    coord_fixed() + 
+    geom_segment(x = 0, xend = 1, y = 0, yend = 1, 
+                 linetype = 2, show.legend = FALSE,
+                 color = "grey90") +
+    scale_x_continuous(expand = c(0.01, 0.01), limits = c(0,1)) +
+    scale_y_continuous(expand = c(0.01, 0.01), limits = c(0,1)) +
+    scale_color_manual(values = c("grey90", "black")) +
+    labs(x = str_c(geneA, " Expression Percentile"),
+         y = str_c(geneB, " Expression Percentile"),
+         color = str_c(this_fusion, "\nFusion Reported")) +
+    theme_bw() +
+    theme(panel.background = element_blank(),
+          panel.border = element_blank(),
+          panel.grid = element_blank(),
+          axis.ticks = element_blank(),
+          axis.text = element_text(size = 8),
+          axis.title = element_text(size = 10),
+          legend.position = "bottom"
+    ) +
+    ggsave(str_c(paper_supp, "CBX7--CSNK1E.expression.pdf"),
+           width = 3.5, height = 3.5, useDingbats = FALSE)  
 }
 
 # ==============================================================================
@@ -584,9 +596,9 @@ if (TRUE) {
     geom_violin(scale = "width",
                 color = "black",
                 draw_quantiles = 0.5) +
-    geom_jitter(aes(color = gene,
-                    size = my_size,
+    geom_jitter(aes(size = my_size,
                     alpha = my_alpha), 
+                color = "#6e016b",
                 size = 2,
                 shape = 16, height = 0, width = 0.1) +
     geom_hline(yintercept = apobec_outlier_true, linetype = 2) +
@@ -597,17 +609,18 @@ if (TRUE) {
     scale_y_continuous(expand = c(0,0), limits = c(-0.05, 1)) +
     labs(x = "Gene", y = "APOBEC Signature Score") +
     theme_bw() +
+    coord_flip() +
     theme(panel.background = element_blank(),
           panel.grid.minor = element_blank(),
           panel.grid.major.x = element_blank(),
           panel.border = element_blank(),
           axis.ticks = element_blank(),
-          axis.text.x = element_text(vjust = 0.5, size = 10),
-          axis.text.y = element_text(size = 8),
+          axis.text.x = element_text(vjust = 0.5, size = 8),
+          axis.text.y = element_text(size = 10),
           legend.position = "bottom",
           legend.direction = "vertical",
           axis.title = element_text(size = 12)) +
-    ggsave(str_c(paper_main, "apobec.pdf"), width = 3.5, height = 3.5, useDingbats = FALSE)
+    ggsave(str_c(paper_main, "apobec.pdf"), width = 2.5, height = 1, useDingbats = FALSE)
 }
 
 # ==============================================================================

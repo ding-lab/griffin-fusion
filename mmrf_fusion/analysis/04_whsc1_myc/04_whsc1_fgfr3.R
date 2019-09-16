@@ -292,7 +292,7 @@ if (TRUE) {
   
   plot_survival_list <- list()
   
-  FGFR3_nonsilent_mutation <- samples_primary %>% 
+  FGFR3_pathogenic_mutation <- samples_primary %>% 
     left_join(samples_all, by = "srr") %>% 
     mutate(Tumor_Sample_Barcode = str_c(mmrf.x, "_", visit)) %>% 
     left_join(mutation_calls %>% 
@@ -300,7 +300,7 @@ if (TRUE) {
                 unique(), 
               by = "Tumor_Sample_Barcode") %>% 
     left_join(mutation_calls %>% 
-                filter(Hugo_Symbol == "FGFR3", Variant_Classification != "Silent") %>%
+                filter(Hugo_Symbol == "FGFR3", CLIN_SIG == "pathogenic") %>%
                 select(Hugo_Symbol, Tumor_Sample_Barcode) %>% 
                 unique(), 
               by = "Tumor_Sample_Barcode") %>%
@@ -321,7 +321,7 @@ if (TRUE) {
                 unique(), 
               by = "mmrf") %>% 
     select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor) %>%
-    mutate(fgfr3_nonsilent_mutation = mmrf %in% FGFR3_nonsilent_mutation,
+    mutate(fgfr3_pathogenic_mutation = mmrf %in% FGFR3_pathogenic_mutation,
            fgfr3_expression_high = mmrf %in% FGFR3_expression_high,
            ISS_Stage = factor(ISS_Stage, labels = c("I", "II", "III"))) %>%
     replace_na(list(fusion = "_None")) %>%
@@ -330,16 +330,19 @@ if (TRUE) {
   n_samples_WHSC1_survival <- EFS_tibble %>% nrow()
   n_samples_WHSC1_survival_fusion <- EFS_tibble %>% filter(fusion == "IGH--WHSC1") %>% nrow()
   n_samples_WHSC1_survival_fusion_expression <- EFS_tibble %>% filter(fusion == "IGH--WHSC1", fgfr3_expression_high == TRUE) %>% nrow()
-  n_samples_WHSC1_survival_fusion_expression_nonsilent <- EFS_tibble %>% filter(fusion == "IGH--WHSC1", fgfr3_expression_high == TRUE, fgfr3_nonsilent_mutation == TRUE) %>% nrow()
+  n_samples_WHSC1_survival_fusion_expression_pathogenic <- EFS_tibble %>% filter(fusion == "IGH--WHSC1", fgfr3_expression_high == TRUE, fgfr3_pathogenic_mutation == TRUE) %>% nrow()
   
   plot_survival_list[["base_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age, data = EFS_tibble)
   plot_survival_list[["WHSC1_fusion_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fusion, data = EFS_tibble)
+  plot_survival_list[["WHSC1_fusion_mutation_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fusion + fgfr3_pathogenic_mutation, data = EFS_tibble)
   
   plot_survival_list[["with_fusion_base_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"))
-  plot_survival_list[["with_fusion_mutation_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fgfr3_nonsilent_mutation, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"))
+  plot_survival_list[["with_fusion_mutation_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fgfr3_pathogenic_mutation, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"))
   plot_survival_list[["with_fusion_expression_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fgfr3_expression_high, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"))
-  plot_survival_list[["with_fusion_mutation_expression_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fgfr3_nonsilent_mutation + fgfr3_expression_high, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"))
+  plot_survival_list[["with_fusion_mutation_expression_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fgfr3_pathogenic_mutation + fgfr3_expression_high, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"))
   
+  plot_survival_list[["anova_WHSC1_fusion_mutation_EFS"]] <- anova(plot_survival_list[["base_EFS"]], plot_survival_list[["WHSC1_fusion_mutation_EFS"]])
+  plot_survival_list[["anova_WHSC1_fusion_mutation_EFS"]] <- anova(plot_survival_list[["WHSC1_fusion_EFS"]], plot_survival_list[["WHSC1_fusion_mutation_EFS"]])
   plot_survival_list[["anova_WHSC1_fusion_EFS"]] <- anova(plot_survival_list[["base_EFS"]], plot_survival_list[["WHSC1_fusion_EFS"]])
   plot_survival_list[["anova_with_fusion_mutation_EFS"]] <- anova(plot_survival_list[["with_fusion_base_EFS"]], plot_survival_list[["with_fusion_mutation_EFS"]])
   plot_survival_list[["anova_with_fusion_expression_EFS"]] <- anova(plot_survival_list[["with_fusion_base_EFS"]], plot_survival_list[["with_fusion_expression_EFS"]])
@@ -355,7 +358,16 @@ if (TRUE) {
                    xlab = "Time (days)", 
                    ylab = "Event-Free Survival Probability",
                    palette = c("#EDA9AB", "#D9565C"),
-                   ggtheme = theme_survminer(),
+                   ggtheme = theme_survminer(base_size = 12,
+                                             base_family = "",
+                                             font.main = c(12, "plain", "black"),
+                                             font.submain = c(12, "plain", "black"),
+                                             font.x = c(12, "plain", "black"),
+                                             font.y = c(12, "plain", "black"),
+                                             font.caption = c(12, "plain", "black"),
+                                             font.tickslab = c(8, "plain", "black"),
+                                             legend = c("top", "bottom", "left", "right", "none"),
+                                             font.legend = c(8, "plain", "black")),
                    conf.int.alpha = 0.1))
   dev.off()
   pdf(str_c(paper_main, "WHSC1.EFS.without_legend.pdf"),
@@ -367,7 +379,16 @@ if (TRUE) {
                    xlab = "Time (days)", 
                    ylab = "Event-Free Survival Probability",
                    palette = c("#EDA9AB", "#D9565C"),
-                   ggtheme = theme_survminer(),
+                   ggtheme = theme_survminer(base_size = 12,
+                                             base_family = "",
+                                             font.main = c(12, "plain", "black"),
+                                             font.submain = c(12, "plain", "black"),
+                                             font.x = c(12, "plain", "black"),
+                                             font.y = c(12, "plain", "black"),
+                                             font.caption = c(12, "plain", "black"),
+                                             font.tickslab = c(8, "plain", "black"),
+                                             legend = c("top", "bottom", "left", "right", "none"),
+                                             font.legend = c(8, "plain", "black")),
                    conf.int.alpha = 0.1))
   dev.off()
   
@@ -381,7 +402,16 @@ if (TRUE) {
                    xlab = "Time (days)", 
                    ylab = "Event-Free Survival Probability",
                    palette = c("#1BB6AF", "#172869"),
-                   ggtheme = theme_survminer(),
+                   ggtheme = theme_survminer(base_size = 12,
+                                             base_family = "",
+                                             font.main = c(12, "plain", "black"),
+                                             font.submain = c(12, "plain", "black"),
+                                             font.x = c(12, "plain", "black"),
+                                             font.y = c(12, "plain", "black"),
+                                             font.caption = c(12, "plain", "black"),
+                                             font.tickslab = c(8, "plain", "black"),
+                                             legend = c("top", "bottom", "left", "right", "none"),
+                                             font.legend = c(8, "plain", "black")),
                    conf.int.alpha = 0.1))
   dev.off()
   fit <- survfit(Surv(EFS, EFS_censor == 0) ~ fgfr3_expression_high, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"))
@@ -394,7 +424,16 @@ if (TRUE) {
                    xlab = "Time (days)", 
                    ylab = "Event-Free Survival Probability",
                    palette = c("#1BB6AF", "#172869"),
-                   ggtheme = theme_survminer(),
+                   ggtheme = theme_survminer(base_size = 12,
+                                             base_family = "",
+                                             font.main = c(12, "plain", "black"),
+                                             font.submain = c(12, "plain", "black"),
+                                             font.x = c(12, "plain", "black"),
+                                             font.y = c(12, "plain", "black"),
+                                             font.caption = c(12, "plain", "black"),
+                                             font.tickslab = c(8, "plain", "black"),
+                                             legend = c("top", "bottom", "left", "right", "none"),
+                                             font.legend = c(8, "plain", "black")),
                    conf.int.alpha = 0.1))
   dev.off()
 }
@@ -422,17 +461,17 @@ n_with_high_fgfr3 <- expression_primary %>%
 
 print(str_c("WHSC1 fusions with high FGFR3 expression: ",
             n_whsc1_fgfr3_high, "/", 
-            n_whsc1_fgfr3, " = ", 
-            round(100*n_whsc1_fgfr3_high/n_whsc1_fgfr3, 2), "%"))
+            n_whsc1_fgfr3_fusion, " = ", 
+            round(100*n_whsc1_fgfr3_high/n_whsc1_fgfr3_fusion, 2), "%"))
 
 print(str_c("Number of samples with complete survival data (ISS_Stage, Age, EFS status): ", n_samples_WHSC1_survival))
 print(str_c("Number of EFS samples with IGH--WHSC1 fusion: ", n_samples_WHSC1_survival_fusion))
 print(str_c("Number of EFS samples with IGH--WHSC1 fusion and high FGFR3 expression: ", n_samples_WHSC1_survival_fusion_expression))
-print(str_c("Number of EFS samples with IGH--WHSC1 fusion and high FGFR3 expression, and nonsilent FGFR3 mutation: ", n_samples_WHSC1_survival_fusion_expression_nonsilent))
-print(str_c("Proportion of EFS samples with high FGFR3 expression and nonsilent mutation: ", 
-            n_samples_WHSC1_survival_fusion_expression_nonsilent, "/", 
+print(str_c("Number of EFS samples with IGH--WHSC1 fusion and high FGFR3 expression, and pathogenic FGFR3 mutation: ", n_samples_WHSC1_survival_fusion_expression_pathogenic))
+print(str_c("Proportion of EFS samples with high FGFR3 expression and pathogenic mutation: ", 
+            n_samples_WHSC1_survival_fusion_expression_pathogenic, "/", 
             n_samples_WHSC1_survival_fusion_expression, " = ", 
-            100*round(n_samples_WHSC1_survival_fusion_expression_nonsilent/n_samples_WHSC1_survival_fusion_expression, 3), "%"))
+            100*round(n_samples_WHSC1_survival_fusion_expression_pathogenic/n_samples_WHSC1_survival_fusion_expression, 3), "%"))
 print(str_c("Number of samples with IGH--WHSC1 fusion and WGS breakpoint: ", n_samples_with_IGHWHSC1_wgs_breakpoint))
 print(str_c("IGH chr14 genomic breakpoint range: ", round(igh_breakpoint_range, 2)))
 print(str_c("WHSC1 chr4 genomic breakpoint range: ", round(whsc1_breakpoint_range, 2)))
