@@ -436,6 +436,8 @@ if (TRUE) {
                                              font.legend = c(8, "plain", "black")),
                    conf.int.alpha = 0.1))
   dev.off()
+  
+  print(plot_survival_list)
 }
 
 # ==============================================================================
