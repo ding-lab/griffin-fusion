@@ -318,28 +318,28 @@ if (TRUE) {
     "Hyperdiploid",
     n_hyperdiploid_samples,
     ".", 
-    n_hyperdiploid_samples/n_samples_primary,
+    n_hyperdiploid_samples/(n_samples_primary - n_na_hyperdiploid_samples),
     ".",  ".",    ".",     ".",   ".",    ".",
     
     "Hyperdiploid Status", 
     "Non-Hyperdiploid",
     n_nonhyperdiploid_samples,
     ".", 
-    n_nonhyperdiploid_samples/n_samples_primary,
+    n_nonhyperdiploid_samples/(n_samples_primary - n_na_hyperdiploid_samples),
     ".",  ".",    ".",     ".",   ".",    ".",  
     
     "Hyperdiploid Status", 
-    "Not available",
+    NA,
     n_na_hyperdiploid_samples,
     ".", 
-    n_na_hyperdiploid_samples/n_samples_primary,
+    ".",
     ".",  ".",    ".",     ".",   ".",    ".",  
     
     "Age",
     ".",
     n_samples_primary - age_na,
     age_na,
-    1 - age_na/n_samples_primary,
+    ".",
     as.numeric(str_split(age_summary[1,1], ":", simplify = TRUE)[1,2]),
     as.numeric(str_split(age_summary[2,1], ":", simplify = TRUE)[1,2]),
     as.numeric(str_split(age_summary[3,1], ":", simplify = TRUE)[1,2]),
@@ -351,7 +351,7 @@ if (TRUE) {
     ".",
     n_samples_primary - plasma_na,
     plasma_na,
-    1 - plasma_na/n_samples_primary,
+    ".",
     as.numeric(str_split(plasma_summary[1,1], ":", simplify = TRUE)[1,2]),
     as.numeric(str_split(plasma_summary[2,1], ":", simplify = TRUE)[1,2]),
     as.numeric(str_split(plasma_summary[3,1], ":", simplify = TRUE)[1,2]),
@@ -363,7 +363,7 @@ if (TRUE) {
     ".",
     n_samples_primary - ldh_na,
     ldh_na,
-    1 - ldh_na/n_samples_primary,
+    ".",
     as.numeric(str_split(ldh_summary[1,1], ":", simplify = TRUE)[1,2]),
     as.numeric(str_split(ldh_summary[2,1], ":", simplify = TRUE)[1,2]),
     as.numeric(str_split(ldh_summary[3,1], ":", simplify = TRUE)[1,2]),
@@ -376,7 +376,7 @@ if (TRUE) {
     as.numeric(str_split(sex_summary[2,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(sex_summary[2,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - sex_na),
     ".", ".", ".", ".", ".", ".",
     
     "Sex",
@@ -384,14 +384,14 @@ if (TRUE) {
     as.numeric(str_split(sex_summary[1,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(sex_summary[1,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - sex_na),
     ".", ".", ".", ".", ".", ".",
     
     "Sex",
-    "Not available",
+    NA,
     sex_na,
     ".",
-    sex_na/n_samples_primary,
+    ".",
     ".", ".", ".", ".", ".", ".",
     
     "Race",
@@ -399,7 +399,7 @@ if (TRUE) {
     as.numeric(str_split(race_summary[1,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(race_summary[1,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - race_na),
     ".", ".", ".", ".", ".", ".",
     
     "Race",
@@ -407,7 +407,7 @@ if (TRUE) {
     as.numeric(str_split(race_summary[2,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(race_summary[2,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - race_na),
     ".", ".", ".", ".", ".", ".",
     
     "Race",
@@ -415,14 +415,14 @@ if (TRUE) {
     as.numeric(str_split(race_summary[3,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(race_summary[3,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - race_na),
     ".", ".", ".", ".", ".", ".",
     
     "Race",
-    "Not available",
+    NA,
     race_na,
     ".",
-    race_na/n_samples_primary,
+    ".",
     ".", ".", ".", ".", ".", ".",
     
     "ECOG",
@@ -438,7 +438,7 @@ if (TRUE) {
     as.numeric(str_split(ecog_summary[2,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(ecog_summary[2,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2])),
     ".", ".", ".", ".", ".", ".",
     
     "ECOG",
@@ -446,7 +446,7 @@ if (TRUE) {
     as.numeric(str_split(ecog_summary[3,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(ecog_summary[3,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2])),
     ".", ".", ".", ".", ".", ".",
     
     "ECOG",
@@ -454,7 +454,7 @@ if (TRUE) {
     as.numeric(str_split(ecog_summary[4,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(ecog_summary[4,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2])),
     ".", ".", ".", ".", ".", ".",
     
     "ECOG",
@@ -462,15 +462,14 @@ if (TRUE) {
     as.numeric(str_split(ecog_summary[5,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(ecog_summary[5,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2])),
     ".", ".", ".", ".", ".", ".",
     
     "ECOG",
-    "Not available",
+    NA,
     as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2]),
     ".",
-    as.numeric(str_split(ecog_summary[6,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+    ".",
     ".", ".", ".", ".", ".", ".", 
     
     "ISS Stage",
@@ -478,7 +477,7 @@ if (TRUE) {
     as.numeric(str_split(stage_summary[1,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(stage_summary[1,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(stage_summary[4,1], ":", simplify = TRUE)[1,2])),
     ".", ".", ".", ".", ".", ".", 
     
     "ISS Stage",
@@ -486,7 +485,7 @@ if (TRUE) {
     as.numeric(str_split(stage_summary[2,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(stage_summary[2,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(stage_summary[4,1], ":", simplify = TRUE)[1,2])),
     ".", ".", ".", ".", ".", ".", 
     
     "ISS Stage",
@@ -494,15 +493,14 @@ if (TRUE) {
     as.numeric(str_split(stage_summary[3,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(stage_summary[3,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(stage_summary[4,1], ":", simplify = TRUE)[1,2])),
     ".", ".", ".", ".", ".", ".", 
     
     "ISS Stage",
-    "Not available",
+    NA,
     as.numeric(str_split(stage_summary[4,1], ":", simplify = TRUE)[1,2]),
     ".",
-    as.numeric(str_split(stage_summary[4,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+    ".",
     ".", ".", ".", ".", ".", ".",
     
     "Bone lesions",
@@ -510,7 +508,7 @@ if (TRUE) {
     as.numeric(str_split(bone_summary[1,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(bone_summary[1,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - bone_na),
     ".", ".", ".", ".", ".", ".",
     
     "Bone lesions",
@@ -518,14 +516,14 @@ if (TRUE) {
     as.numeric(str_split(bone_summary[2,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(bone_summary[2,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - bone_na),
     ".", ".", ".", ".", ".", ".",
     
     "Bone lesions",
-    "Not available",
+    NA,
     bone_na,
     ".",
-    bone_na/n_samples_primary,
+    ".",
     ".", ".", ".", ".", ".", ".",
     
     "Plasmacytoma",
@@ -533,7 +531,7 @@ if (TRUE) {
     as.numeric(str_split(plasmacytoma_summary[1,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(plasmacytoma_summary[1,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - plasmacytoma_na),
     ".", ".", ".", ".", ".", ".",
     
     "Plasmacytoma",
@@ -541,14 +539,14 @@ if (TRUE) {
     as.numeric(str_split(plasmacytoma_summary[2,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(plasmacytoma_summary[2,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - plasmacytoma_na),
     ".", ".", ".", ".", ".", ".", 
     
     "Plasmacytoma",
-    "Not available",
+    NA,
     plasmacytoma_na,
     ".",
-    plasmacytoma_na/n_samples_primary,
+    ".",
     ".", ".", ".", ".", ".", ".", 
     
     "Number of samples",
@@ -734,6 +732,16 @@ if (TRUE) {
 
 }
 
+print("Number of samples with primary same as pre-treatment: ")
+print(samples_primary %>% left_join(samples_all, by = c("mmrf", "srr")) %>% pull(visit) %>% table())
+print(samples_primary %>% left_join(samples_all, by = c("mmrf", "srr")) %>% pull(visit) %>% table()/n_samples_primary)
+
+print(summary_tibble %>% 
+        filter(Category %in% 
+                 c("Age", "Hyperdiploid Status", "ISS Stage", "Race")))
+print(survival_tibble %>% filter(Category == "Event Free")) %>% 
+  pull(`Median Survival (Days)`)/365.25
+
 # ==============================================================================
 # Number of fusions per sample
 # Originally written August 2018, Updated April 2019
@@ -785,18 +793,22 @@ if (TRUE) {
     filter(SeqWGS_Cp_Hyperdiploid_Call == 1) %>% pull(n_ig)
   n_fusions_nonhyperdiploid_ig <- n_fusions_with_hyperdiploid_info %>%
     filter(SeqWGS_Cp_Hyperdiploid_Call == 0) %>% pull(n_ig)
-  if ( t.test(n_fusions_hyperdiploid, n_fusions_nonhyperdiploid)$p.value < 0.05) {
-    print("Number of fusions significantly different between non- and hyperdiploid.")
-    print(t.test(n_fusions_hyperdiploid, n_fusions_nonhyperdiploid))
+  if ( wilcox.test(n_fusions_hyperdiploid, n_fusions_nonhyperdiploid)$p.value < 0.05) {
+    print("Number of fusions significantly different between HRD and non-HRD.")
+    print(wilcox.test(n_fusions_hyperdiploid, n_fusions_nonhyperdiploid))
   } else {
     print("Number of fusions not significantly different between non- and hyperdiploid.")
   }
-  if ( t.test(n_fusions_hyperdiploid_ig, n_fusions_nonhyperdiploid_ig)$p.value < 0.05) {
+  print(str_c("Number of fusions HRD: ", round(mean(n_fusions_hyperdiploid), 1)))
+  print(str_c("Number of fusions non-HRD: ", round(mean(n_fusions_nonhyperdiploid), 1)))
+  if ( wilcox.test(n_fusions_hyperdiploid_ig, n_fusions_nonhyperdiploid_ig)$p.value < 0.05) {
     print("Number of IG fusions significantly different between non- and hyperdiploid.")
-    print(t.test(n_fusions_hyperdiploid_ig, n_fusions_nonhyperdiploid_ig))
+    print(wilcox.test(n_fusions_hyperdiploid_ig, n_fusions_nonhyperdiploid_ig))
   } else {
     print("Number of IG fusions not significantly different between non- and hyperdiploid.")
   }
+  print(str_c("Number of Ig fusions HRD: ", round(mean(n_fusions_hyperdiploid_ig), 1)))
+  print(str_c("Number of Ig fusions non-HRD: ", round(mean(n_fusions_nonhyperdiploid_ig), 1)))
   
   # Plot number of fusions per sample
   
@@ -897,8 +909,8 @@ if (TRUE) {
                               TRUE ~ fusion)) %>%
     select(fusion, n_discordant) %>% 
     mutate(validation_status = case_when(is.na(n_discordant) ~ "Not Available", 
-                                         n_discordant >= 3 ~ "WGS Validated", 
-                                         TRUE ~ "Not Validated" )) %>% 
+                                         n_discordant >= 3 ~ "WGS Supported", 
+                                         TRUE ~ "Not Supported" )) %>% 
     group_by(fusion, validation_status) %>% 
     summarize(count = n())
   
@@ -916,7 +928,7 @@ if (TRUE) {
                        labels = seq(0, 100, 20),
                        position = "right") +
     scale_fill_manual(values = c("#cbc9e2", "#9e9ac8", "#6a51a3"),
-                      breaks = c("WGS Validated", "Not Validated", "Not Available")) +
+                      breaks = c("WGS Supported", "Not Supported", "Not Available")) +
     theme(panel.background = element_blank(),
           panel.border = element_blank(),
           panel.grid = element_blank(),
@@ -926,7 +938,7 @@ if (TRUE) {
           axis.title = element_text(size = 12),
           axis.text.y = element_text(face = "italic", size = 10),
           legend.position = "bottom") +
-    labs(x = NULL, fill = NULL, y = "Top Recurrent Validated Fusions (Number of Samples)")
+    labs(x = NULL, fill = NULL, y = "Top Recurrent Fusions Supported by WGS (Number of Samples)")
     
   ggsave(str_c(paper_main, "top_recurrent_validated_fusions.pdf"), p,
            device = "pdf", width = 7.25, height = 7.25/1.618, useDingbats = FALSE)
