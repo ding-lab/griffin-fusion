@@ -4,7 +4,7 @@
 # ==============================================================================
 
 paper_main = "paper/main/02_expression/"
-paper_supp = "paper/supplemental/02_expression/"
+paper_supp = "paper/supplementary/02_expression/"
 
 # Create directories 
 dir.create(paper_main, recursive = TRUE, showWarnings = FALSE)
@@ -542,8 +542,7 @@ if (TRUE) {
   
   continuous_clinical_variable_names <- c("Age", 
                                           "BM_Plasma_Cell_Percent", 
-                                          "LDH",
-                                          "total_fusions")
+                                          "LDH")
   
   # ============================================================================
   # Prepare lists of fusions and genes for testing (avoid testing rare events)

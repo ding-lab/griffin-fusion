@@ -4,7 +4,7 @@
 # ==============================================================================
 
 paper_main = "paper/main/03_multiple/"
-paper_supp = "paper/supplemental/03_multiple/"
+paper_supp = "paper/supplementary/03_multiple/"
 
 # Create directories 
 dir.create(paper_main, recursive = TRUE, showWarnings = FALSE)

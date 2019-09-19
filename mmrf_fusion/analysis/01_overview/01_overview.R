@@ -4,7 +4,7 @@
 # ==============================================================================
 
 paper_main = "paper/main/01_overview/"
-paper_supp = "paper/supplemental/01_overview/"
+paper_supp = "paper/supplementary/01_overview/"
 
 # Create directories 
 dir.create(paper_main, recursive = TRUE, showWarnings = FALSE)
@@ -967,22 +967,6 @@ if (TRUE) {
         text.scale = 1.5, point.size = 3, line.size = 1)
   dev.off()
 }
-
-# ==============================================================================
-# Create a summary table of soft filtering
-# Written April 2019
-# ==============================================================================
-soft_filtered %>% 
-  group_by(FusionName, filter) %>% 
-  summarize(fusion_count = n()) %>% 
-  separate(col = "FusionName", into = c("geneA", "geneB"), sep = "--", remove = FALSE) %>%
-  select(FusionName, geneA,	geneB, fusion_count, filter) %>%
-  bind_rows(undervalidated) %>%
-  rename("Fusion Name" = "FusionName", 
-         "Fusion Count" = "fusion_count", 
-         "Filter" = "filter") %>%
-  arrange(desc(`Fusion Count`), `Filter`) %>%
-  write_tsv(str_c(paper_supp, "soft_filtering.tsv"))
 
 # ==============================================================================
 # Fusion overview paragraph output

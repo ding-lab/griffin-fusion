@@ -4,7 +4,7 @@
 # ==============================================================================
 
 paper_main = "paper/main/05_single_cell/"
-paper_supp = "paper/supplemental/05_single_cell/"
+paper_supp = "paper/supplementary/05_single_cell/"
 
 # Create directories
 for (id in c("27522_1/", "27522_4/")) {
@@ -1360,7 +1360,16 @@ if (TRUE) {
          x = "IGH chr14 Genomic Coordinates (Mb) (GRCh38)",
          y = "Number of 'Chimeric Transcripts'") +
     theme_bw() +
-    ggsave(str_c(paper_supp, "single_cell_QC.pdf"), width = 7.5, height = 8.5, useDingbats = FALSE)
+    theme(panel.background = element_blank(),
+          panel.grid.minor.y = element_blank(),
+          panel.border = element_blank(),
+          axis.ticks.x = element_blank(),
+          axis.ticks.y = element_blank(),
+          axis.title = element_text(size = 12),
+          axis.text.x = element_text(size = 8),
+          strip.background = element_blank(),
+          strip.text = element_text(size = 12)) +
+    ggsave(str_c(paper_supp, "single_cell_QC.pdf"), width = 7.25, height = 4.0, useDingbats = FALSE)
   
 }
 

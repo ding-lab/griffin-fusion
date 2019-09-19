@@ -3,7 +3,7 @@
 # ==============================================================================
 
 paper_main = "paper/main/06_myc_pvt1/"
-paper_supp = "paper/supplemental/06_myc_pvt1/"
+paper_supp = "paper/supplementary/06_myc_pvt1/"
 
 # Create directories 
 dir.create(paper_main, recursive = TRUE, showWarnings = FALSE)
@@ -11,7 +11,7 @@ dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 
 # Expression plot data
 
-expr_plot_df <- read_tsv("paper/supplemental/02_expression/expression_plot_tibble.tsv")
+expr_plot_df <- read_tsv("paper/supplementary/02_expression/expression_plot_tibble.tsv")
 expr_plot_df <- expr_plot_df %>% mutate(cnv_factor = factor(categorical_cnv,
                                                             labels = c("DELETION",
                                                                        "Deletion",
@@ -237,9 +237,14 @@ if (TRUE) {
   plot_survival_list <- list()
   plot_survival_list[["base_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age, data = EFS_tibble)
   plot_survival_list[["PVT1_MYC_fusion_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fusion, data = EFS_tibble)
-  plot_survival_list[["anova_PVT1_MYC_fusion_EFS"]] <- anova(plot_survival_list[["base_EFS"]], plot_survival_list[["PVT1_MYC_fusion_EFS"]]) # Significant
+  plot_survival_list[["PVT1_MYC_fusion_mutant_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fusion + myc_mutant, data = EFS_tibble)
+  plot_survival_list[["anova_PVT1_MYC_fusion_EFS"]] <- anova(plot_survival_list[["base_EFS"]], plot_survival_list[["PVT1_MYC_fusion_EFS"]])
+  plot_survival_list[["anova_PVT1_MYC_fusion_EFS"]] <- anova(plot_survival_list[["base_EFS"]], plot_survival_list[["PVT1_MYC_fusion_mutant_EFS"]])
+  plot_survival_list[["anova_PVT1_MYC_fusion_mutant_EFS"]] <- anova(plot_survival_list[["PVT1_MYC_fusion_EFS"]], plot_survival_list[["PVT1_MYC_fusion_mutant_EFS"]])
   
   fit <- survfit(Surv(EFS, EFS_censor == 0) ~ fusion + myc_mutant, data = EFS_tibble)
+  print("Kaplan-Meier estimates for MYC/PVT1/IGL fusion:")
+  print(fit)
   pdf(str_c(paper_main, "PVT1_MYC.EFS.with_legend.pdf"),
       width = 3.5, height = 3.5, useDingbats = FALSE)
   print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
@@ -282,11 +287,15 @@ if (TRUE) {
                                              font.legend = c(8, "plain", "black")),
                    conf.int.alpha = 0.1))
   dev.off()
+  
+  print(plot_survival_list[["PVT1_MYC_fusion_EFS"]])
+  print(exp(confint(plot_survival_list[["PVT1_MYC_fusion_EFS"]])))
+  
 }
 
-
-
+# ==============================================================================
 # Paragraph info
+# ==============================================================================
 n_myc_fusions_with_wgs <- fusions_primary %>% 
   filter((geneA %in% c("PVT1", "MYC") & geneB %in% c("IGH", "IGK", "IGL")) |
            (geneB %in% c("PVT1", "MYC") & geneA %in% c("IGH", "IGK", "IGL"))) %>%
@@ -296,5 +305,35 @@ n_myc_fusions_validated <- fusions_primary %>%
            (geneB %in% c("PVT1", "MYC") & geneA %in% c("IGH", "IGK", "IGL"))) %>%
   filter(!is.na(n_discordant), n_discordant >= 3) %>% nrow()
 
+n_myc_igl_any_stage <- fusions_primary %>% filter(fusion == "MYC--IGL") %>% 
+  select(mmrf, fusion) %>% 
+  left_join(seqfish_clinical_info %>% 
+              select(mmrf, ISS_Stage), by = "mmrf") %>% 
+  filter(!is.na(ISS_Stage)) %>% 
+  nrow()
+n_myc_igl_stageI <- fusions_primary %>% filter(fusion == "MYC--IGL") %>% 
+  select(mmrf, fusion) %>% 
+  left_join(seqfish_clinical_info %>% 
+              select(mmrf, ISS_Stage), by = "mmrf") %>% 
+  filter(!is.na(ISS_Stage)) %>% 
+  filter(ISS_Stage == "1") %>%
+  nrow()
 
+n_pvt1_igl_any_stage <- fusions_primary %>% filter(fusion == "PVT1--IGL") %>% 
+  select(mmrf, fusion) %>% 
+  left_join(seqfish_clinical_info %>% 
+              select(mmrf, ISS_Stage), by = "mmrf") %>% 
+  filter(!is.na(ISS_Stage)) %>% 
+  nrow()
+n_pvt1_igl_stageI <- fusions_primary %>% filter(fusion == "PVT1--IGL") %>% 
+  select(mmrf, fusion) %>% 
+  left_join(seqfish_clinical_info %>% 
+              select(mmrf, ISS_Stage), by = "mmrf") %>% 
+  filter(!is.na(ISS_Stage)) %>% 
+  filter(ISS_Stage == "1") %>%
+  nrow()
+
+print(str_c("Number of samples with MYC mutation: ", mmrf_with_myc_mutation %>% nrow()))
+print(str_c("Proportion of PVT1--IGL Stage I: ", n_pvt1_igl_stageI, "/", n_pvt1_igl_any_stage, " = ", round(100*n_pvt1_igl_stageI/n_pvt1_igl_any_stage, 2), "%"))
+print(str_c("Proportion of MYC--IGL Stage I: ", n_myc_igl_stageI, "/", n_myc_igl_any_stage, " = ", round(100*n_myc_igl_stageI/n_myc_igl_any_stage, 2), "%"))
 print(str_c("MYC/PVT1 IG fusions validated: ", n_myc_fusions_validated, "/", n_myc_fusions_with_wgs, " = ", round(100*n_myc_fusions_validated/n_myc_fusions_with_wgs, 2), "%"))

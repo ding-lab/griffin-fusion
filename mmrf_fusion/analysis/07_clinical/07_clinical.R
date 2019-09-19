@@ -4,7 +4,7 @@
 # ==============================================================================
 
 paper_main = "paper/main/07_clinical/"
-paper_supp = "paper/supplemental/07_clinical/"
+paper_supp = "paper/supplementary/07_clinical/"
 
 # Create directories 
 dir.create(paper_main, recursive = TRUE, showWarnings = FALSE)
@@ -152,6 +152,13 @@ if (TRUE) {
       }
     }
   }
+  
+  # Total fusion burden and survival
+  EFS_tibble <- seqfish_clinical_info %>% 
+    filter(!is.na(ISS_Stage), !is.na(EFS), !is.na(Age), !is.na(total_fusions)) %>% 
+    select(mmrf, Age, total_fusions, ISS_Stage, EFS, EFS_censor)
+  total_fusions_coxph_model <- coxph(Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + total_fusions, data = EFS_tibble)
+  print(total_fusions_coxph_model)
   
   print(coxph_model_EFS_list %>% names())
 }
@@ -591,6 +598,9 @@ if (TRUE) {
     mutate(my_size = case_when(gene == "All samples" ~ 1,
                                TRUE ~ 2))
   
+  n_high_apobec <- apobec_background_high %>% filter(APOBEC >= apobec_outlier_true) %>% nrow()
+  n_with_signature_score <- apobec_background_high %>% nrow()
+  
   ggplot(apobec_background_high, 
          aes(x = fct_reorder(gene, APOBEC), y = APOBEC)) +
     geom_violin(scale = "width",
@@ -648,3 +658,4 @@ print(str_c("Proportion of patients with druggable fusion: ",
             n_patients_druggable, "/", n_samples_primary, " = ", 
             round(100*n_patients_druggable/n_samples_primary, 2), "%"))
 
+print(str_c("Proportion of patients with outlier APOBEC score: ", n_high_apobec, "/", n_with_signature_score, " = ", 100*round(n_high_apobec/n_with_signature_score, 4), "%"))
