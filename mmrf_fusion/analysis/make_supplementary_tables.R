@@ -38,3 +38,17 @@ kinase_table <- read_tsv("data/Kinase_fusion_info.txt") %>%
 write_tsv(kinase_table, 
           str_c(supp_tables, "Supplementary_Table_4.Kinases.tsv"), 
           na = "NA", append = FALSE, col_names = TRUE)
+
+# Table S5 soft filtering
+soft_filtered %>% 
+  group_by(FusionName, filter) %>% 
+  summarize(fusion_count = n()) %>% 
+  separate(col = "FusionName", into = c("geneA", "geneB"), sep = "--", remove = FALSE) %>%
+  select(FusionName, geneA,	geneB, fusion_count, filter) %>%
+  bind_rows(undervalidated) %>%
+  rename("Fusion Name" = "FusionName", 
+         "Fusion Count" = "fusion_count", 
+         "Filter" = "filter") %>%
+  arrange(desc(`Fusion Count`), `Filter`) %>%
+  write_tsv(str_c(supp_tables, "Supplementary_Table_5.Soft_Filtered_Fusions.tsv"),
+            na = "NA", append = FALSE, col_names = TRUE)
