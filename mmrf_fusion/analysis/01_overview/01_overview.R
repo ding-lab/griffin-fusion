@@ -310,6 +310,7 @@ if (TRUE) {
   n_samples_wgs_na <- file_locations %>% filter(X14 == "NA,NA") %>% nrow()
   
   print(str_c("Number of patients: ", n_samples_primary))
+  print(samples_primary %>% left_join(samples_all, by = "srr") %>% pull(tissue_source) %>% table())
   print(str_c("Number with WGS: ", n_samples_wgs, "/", n_samples_primary, " = ", round(100*n_samples_wgs/n_samples_primary, digits = 1), "%"))
   print(str_c("Number with Seq-FISH translocations: ", n_samples_t_seqfish, "/", n_samples_primary, " = ", round(100*n_samples_t_seqfish/n_samples_primary, digits = 1), "%"))
   print(str_c("Number with Seq-FISH CNV: ", n_samples_cnv_seqfish, "/", n_samples_primary, " = ", round(100*n_samples_cnv_seqfish/n_samples_primary, digits = 1), "%"))

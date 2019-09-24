@@ -660,7 +660,12 @@ if (TRUE) {
 # ==============================================================================
 # Fusion multiple time points paragraph output
 # ==============================================================================
-
+n_mmrf_with_multiple_samples <- samples_all %>% 
+  group_by(mmrf) %>% 
+  summarize(count = n()) %>% 
+  filter(count > 1) %>% 
+  nrow()
+print(str_c("Number of patients with multiple samples: ", n_mmrf_with_multiple_samples))
 print(str_c("Number of patients with two BM samples: ", n_patients_two_bm))
 print("Table of IGH--WHSC1 fusions detected in BM samples:")
 print(table_two_bm_ighwhsc1)
