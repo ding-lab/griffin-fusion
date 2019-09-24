@@ -20,8 +20,8 @@ write_tsv(fusions_all %>%
 # Table S3 overexpressed fusions
 overexpressed_table <- testing_tbl_pvalue_adjusted %>% 
   filter(fdr < 0.05 | median_value > 0.9, 
-         event_type %in% c("Fusion Expression", 
-                           "Fusion Expression Outlier")) %>% 
+         event_type %in% c("Fusion Gene Expression", 
+                           "Fusion Gene Expression Outlier")) %>% 
   select(-c("event2", "n_samples_with_tested", 
             "n_samples_without_tested", "n_samples_na_tested"))
 write_tsv(overexpressed_table, 

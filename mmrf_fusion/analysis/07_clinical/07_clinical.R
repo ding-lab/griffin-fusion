@@ -114,6 +114,7 @@ if (TRUE) {
     #print(this_fusion)
     
     EFS_tibble <- seqfish_clinical_info %>%
+      filter(mmrf %in% mmrf_primary_pretreatment) %>%
       filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
       left_join(fusions_primary %>% filter(fusion == this_fusion), by = "mmrf") %>% 
       select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor) %>%
@@ -135,6 +136,7 @@ if (TRUE) {
     #print(this_gene)
     
     EFS_tibble <- seqfish_clinical_info %>%
+      filter(mmrf %in% mmrf_primary_pretreatment) %>%
       filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
       left_join(fusions_primary %>% filter(geneA == this_gene | geneB == this_gene), by = "mmrf") %>% 
       select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor) %>% 
@@ -153,14 +155,186 @@ if (TRUE) {
     }
   }
   
+  #### early relapse
+  coxph_model_early_list <- list()
+  
+  for (this_fusion in fusions_gt2) {
+    #print(this_fusion)
+    
+    early_tibble <- seqfish_clinical_info %>%
+      filter(mmrf %in% mmrf_primary_pretreatment) %>%
+      filter(!is.na(ISS_Stage), !is.na(early_relapse_censor), !is.na(Age)) %>%
+      left_join(fusions_primary %>% filter(fusion == this_fusion), by = "mmrf") %>% 
+      select(mmrf, Age, fusion, ISS_Stage, early_relapse_time, early_relapse_censor) %>%
+      replace_na(list(fusion = "_None"))
+    
+    if (early_tibble %>% pull(fusion) %>% unique() %>% length() > 1) {
+      baseline_coxph_model_early <- coxph(Surv(early_relapse_time, early_relapse_censor == 0) ~ ISS_Stage + Age, data = early_tibble)
+      coxph_model_early <- coxph(Surv(early_relapse_time, early_relapse_censor == 0) ~ ISS_Stage + Age + fusion, data = early_tibble)
+      p_value_early <- summary(coxph_model_early)$coefficients[str_c("fusion", this_fusion), 5]
+      p_value_model_comparison <- anova(baseline_coxph_model_early, coxph_model_early)["P(>|Chi|)"][2,1]
+      
+      if (p_value_early < 0.05/n_tests_fusions & p_value_model_comparison < 0.05/n_tests_fusions) {
+        coxph_model_early_list[[this_fusion]] <- coxph_model_early
+      }
+    }
+  }
+  
+  for (this_gene in genes_gt2) {
+    #print(this_gene)
+    
+    early_tibble <- seqfish_clinical_info %>%
+      filter(mmrf %in% mmrf_primary_pretreatment) %>%
+      filter(!is.na(ISS_Stage), !is.na(early_relapse_censor), !is.na(Age)) %>%
+      left_join(fusions_primary %>% filter(geneA == this_gene | geneB == this_gene), by = "mmrf") %>% 
+      select(mmrf, Age, fusion, ISS_Stage, early_relapse_time, early_relapse_censor) %>% 
+      mutate(gene = case_when(is.na(fusion) ~ "_None", 
+                              TRUE ~ this_gene))
+    
+    if (early_tibble %>% pull(gene) %>% unique() %>% length() > 1) {
+      baseline_coxph_model_early <- coxph(Surv(early_relapse_time, early_relapse_censor == 0) ~ ISS_Stage + Age, data = early_tibble)
+      coxph_model_early <- coxph(Surv(early_relapse_time, early_relapse_censor == 0) ~ ISS_Stage + Age + gene, data = early_tibble)
+      p_value_early <- summary(coxph_model_early)$coefficients[str_c("gene", this_gene), 5]
+      p_value_model_comparison <- anova(baseline_coxph_model_early, coxph_model_early)["P(>|Chi|)"][2,1]
+      
+      if (p_value_early < 0.05/n_tests_fusions & p_value_model_comparison < 0.05/n_tests_fusions) {
+        coxph_model_early_list[[this_gene]] <- coxph_model_early
+      }
+    }
+  }
+  
   # Total fusion burden and survival
   EFS_tibble <- seqfish_clinical_info %>% 
+    filter(mmrf %in% mmrf_primary_pretreatment) %>%
     filter(!is.na(ISS_Stage), !is.na(EFS), !is.na(Age), !is.na(total_fusions)) %>% 
     select(mmrf, Age, total_fusions, ISS_Stage, EFS, EFS_censor)
   total_fusions_coxph_model <- coxph(Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + total_fusions, data = EFS_tibble)
+  print("HR estimate for total_fusions:")
   print(total_fusions_coxph_model)
+  print("Confidence intervals for total_fusions HR:")
+  print(exp(confint(total_fusions_coxph_model)))
+  
+  early_tibble <- seqfish_clinical_info %>% 
+    filter(mmrf %in% mmrf_primary_pretreatment) %>%
+    filter(!is.na(ISS_Stage), !is.na(early_relapse_time), !is.na(Age), !is.na(total_fusions)) %>% 
+    select(mmrf, Age, total_fusions, ISS_Stage, early_relapse_time, early_relapse_censor)
+  total_fusions_coxph_model_early <- coxph(Surv(early_relapse_time, early_relapse_censor == 0) ~ ISS_Stage + Age + total_fusions, data = early_tibble)
+  print(total_fusions_coxph_model_early)
   
   print(coxph_model_EFS_list %>% names())
+  print(coxph_model_early_list %>% names())
+  
+  ##############################################################################
+  # Double hit vs. Triple hit
+  ##############################################################################
+  
+  triple_hit <- seqfish_clinical_info %>%
+    filter(mmrf %in% mmrf_primary_pretreatment) %>%
+    filter(!is.na(EFS), !is.na(EFS_censor), !is.na(amp1q), !is.na(del17p), !is.na(updated_seqfish_t_IGH_WHSC1), !is.na(Age), !is.na(ISS_Stage)) %>%
+    select(EFS, EFS_censor, amp1q, del17p, updated_seqfish_t_IGH_WHSC1, Age, ISS_Stage)
+  
+  #coxph(Surv(EFS, EFS_censor == 0) ~ amp1q + del17p + updated_seqfish_t_IGH_WHSC1 + Age + ISS_Stage, data = triple_hit)
+  
+  fit_double <- survfit(Surv(EFS, EFS_censor == 0) ~ amp1q + del17p, data = triple_hit)
+  fit_triple <- survfit(Surv(EFS, EFS_censor == 0) ~ amp1q + del17p + updated_seqfish_t_IGH_WHSC1, data = triple_hit)
+  
+  pdf(str_c(paper_supp, "triple_hit.EFS.with_legend.pdf"),
+      width = 4.5, height = 4.5, useDingbats = FALSE)
+  print(ggsurvplot(fit_triple, data = triple_hit, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("-/-/-", "-/-/+", "-/+/-", "-/+/+", "+/-/-", "+/-/+", "+/+/-", "+/+/+"),
+                   legend = "bottom",
+                   legend.title = "amp(1q)/del(17p)/t(4;14)",
+                   xlab = "Time (days)", 
+                   ylab = "Progression-Free Survival Probability",
+                   palette = "RdBu",
+                   ggtheme = theme_survminer(base_size = 12,
+                                             base_family = "",
+                                             font.main = c(12, "plain", "black"),
+                                             font.submain = c(12, "plain", "black"),
+                                             font.x = c(12, "plain", "black"),
+                                             font.y = c(12, "plain", "black"),
+                                             font.caption = c(12, "plain", "black"),
+                                             font.tickslab = c(8, "plain", "black"),
+                                             legend = c("top", "bottom", "left", "right", "none"),
+                                             font.legend = c(8, "plain", "black")),
+                   conf.int.alpha = 0.1))
+  dev.off()
+  
+  pdf(str_c(paper_supp, "triple_hit.EFS.without_legend.pdf"),
+      width = 3.5, height = 3.5, useDingbats = FALSE)
+  print(ggsurvplot(fit_triple, data = triple_hit, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("-/-/-", "-/-/+", "-/+/-", "-/+/+", "+/-/-", "+/-/+", "+/+/-", "+/+/+"),
+                   legend = "none",
+                   legend.title = "amp(1q)/del(17p)/t(4;14)",
+                   xlab = "Time (days)", 
+                   ylab = "Progression-Free Survival Probability",
+                   palette = "RdBu",
+                   ggtheme = theme_survminer(base_size = 12,
+                                             base_family = "",
+                                             font.main = c(12, "plain", "black"),
+                                             font.submain = c(12, "plain", "black"),
+                                             font.x = c(12, "plain", "black"),
+                                             font.y = c(12, "plain", "black"),
+                                             font.caption = c(12, "plain", "black"),
+                                             font.tickslab = c(8, "plain", "black"),
+                                             legend = c("top", "bottom", "left", "right", "none"),
+                                             font.legend = c(8, "plain", "black")),
+                   conf.int.alpha = 0.1))
+  dev.off()
+  
+  pdf(str_c(paper_supp, "double_hit.EFS.with_legend.pdf"),
+      width = 4.5, height = 4.5, useDingbats = FALSE)
+  print(ggsurvplot(fit_double, data = triple_hit, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("-/-", "-/+", "+/-", "+/+"),
+                   legend = "bottom",
+                   legend.title = "amp(1q)/del(17p)",
+                   xlab = "Time (days)", 
+                   ylab = "Progression-Free Survival Probability",
+                   palette = "PRGn",
+                   ggtheme = theme_survminer(base_size = 12,
+                                             base_family = "",
+                                             font.main = c(12, "plain", "black"),
+                                             font.submain = c(12, "plain", "black"),
+                                             font.x = c(12, "plain", "black"),
+                                             font.y = c(12, "plain", "black"),
+                                             font.caption = c(12, "plain", "black"),
+                                             font.tickslab = c(8, "plain", "black"),
+                                             legend = c("top", "bottom", "left", "right", "none"),
+                                             font.legend = c(8, "plain", "black")),
+                   conf.int.alpha = 0.1))
+  dev.off()
+  
+  pdf(str_c(paper_supp, "double_hit.EFS.without_legend.pdf"),
+      width = 3.5, height = 3.5, useDingbats = FALSE)
+  print(ggsurvplot(fit_double, data = triple_hit, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("-/-", "-/+", "+/-", "+/+"),
+                   legend = "none",
+                   legend.title = "amp(1q)/del(17p)",
+                   xlab = "Time (days)", 
+                   ylab = "Progression-Free Survival Probability",
+                   palette = "PRGn",
+                   ggtheme = theme_survminer(base_size = 12,
+                                             base_family = "",
+                                             font.main = c(12, "plain", "black"),
+                                             font.submain = c(12, "plain", "black"),
+                                             font.x = c(12, "plain", "black"),
+                                             font.y = c(12, "plain", "black"),
+                                             font.caption = c(12, "plain", "black"),
+                                             font.tickslab = c(8, "plain", "black"),
+                                             legend = c("top", "bottom", "left", "right", "none"),
+                                             font.legend = c(8, "plain", "black")),
+                   conf.int.alpha = 0.1))
+  dev.off()
+  
+  print("PFS time for double/triple hit:")
+  print(fit_double)
+  print(fit_triple)
+
+  ##############################################################################
 }
 
 ################################################################################

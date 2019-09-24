@@ -12,6 +12,7 @@ dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 
 # CHANGE TO TRUE ONLY IF YOU NEED TO CREATE TESTING FILE FOR THE FIRST TIME
 rerun <- FALSE
+rerun_plots <- FALSE
 
 # ==============================================================================
 # Measure associations between fusion status and expression and clinical info
@@ -538,7 +539,10 @@ if (TRUE) {
                                         "ECOG", 
                                         "ISS_Stage",
                                         "Bone_lesions", 
-                                        "Plasmacytoma")
+                                        "Plasmacytoma",
+                                        "del17p",
+                                        "amp1q",
+                                        "HRD")
   
   continuous_clinical_variable_names <- c("Age", 
                                           "BM_Plasma_Cell_Percent", 
@@ -763,8 +767,8 @@ if (TRUE) {
   set.seed(10)
   
   # Change to TRUE only if you want to recreate all plots from the start
-  recreate_plot_df <- rerun
-  recreate_all_plots <- rerun
+  recreate_plot_df <- rerun_plots
+  recreate_all_plots <- rerun_plots
   
   dir.create(paper_supp, showWarnings = FALSE)
   dir.create(str_c(paper_supp, "all_plots"), showWarnings = FALSE)

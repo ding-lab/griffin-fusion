@@ -100,14 +100,19 @@ tcga_validation_rate <- n_fusions_validated_tcga/n_fusions_with_wgs_tcga
 # ==============================================================================
 #seqfish_clinical_info <- read_tsv("data/seqfish_clinical.txt")
 updated_clinical <- read_csv("data/Clinical_data.20190913.csv") %>% 
-  select("Spectrum_Seq", "public_id",
+  select("Spectrum_Seq", "public_id", "del17p", "amp1q", "HRD",
          "ECOG", "Plasma_Cell_Percent", "ISS", "LDH", "Bone_Lesions", "Plasmacytoma", 
          "Age", "EFS", "EFS_censor","OS", "OS_censor", 
-         "Female", "White", "AA_Black", "Other_race") %>% 
+         "Female", "White", "AA_Black", "Other_race",
+         "D_PT_therclass", "BMT") %>% 
   rename("mmrf" = "public_id", "BM_Plasma_Cell_Percent" = "Plasma_Cell_Percent",
          "ISS_Stage" = "ISS", "Bone_lesions" = "Bone_Lesions", 
          "Race_White" = "White", "Race_Black" = "AA_Black", "Race_Other" = "Other_race") %>% 
   mutate(age_ge_66 = Age >= 66, race = Race_White + 2*Race_Black + 3*Race_Other) %>% 
+  mutate(early_relapse_time = case_when(EFS < 540 ~ EFS,
+                                        TRUE ~ 540),
+         early_relapse_censor = case_when(EFS >= 540 ~ 1,
+                                          TRUE ~ EFS_censor)) %>%
   filter(mmrf %in% samples_primary$mmrf)
 once_only <- updated_clinical %>% group_by(mmrf) %>% summarize(count = n()) %>% filter(count == 1) %>% pull(mmrf)
 updated_clinical <- updated_clinical %>% filter(mmrf %in% once_only |
@@ -183,6 +188,8 @@ seqfish_clinical_info <- updated_clinical %>%
   left_join(fusions_primary %>% group_by(mmrf) %>% summarize(total_fusions = n()), 
             by = "mmrf") %>% 
   replace_na(list(total_fusions = 0)) %>%
+  mutate(total_fusions_high = case_when(total_fusions > 4 ~ 1,
+                                        TRUE ~ 0)) %>%
   mutate_at(c("Female", "Race_White", "Race_Black", "Race_Other", "race", 
               "ECOG", "ISS_Stage", "Bone_lesions", "Plasmacytoma"), as.factor)
 

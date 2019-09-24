@@ -312,6 +312,7 @@ if (TRUE) {
     pull(mmrf)
   
   EFS_tibble <- seqfish_clinical_info %>%
+    filter(mmrf %in% mmrf_primary_pretreatment) %>%
     filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
     left_join(fusions_primary %>% 
                 filter(fusion %in% c("IGH--WHSC1", "IGH--FGFR3", 
@@ -358,7 +359,7 @@ if (TRUE) {
                    legend.labs = c("No Fusion", "IGH--WHSC1 Fusion"),
                    legend = "right", 
                    xlab = "Time (days)", 
-                   ylab = "Event-Free Survival Probability",
+                   ylab = "Progression-Free Survival Probability",
                    palette = c("#EDA9AB", "#D9565C"),
                    ggtheme = theme_survminer(base_size = 12,
                                              base_family = "",
@@ -379,7 +380,7 @@ if (TRUE) {
                    legend.labs = c("No Fusion", "IGH--WHSC1 Fusion"),
                    legend = "none",
                    xlab = "Time (days)", 
-                   ylab = "Event-Free Survival Probability",
+                   ylab = "Progression-Free Survival Probability",
                    palette = c("#EDA9AB", "#D9565C"),
                    ggtheme = theme_survminer(base_size = 12,
                                              base_family = "",
@@ -404,7 +405,7 @@ if (TRUE) {
                    legend.labs = c("FGFR3 Expression Low", "FGFR3 Expression High"),
                    legend = "right", 
                    xlab = "Time (days)", 
-                   ylab = "Event-Free Survival Probability",
+                   ylab = "Progression-Free Survival Probability",
                    palette = c("#1BB6AF", "#172869"),
                    ggtheme = theme_survminer(base_size = 12,
                                              base_family = "",
@@ -426,7 +427,7 @@ if (TRUE) {
                    legend.labs = c("FGFR3 Expression Low", "FGFR3 Expression High"),
                    legend = "none", 
                    xlab = "Time (days)", 
-                   ylab = "Event-Free Survival Probability",
+                   ylab = "Progression-Free Survival Probability",
                    palette = c("#1BB6AF", "#172869"),
                    ggtheme = theme_survminer(base_size = 12,
                                              base_family = "",
@@ -451,7 +452,7 @@ if (TRUE) {
                    legend.labs = c("FGFR3 Expression Low", "FGFR3 Expression High\nNo Pathogenic Mutation", "FGFR3 Expression High\nPathogenic Mutation"),
                    legend = "right", 
                    xlab = "Time (days)", 
-                   ylab = "Event-Free Survival Probability",
+                   ylab = "Progression-Free Survival Probability",
                    palette = rev(c("#1BB6AF", "#088BBE", "#172869")),
                    ggtheme = theme_survminer(base_size = 12,
                                              base_family = "",
@@ -473,7 +474,7 @@ if (TRUE) {
                    legend.labs = c("FGFR3 Expression Low", "FGFR3 Expression High\nNo Pathogenic Mutation", "FGFR3 Expression High\nPathogenic Mutation"),
                    legend = "none", 
                    xlab = "Time (days)", 
-                   ylab = "Event-Free Survival Probability",
+                   ylab = "Progression-Free Survival Probability",
                    palette = rev(c("#1BB6AF", "#088BBE", "#172869")),
                    ggtheme = theme_survminer(base_size = 12,
                                              base_family = "",

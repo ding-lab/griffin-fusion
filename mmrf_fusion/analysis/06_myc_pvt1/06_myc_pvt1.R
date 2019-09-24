@@ -44,6 +44,17 @@ if (TRUE) {
     return(list("8" = NA, "22" = NA))
   }
   
+  mmrf_with_primary_mutation_calls <- mutation_calls %>% 
+    separate(Tumor_Sample_Barcode, into = c("MMRF", "NUM", "VISIT"), by = "_") %>% 
+    mutate(mmrf = str_c(MMRF, NUM, sep = "_")) %>% 
+    select(mmrf, VISIT) %>%
+    unique() %>% mutate(VISIT = as.numeric(VISIT)) %>%
+    left_join(samples_all, by = c("mmrf" = "mmrf", "VISIT" = "visit")) %>% 
+    filter(!is.na(tissue_source)) %>% 
+    left_join(samples_primary, by = "srr") %>%
+    filter(!is.na(mmrf.y)) %>%
+    pull(mmrf.x)
+  
   # MYC and PVT expression
   mmrf_with_myc_mutation <- mutation_calls %>% # There are none with PVT1
     filter(Hugo_Symbol %in% c("MYC")) %>%
@@ -224,9 +235,21 @@ if (TRUE) {
 if (TRUE) {
   
   EFS_tibble <- seqfish_clinical_info %>%
+    filter(mmrf %in% mmrf_primary_pretreatment) %>%
     filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
     left_join(fusions_primary %>% filter(fusion %in% c("PVT1--IGL", "MYC--IGL")), by = "mmrf") %>% 
     select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor) %>%
+    replace_na(list(fusion = "_None")) %>% 
+    mutate(myc_mutant = mmrf %in% mmrf_with_myc_mutation$mmrf,
+           ISS_Stage = factor(ISS_Stage, labels = c("I", "II", "III"))) %>%
+    #mutate(myc_mutant = case_when(myc_mutant == TRUE & fusion != "_None" ~ fusion)) %>%
+    filter(mmrf %in% mmrf_with_primary_mutation_calls)
+  
+  early_tibble <- seqfish_clinical_info %>%
+    filter(mmrf %in% mmrf_primary_pretreatment) %>%
+    filter(!is.na(ISS_Stage), !is.na(early_relapse_censor), !is.na(Age)) %>%
+    left_join(fusions_primary %>% filter(fusion %in% c("PVT1--IGL", "MYC--IGL")), by = "mmrf") %>% 
+    select(mmrf, Age, fusion, ISS_Stage, early_relapse_time, early_relapse_censor) %>%
     replace_na(list(fusion = "_None")) %>% 
     mutate(myc_mutant = mmrf %in% mmrf_with_myc_mutation$mmrf,
            ISS_Stage = factor(ISS_Stage, labels = c("I", "II", "III"))) %>%
@@ -252,7 +275,7 @@ if (TRUE) {
                    legend.labs = c("Neither Reported", "MYC mutation", "MYC--IGL", "PVT1--IGL"), 
                    legend = "right", 
                    xlab = "Time (days)", 
-                   ylab = "Event-Free Survival Probability",
+                   ylab = "Progression-Free Survival Probability",
                    palette = viridis(4, direction = -1),
                    ggtheme = theme_survminer(base_size = 12,
                                              base_family = "",
@@ -273,7 +296,7 @@ if (TRUE) {
                    legend.labs = c("Neither Reported", "MYC mutation", "MYC--IGL", "PVT1--IGL"), 
                    legend = "none",
                    xlab = "Time (days)", 
-                   ylab = "Event-Free Survival Probability",
+                   ylab = "Progression-Free Survival Probability",
                    palette = viridis(4, direction = -1),
                    ggtheme = theme_survminer(base_size = 12,
                                              base_family = "",

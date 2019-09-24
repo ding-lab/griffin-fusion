@@ -239,6 +239,18 @@ if (TRUE) {
   plasmacytoma_na <- seqfish_clinical_info %>% 
     filter(is.na(Plasmacytoma)) %>% nrow()
   
+  # What treatments patients received
+  treatment_summary <- seqfish_clinical_info %>% 
+    mutate_at("D_PT_therclass", factor) %>% select(D_PT_therclass) %>% 
+    summary(maxsum = length(unique(seqfish_clinical_info$D_PT_therclass)))
+  treatment_na <- seqfish_clinical_info %>% 
+    filter(is.na(D_PT_therclass)) %>% nrow()
+  
+  bmt_summary <- seqfish_clinical_info %>% 
+    mutate_at("BMT", factor) %>% select(BMT) %>% summary()
+  bmt_na <- seqfish_clinical_info %>% 
+    filter(is.na(BMT)) %>% nrow()
+  
   # ============================================================================
   # Plot continuous clinical variables
   # ============================================================================
@@ -425,12 +437,97 @@ if (TRUE) {
     ".",
     ".", ".", ".", ".", ".", ".",
     
+    "Bone Marrow Transplant",
+    "No",
+    as.numeric(str_split(bmt_summary[1,1], ":", simplify = TRUE)[1,2]),
+    ".",
+    as.numeric(str_split(bmt_summary[1,1], ":", simplify = TRUE)[1,2])/(n_samples_primary - bmt_na),
+    ".", ".", ".", ".", ".", ".",
+    
+    "Bone Marrow Transplant",
+    "Yes",
+    as.numeric(str_split(bmt_summary[2,1], ":", simplify = TRUE)[1,2]),
+    ".",
+    as.numeric(str_split(bmt_summary[2,1], ":", simplify = TRUE)[1,2])/(n_samples_primary - bmt_na),
+    ".", ".", ".", ".", ".", ".",
+    
+    "Bone Marrow Transplant",
+    NA,
+    bmt_na,
+    ".",
+    ".",
+    ".", ".", ".", ".", ".", ".",
+    
+    "Treatment",
+    "Bortezomib-based",
+    as.numeric(str_split(treatment_summary[1,1], ":", simplify = TRUE)[1,2]),
+    ".",
+    as.numeric(str_split(treatment_summary[1,1], ":", 
+                         simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
+    ".", ".", ".", ".", ".", ".",
+    
+    "Treatment",
+    "Carfilzomib-based",
+    as.numeric(str_split(treatment_summary[2,1], ":", simplify = TRUE)[1,2]),
+    ".",
+    as.numeric(str_split(treatment_summary[2,1], ":", 
+                         simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
+    ".", ".", ".", ".", ".", ".",
+    
+    "Treatment",
+    "combined bortezomib/carfilzomib-based",
+    as.numeric(str_split(treatment_summary[3,1], ":", simplify = TRUE)[1,2]),
+    ".",
+    as.numeric(str_split(treatment_summary[3,1], ":", 
+                         simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
+    ".", ".", ".", ".", ".", ".",
+    
+    "Treatment",
+    "combined bortezomib/IMIDs-based",
+    as.numeric(str_split(treatment_summary[4,1], ":", simplify = TRUE)[1,2]),
+    ".",
+    as.numeric(str_split(treatment_summary[4,1], ":", 
+                         simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
+    ".", ".", ".", ".", ".", ".",
+    
+    "Treatment",
+    "combined bortezomib/IMIDs/carfilzomib-based",
+    as.numeric(str_split(treatment_summary[5,1], ":", simplify = TRUE)[1,2]),
+    ".",
+    as.numeric(str_split(treatment_summary[5,1], ":", 
+                         simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
+    ".", ".", ".", ".", ".", ".",
+    
+    "Treatment",
+    "combined IMIDs/carfilzomib-based",
+    as.numeric(str_split(treatment_summary[6,1], ":", simplify = TRUE)[1,2]),
+    ".",
+    as.numeric(str_split(treatment_summary[6,1], ":", 
+                         simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
+    ".", ".", ".", ".", ".", ".",
+    
+    "Treatment",
+    "IMIDs-based",
+    as.numeric(str_split(treatment_summary[7,1], ":", simplify = TRUE)[1,2]),
+    ".",
+    as.numeric(str_split(treatment_summary[7,1], ":", 
+                         simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
+    ".", ".", ".", ".", ".", ".",
+    
+    "Treatment",
+    NA,
+    treatment_na,
+    ".",
+    ".",
+    ".", ".", ".", ".", ".", ".",
+    
+    
     "ECOG",
     "0 = Fully active",
     as.numeric(str_split(ecog_summary[1,1], ":", simplify = TRUE)[1,2]),
     ".",
     as.numeric(str_split(ecog_summary[1,1], ":", 
-                         simplify = TRUE)[1,2])/n_samples_primary,
+                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2])),
     ".", ".", ".", ".", ".", ".",
     
     "ECOG",
@@ -732,15 +829,33 @@ if (TRUE) {
 
 }
 
+mmrf_primary_pretreatment <- samples_primary %>% 
+  left_join(samples_all, by = c("mmrf", "srr")) %>% 
+  filter(visit == 1) %>% 
+  pull(mmrf)
 print("Number of samples with primary same as pre-treatment: ")
 print(samples_primary %>% left_join(samples_all, by = c("mmrf", "srr")) %>% pull(visit) %>% table())
 print(samples_primary %>% left_join(samples_all, by = c("mmrf", "srr")) %>% pull(visit) %>% table()/n_samples_primary)
 
 print(summary_tibble %>% 
         filter(Category %in% 
-                 c("Age", "Hyperdiploid Status", "ISS Stage", "Race")))
+                 c("Age", "Hyperdiploid Status", "ISS Stage", "Race", "Treatment", "Bone Marrow Transplant")))
 print(survival_tibble %>% filter(Category == "Event Free")) %>% 
   pull(`Median Survival (Days)`)/365.25
+
+n_patients_progressed <- seqfish_clinical_info %>% filter(!is.na(EFS), !is.na(EFS_censor)) %>% filter(EFS_censor == 0) %>% nrow()
+n_patients_with_pfs_data <- seqfish_clinical_info %>% filter(!is.na(EFS), !is.na(EFS_censor)) %>% nrow()
+n_patients_died <- seqfish_clinical_info %>% filter(!is.na(OS), !is.na(OS_censor)) %>% filter(OS_censor == 0) %>% nrow()
+n_patients_with_os_data <- seqfish_clinical_info %>% filter(!is.na(OS), !is.na(OS_censor)) %>% nrow()
+summary_os_followup <- seqfish_clinical_info %>% filter(!is.na(OS), !is.na(OS_censor)) %>% pull(OS) %>% summary()
+summary_efs_followup <- seqfish_clinical_info %>% filter(!is.na(EFS), !is.na(EFS_censor)) %>% pull(EFS) %>% summary()
+
+print(str_c("Number of patients progressed: ", n_patients_progressed, "/", n_patients_with_pfs_data, " = ", round(100*n_patients_progressed/n_patients_with_pfs_data, 3), "%"))
+print(str_c("Number of patients died: ", n_patients_died, "/", n_patients_with_os_data, " = ", round(100*n_patients_died/n_patients_with_os_data, 3), "%"))
+print("Summary of EFS followup:")
+print(summary_efs_followup)
+print("Summary of OS followup:")
+print(summary_os_followup)
 
 # ==============================================================================
 # Number of fusions per sample
