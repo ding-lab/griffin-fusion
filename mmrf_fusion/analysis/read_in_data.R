@@ -1,28 +1,27 @@
 # ==============================================================================
 # Reads in data for analysis
-# Steven Foltz (smfoltz@wustl.edu)
+# Steven Foltz (github: envest)
 # ==============================================================================
 
 # ==============================================================================
 # Load all packages at beginning
 # ==============================================================================
-library(tidyverse)
-library(readxl)
 
-# Other R pacakges used in downstream scripts
-library(ggrepel) # 02_expression.R
-library(gridExtra) # 01_overview.R
-#library(pheatmap) # 01_overview.R
-library(RColorBrewer) # 01_overview.R
-library(Seurat) # 06_scRNA.R
-library(survival) # 01_overview.R
-library(survminer) # 01_overview.R
+library(ggrepel)
+library(gridExtra)
+library(RColorBrewer)
+library(readxl)
+library(Seurat)
+library(survival)
+library(survminer)
+library(tidyverse)
 library(viridis)
-library(UpSetR) # 01_overview.R
+library(UpSetR)
 
 # ==============================================================================
 # Sample lists (MMRF, SRR) of data related to samples in this analysis
 # ==============================================================================
+
 samples_all <- read_tsv("data/sample_list.806.fixed_visit_number.txt",
                         col_names = c("mmrf", "srr", "visit", "tissue_source"))
 samples_primary <- read_tsv("data/sample_list.primary.txt",
@@ -32,40 +31,38 @@ samples_primary <- read_tsv("data/sample_list.primary.txt",
 # Fusion tibbles. fusions_primary contains fusions from primary time points
 # This is BEFORE removing significantly undervalidated fusions
 # ==============================================================================
+
 fusions_all <- read_tsv("data/fusion_df.txt") %>%
   mutate(fusion = str_remove(fusion, "@"),
          geneA = str_remove(geneA, "@"),
          geneB = str_remove(geneB, "@"))
 fusions_primary <- fusions_all %>% filter(srr %in% samples_primary$srr)
 
-fusions_hard_all <- read_tsv("data/Hard_Filtered_Fusions.tsv")
-fusions_hard_primary <- fusions_hard_all %>%
-  filter(Sample %in% samples_primary$srr)
-
 # ==============================================================================
 # Flag and remove potential false positives (significantly undervalidated)
 # This REMOVES significantly undervalidated fusions from fusions data frames
 # ==============================================================================
+
 wgs_discordant_read_validation_rate <- fusions_primary %>% 
   filter(!is.na(n_discordant), 
          Overlap != "Overlapping_regions") %>% 
-  mutate(validated = n_discordant >= 3) %>%
-  pull(validated) %>% mean()
+  mutate(validated = n_discordant >= 3) %>% # require 3 or more discordant reads
+  pull(validated) %>%
+  mean()
 
 significantly_under_validated_fusions <- fusions_primary %>% 
-  filter(!is.na(n_discordant), 
-         Overlap != "Overlapping_regions") %>% 
+  filter(!is.na(n_discordant), Overlap != "Overlapping_regions") %>% 
   mutate(validated = n_discordant >= 3) %>% 
   group_by(fusion) %>% 
   summarize(n = n(), n_validated = sum(validated)) %>%
   arrange(desc(n)) %>%
   mutate(p_value = pbinom(q = n_validated, size = n, 
                           prob = wgs_discordant_read_validation_rate)) %>% 
-  filter(p_value < 0.15) %>% pull(fusion)
+  filter(p_value < 0.15) %>% 
+  pull(fusion)
 
 undervalidated <- fusions_all %>% 
   filter(fusion %in% significantly_under_validated_fusions) %>%
-  select(fusion, geneA, geneB) %>%
   group_by(fusion, geneA, geneB) %>%
   summarize(fusion_count = n()) %>%
   ungroup() %>%
@@ -80,12 +77,13 @@ fusions_primary <- fusions_primary %>%
 # ==============================================================================
 # TCGA pan-cancer paper Low Pass similar coverage validation rate
 # ==============================================================================
+
 tcga_validation_rate_df <- read_tsv("data/tcga_pancancer_fusions.validation.txt")
 n_fusions_validated_tcga <- tcga_validation_rate_df %>% 
-  filter(Distance == 100000, 
-         Coverage == "LowPass", 
-         ReadsCount < 200, 
-         ReadsCount >= 3) %>% 
+  filter(Distance == 100000,     # Distance threshold used in pan-cancer paper 
+         Coverage == "LowPass",  # Low pass data
+         ReadsCount < 200,       # Eliminate overlapping regions
+         ReadsCount >= 3) %>%    # Require 3 or more reads
   nrow()
 n_fusions_with_wgs_tcga <- tcga_validation_rate_df %>% 
   filter(Distance == 100000, 
@@ -98,9 +96,9 @@ tcga_validation_rate <- n_fusions_validated_tcga/n_fusions_with_wgs_tcga
 # ==============================================================================
 # seqFISH and clinical information
 # ==============================================================================
-#seqfish_clinical_info <- read_tsv("data/seqfish_clinical.txt")
+
 updated_clinical <- read_csv("data/Clinical_data.20190913.csv") %>% 
-  select("Spectrum_Seq", "public_id", "del17p", "amp1q", "HRD",
+  select("Spectrum_Seq", "public_id", "del17p", "amp1q", "HRD", # here HRD = High Risk Disease
          "ECOG", "Plasma_Cell_Percent", "ISS", "LDH", "Bone_Lesions", "Plasmacytoma", 
          "Age", "EFS", "EFS_censor","OS", "OS_censor", 
          "Female", "White", "AA_Black", "Other_race",
@@ -108,26 +106,33 @@ updated_clinical <- read_csv("data/Clinical_data.20190913.csv") %>%
   rename("mmrf" = "public_id", "BM_Plasma_Cell_Percent" = "Plasma_Cell_Percent",
          "ISS_Stage" = "ISS", "Bone_lesions" = "Bone_Lesions", 
          "Race_White" = "White", "Race_Black" = "AA_Black", "Race_Other" = "Other_race") %>% 
-  mutate(age_ge_66 = Age >= 66, race = Race_White + 2*Race_Black + 3*Race_Other) %>% 
+  mutate(age_ge_66 = Age >= 66, 
+         race = Race_White + 2*Race_Black + 3*Race_Other) %>% 
   mutate(early_relapse_time = case_when(EFS < 540 ~ EFS,
                                         TRUE ~ 540),
          early_relapse_censor = case_when(EFS >= 540 ~ 1,
                                           TRUE ~ EFS_censor)) %>%
   filter(mmrf %in% samples_primary$mmrf)
-once_only <- updated_clinical %>% group_by(mmrf) %>% summarize(count = n()) %>% filter(count == 1) %>% pull(mmrf)
-updated_clinical <- updated_clinical %>% filter(mmrf %in% once_only |
-                                                  Spectrum_Seq == str_c(mmrf, "_1")) %>%
+
+once_only_clinical <- updated_clinical %>% 
+  group_by(mmrf) %>% 
+  summarize(count = n()) %>% 
+  filter(count == 1) %>% 
+  pull(mmrf)
+
+updated_clinical <- updated_clinical %>% # reduce to only one row per patient
+  filter(mmrf %in% once_only_clinical | Spectrum_Seq == str_c(mmrf, "_1")) %>%
   right_join(samples_primary %>% select(mmrf), by = "mmrf") %>%
   rename("seqfish_Study_Visit_ID" = "Spectrum_Seq") %>%
   mutate(seqfish_Study_Visit_ID = str_c(seqfish_Study_Visit_ID, "_BM"))
 
 updated_cnv <- read_tsv("data/MMRF_CoMMpass_IA14a_CNA_LongInsert_FISH_CN_All_Specimens.txt") %>% 
-  select(Study_Visit_ID, ends_with("20percent"), SeqWGS_Cp_Hyperdiploid_Call) %>%
+  select(Study_Visit_ID, 
+         ends_with("20percent"), # CNV indicator
+         SeqWGS_Cp_Hyperdiploid_Call) %>% # Hyperdiploid indicator
   rename("seqfish_Study_Visit_ID" = "Study_Visit_ID")
 
-updated_seqfish <- read_tsv("data/MMRF_CoMMpass_IA14a_LongInsert_Canonical_Ig_Translocations.txt")
-
-updated_seqfish_IGHKL <- updated_seqfish %>%
+updated_seqfish_IGHKL <- read_tsv("data/MMRF_CoMMpass_IA14a_LongInsert_Canonical_Ig_Translocations.txt") %>%
   mutate(updated_seqfish_t_IGH_WHSC1 = case_when(SeqWGS_WHSC1_CALL == 1 & SeqWGS_WHSC1_iGSOURCE == 1 ~ 1,
                                                  TRUE ~ 0),
          updated_seqfish_t_IGK_WHSC1 = case_when(SeqWGS_WHSC1_CALL == 1 & SeqWGS_WHSC1_iGSOURCE == 2 ~ 1,
@@ -179,13 +184,16 @@ updated_seqfish_IGHKL <- updated_seqfish %>%
   select(Study_Visit_iD, starts_with("updated_seqfish_t_IG")) %>%
   rename("seqfish_Study_Visit_ID" = "Study_Visit_iD")
 
-#seqfish_clinical_info <- seqfish_clinical_info
+n_fusions_tibble <- fusions_primary %>% 
+  group_by(mmrf) %>% 
+  summarize(total_fusions = n())
+
 seqfish_clinical_info <- updated_clinical %>% 
   left_join(updated_seqfish_IGHKL, 
             by = "seqfish_Study_Visit_ID") %>%
   left_join(updated_cnv, 
             by = "seqfish_Study_Visit_ID") %>%
-  left_join(fusions_primary %>% group_by(mmrf) %>% summarize(total_fusions = n()), 
+  left_join(n_fusions_tibble, 
             by = "mmrf") %>% 
   replace_na(list(total_fusions = 0)) %>%
   mutate(total_fusions_high = case_when(total_fusions > 4 ~ 1,
@@ -193,23 +201,39 @@ seqfish_clinical_info <- updated_clinical %>%
   mutate_at(c("Female", "Race_White", "Race_Black", "Race_Other", "race", 
               "ECOG", "ISS_Stage", "Bone_lesions", "Plasmacytoma"), as.factor)
 
+# Samples whose primary timepoint is also pre-treatment
+
+mmrf_primary_pretreatment <- samples_primary %>% 
+  left_join(samples_all, by = c("mmrf", "srr")) %>% 
+  filter(visit == 1) %>% 
+  pull(mmrf)
+
+rm(updated_clinical)
+rm(once_only_clinical)
+rm(updated_seqfish_IGHKL)
+rm(updated_cnv)
+rm(n_fusions_tibble)
+
 # ==============================================================================
 # Gene expression data
 # ==============================================================================
+
 # read in expression data but only keep data from samples in analysis
 expression_all <- read_tsv("data/mmy_gene_expr_with_fusions.tsv") %>%
   filter(srr %in% samples_all$srr)
+
 # keep primary samples only
 expression_primary <- expression_all %>% filter(srr %in% samples_primary$srr)
 
 # ==============================================================================
 # Information about kinases
 # ==============================================================================
+
 kinases <- read_tsv("data/Kinase_fusion_info.txt") %>% 
   mutate(Fusion = str_remove(Fusion, "@")) %>% 
   right_join(fusions_primary, by = c("PatientID" = "mmrf", 
-                                 "SampleID" = "srr", 
-                                 "Fusion" = "fusion")) %>% 
+                                     "SampleID" = "srr", 
+                                     "Fusion" = "fusion")) %>% 
   filter(!is.na(KinaseDomain)) %>%
   mutate(kinase_group_full_name = case_when(Group == "TK" ~ "Tyrosine\nKinase",
                                             Group == "OTHER" ~ "Other",
@@ -225,12 +249,14 @@ file_locations <- read_tsv("data/sample_list.with_file_names.txt",
 # ==============================================================================
 # ENSG gene names
 # ==============================================================================
+
 # read in list of ENSGs and gene names used in this study
-ensg_gene_list <- read_tsv("data/ensg_gene_list.tsv")
+#ensg_gene_list <- read_tsv("data/ensg_gene_list.tsv")
 
 # ==============================================================================
 # TCGA Pan-cancer fusion analysis results
 # ==============================================================================
+
 pancan_fusions <- read_excel("data/tcga_pancancer_fusions.xlsx",
                              sheet = "Final fusion call set")
 names(pancan_fusions) <- pancan_fusions[1,]
@@ -239,11 +265,13 @@ pancan_fusions <- pancan_fusions[-1,]
 # ==============================================================================
 # DEPO database
 # ==============================================================================
+
 depo <- read_tsv("data/DEPO_final_20170206.txt")
 
 # ==============================================================================
 # Soft filtering
 # ==============================================================================
+
 soft_columns <- c("FusionName",	"LeftBreakpoint",	"RightBreakpoint", "Cancer", 
                   "Sample", "JunctionReadCount", "SpanningFragCount", "FFPM", 
                   "PROT_FUSION_TYPE", "GTEx", "Callers", "CallerNumber")
@@ -257,9 +285,16 @@ within_300kb <- read_tsv("data/Fusions_within_300kb.tsv", col_names = soft_colum
 within_300kb <- within_300kb %>% mutate(filter = "Within 300Kb")
 soft_filtered <- bind_rows(efi, low_count, many_partners, within_300kb)
 
+rm(soft_columns)
+rm(efi)
+rm(low_count)
+rm(many_partners)
+rm(within_300kb)
+
 # ==============================================================================
 # Mutation calls from Hua
 # ==============================================================================
+
 mutation_calls <- read_tsv("data/wxs_bm_data.withmutect.merged.maf.rc.caller.renamed.Bone_Marrow.tsv",
                            col_types = cols_only(Hugo_Symbol = "c",
                                                  Chromosome	= "n",
@@ -315,17 +350,20 @@ rm(mutsig_initial)
 # ==============================================================================
 # Sample names used by Hua
 # ==============================================================================
+
 matched_names <- read_tsv("data/sample_infor.v20170912.plus.v4.matchedName.All.out")
 
 # ==============================================================================
 # Tumor purity estimates from Hua
 # ==============================================================================
+
 tumor_purity <- read_tsv("data/MMRF_estimate_score.tsv") %>% 
   left_join(matched_names, by = c("MMRF" = "SampleID_Tumor"))
 
 # ==============================================================================
 # Important genes
 # ==============================================================================
+
 drivers <- read_tsv("data/driver.tsv", col_names = FALSE)
 kinases2 <- read_tsv("data/kinase.tsv", col_names = FALSE)
 mmy_known <- read_tsv("data/mmy_known.tsv", col_names = FALSE)

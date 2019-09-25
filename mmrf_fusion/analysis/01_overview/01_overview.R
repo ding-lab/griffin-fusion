@@ -1,6 +1,6 @@
 # ==============================================================================
 # Overview (MMRF Fusions)
-# Steven Foltz (smfoltz@wustl.edu)
+# Steven Foltz (github: envest)
 # ==============================================================================
 
 paper_main = "paper/main/01_overview/"
@@ -11,190 +11,24 @@ dir.create(paper_main, recursive = TRUE, showWarnings = FALSE)
 dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 
 # ==============================================================================
-# Clinical features of MMRF patients -- Supplemental
-# Originally written September 2018, Updated April 2019
+# Clinical features of MMRF patients
 # ==============================================================================
 
 if (TRUE) {
-  
-  # ============================================================================
-  # Function to create heatmap of binary seqFISH data
-  # ============================================================================
-  
-  plot_seqfish_heatmap <- function(input_tibble, output_filename){
-    
-    arranged_info <- input_tibble %>% 
-      arrange(desc(seqfish_Hyperdiploidy), 
-              desc(seqfish_CN_del_13q14),
-              desc(seqfish_CN_del_13q34),
-              desc(seqfish_CN_del_17p13), 
-              desc(seqfish_CN_gain_1q21),
-              desc(seqfish_Translocation_WHSC1_4_14),
-              desc(seqfish_Translocation_CCND3_6_14),
-              desc(seqfish_Translocation_MYC_8_14), 
-              desc(seqfish_Translocation_MAFA_8_14),
-              desc(seqfish_Translocation_CCND1_11_14), 
-              desc(seqfish_Translocation_CCND2_12_14),
-              desc(seqfish_Translocation_MAF_14_16), 
-              desc(seqfish_Translocation_MAFB_14_20))
-    
-    pheatmap_df <- data.frame(
-      arranged_info %>%
-        select(seqfish_Hyperdiploidy, 
-               seqfish_CN_del_13q14, 
-               seqfish_CN_del_13q34, 
-               seqfish_CN_del_17p13, 
-               seqfish_CN_gain_1q21, 
-               seqfish_Translocation_WHSC1_4_14,
-               seqfish_Translocation_CCND3_6_14, 
-               seqfish_Translocation_MYC_8_14, 
-               seqfish_Translocation_MAFA_8_14, 
-               seqfish_Translocation_CCND1_11_14, 
-               seqfish_Translocation_CCND2_12_14, 
-               seqfish_Translocation_MAF_14_16, 
-               seqfish_Translocation_MAFB_14_20) %>% 
-        mutate_all(list(~replace(., is.na(.), 2))) )
-    
-    names(pheatmap_df) <- c("Hyperdiploidy", 
-                            "CNV del(13q14)", 
-                            "CNV del(13q34)", 
-                            "CNV_del(17p13)", 
-                            "CNV gain(1q21)", 
-                            "Translocation t(4;14) (WHSC1)",
-                            "Translocation t(6;14) (CCND3)", 
-                            "Translocation t(8;14) (MYC)", 
-                            "Translocation t(8;14) (MAFA)", 
-                            "Translocation t(11;14) (CCND1)", 
-                            "Translocation t(12;14) (CCND2)", 
-                            "Translocation t(14;16) (MAF)", 
-                            "Translocation t(14;20) (MAFB)")
-    
-    pheatmap_mat <- t(as.matrix(pheatmap_df))
-    colnames(pheatmap_mat) <- arranged_info %>% pull(mmrf)
-    
-    annotation_col_df <- data.frame(
-      arranged_info %>%
-        select(age_ge_66, Female, race, ISS_Stage) %>%
-        mutate_all(factor))
-    names(annotation_col_df) <- c("Age >= 66", "Sex", "Ethnicity", "ISS Stage")
-    levels(annotation_col_df$Sex) <- c("Male", "Female")
-    levels(annotation_col_df$Ethnicity) <- c("White", "Black", "Other")
-    levels(annotation_col_df$`Age >= 66`) <- c("No", "Yes")
-    rownames(annotation_col_df) <- arranged_info %>% pull(mmrf)
-    
-    pheatmap(pheatmap_mat, color = brewer.pal(n = 3, name = "Blues"), 
-             annotation_col = annotation_col_df, gaps_row = c(5),
-             cluster_rows = FALSE, cluster_cols = FALSE, show_colnames = FALSE, 
-             cellwidth = 10, cellheight = 10, height = 10, width = 55,  
-             legend = FALSE, filename = output_filename)
-  }
-  
-  # ============================================================================
-  # Function to plot seqFISH as UpSetR
-  # ==============================================================================
-  
-  plot_seqfish_upsetr <- function(plot_tibble, output_filename){
-    upsetr_df <- plot_tibble %>% 
-      select(seqfish_Hyperdiploidy, 
-             seqfish_CN_del_13q14, 
-             seqfish_CN_del_13q34, 
-             seqfish_CN_del_17p13, 
-             seqfish_CN_gain_1q21, 
-             seqfish_Translocation_WHSC1_4_14, 
-             seqfish_Translocation_CCND3_6_14, 
-             seqfish_Translocation_MYC_8_14, 
-             seqfish_Translocation_MAFA_8_14, 
-             seqfish_Translocation_CCND1_11_14, 
-             seqfish_Translocation_CCND2_12_14,
-             seqfish_Translocation_MAF_14_16, 
-             seqfish_Translocation_MAFB_14_20) %>% 
-      rowwise() %>% mutate(none = as.numeric(
-        sum(seqfish_Hyperdiploidy, 
-            seqfish_CN_del_13q14, 
-            seqfish_CN_del_13q34, 
-            seqfish_CN_del_17p13, 
-            seqfish_CN_gain_1q21, 
-            seqfish_Translocation_WHSC1_4_14,
-            seqfish_Translocation_CCND3_6_14, 
-            seqfish_Translocation_MYC_8_14, 
-            seqfish_Translocation_MAFA_8_14, 
-            seqfish_Translocation_CCND1_11_14,
-            seqfish_Translocation_CCND2_12_14, 
-            seqfish_Translocation_MAF_14_16, 
-            seqfish_Translocation_MAFB_14_20) 
-        == 0)) %>% as.data.frame()
-    names(upsetr_df) <- c("Hyperdiploidy", 
-                          "CNV del(13q14)", 
-                          "CNV del(13q34)", 
-                          "CNV_del(17p13)", 
-                          "CNV gain(1q21)", 
-                          "Translocation t(4;14) (WHSC1)",
-                          "Translocation t(6;14) (CCND3)", 
-                          "Translocation t(8;14) (MYC)", 
-                          "Translocation t(8;14) (MAFA)", 
-                          "Translocation t(11;14) (CCND1)", 
-                          "Translocation t(12;14) (CCND2)", 
-                          "Translocation t(14;16) (MAF)", 
-                          "Translocation t(14;20) (MAFB)", 
-                          "No seqFISH events")
-    
-    pdf(file = output_filename, width = 40, height = 20, useDingbats = FALSE)
-    upset(upsetr_df, 
-          nsets = ncol(upsetr_df), 
-          nintersects = NA, 
-          order.by = "freq",
-          #text.scale = c(intersection size title, 
-          #               intersection size tick labels, 
-          #               set size title, 
-          #               set size tick labels, 
-          #               set names, 
-          #               numbers above bars),
-          text.scale = c(4, 
-                         3, 
-                         4, 
-                         3, 
-                         3, 
-                         3),
-          point.size = 4, 
-          line.size = 2)
-    dev.off()
-  }
-  
-  # ============================================================================
-  # Plot two different heatmaps and upsetrs: hyperdiploid, non-hyperdiploid
-  # ============================================================================
-  
-  #hyperdiploid_status <- c(1, 0)
-  #hyperdiploid_string <- c("hyperdiploid", "non-hyperdiploid")
-  #for (i in 1:2) {
-  #  h_status <- hyperdiploid_status[i]
-  #  h_string <- hyperdiploid_string[i]
-  #  plot_tibble <- seqfish_clinical_info %>% 
-  #    filter(HRD == h_status)
-  #  plot_seqfish_heatmap(plot_tibble, 
-  #                       str_c(paper_supp, "heatmap.", h_string, ".pdf"))
-  #  plot_seqfish_upsetr(plot_tibble, 
-  #                      str_c(paper_supp, "upsetr.", h_string, ".pdf")) 
-  #  
-  #}
-  
-  # ============================================================================
-  # Plot one upsetr for all samples
-  # ============================================================================
-  
-  #plot_tibble <- seqfish_clinical_info %>% filter(!is.na(seqfish_Hyperdiploidy))
-  #plot_seqfish_upsetr(plot_tibble, str_c(paper_supp, "upsetr.both.pdf"))
   
   # ============================================================================
   # Number of non/hyperdiploid samples
   # ============================================================================
   
   n_hyperdiploid_samples <- seqfish_clinical_info %>% 
-    filter(SeqWGS_Cp_Hyperdiploid_Call == 1) %>% nrow()
+    filter(SeqWGS_Cp_Hyperdiploid_Call == 1) %>%
+    nrow()
   n_nonhyperdiploid_samples <- seqfish_clinical_info %>% 
-    filter(SeqWGS_Cp_Hyperdiploid_Call == 0) %>% nrow()
+    filter(SeqWGS_Cp_Hyperdiploid_Call == 0) %>% 
+    nrow()
   n_na_hyperdiploid_samples <- seqfish_clinical_info %>% 
-    filter(is.na(SeqWGS_Cp_Hyperdiploid_Call)) %>% nrow()
+    filter(is.na(SeqWGS_Cp_Hyperdiploid_Call)) %>% 
+    nrow()
   
   # ============================================================================
   # Important clinical features
@@ -239,59 +73,25 @@ if (TRUE) {
   plasmacytoma_na <- seqfish_clinical_info %>% 
     filter(is.na(Plasmacytoma)) %>% nrow()
   
-  # What treatments patients received
+  # What drug treatments patients received
   treatment_summary <- seqfish_clinical_info %>% 
-    mutate_at("D_PT_therclass", factor) %>% select(D_PT_therclass) %>% 
+    mutate_at("D_PT_therclass", factor) %>% 
+    select(D_PT_therclass) %>% 
     summary(maxsum = length(unique(seqfish_clinical_info$D_PT_therclass)))
   treatment_na <- seqfish_clinical_info %>% 
-    filter(is.na(D_PT_therclass)) %>% nrow()
+    filter(is.na(D_PT_therclass)) %>% 
+    nrow()
   
+  # How many with bone marrow transplant
   bmt_summary <- seqfish_clinical_info %>% 
     mutate_at("BMT", factor) %>% select(BMT) %>% summary()
   bmt_na <- seqfish_clinical_info %>% 
     filter(is.na(BMT)) %>% nrow()
   
   # ============================================================================
-  # Plot continuous clinical variables
-  # ============================================================================
-  
-  pdf(str_c(paper_supp, "clinical_variables.age.pdf"), height = 10, width = 15,
-      useDingbats = FALSE)
-  n_missing <- seqfish_clinical_info %>% filter(is.na(Age)) %>% nrow()
-  p <- seqfish_clinical_info %>% 
-    ggplot(aes(x = Age)) + geom_histogram() + 
-    labs(x = "Age at onset (years)", y = "Number of patients", 
-         caption = str_c("Number missing = ", n_missing)) +
-    theme_bw(base_size = 20)
-  print(p)
-  dev.off()
-  
-  pdf(str_c(paper_supp, "clinical_variables.bm_pct.pdf"), height = 10, 
-      width = 15, useDingbats = FALSE)
-  n_missing <- seqfish_clinical_info %>% 
-    filter(is.na(BM_Plasma_Cell_Percent)) %>% nrow()
-  p <- seqfish_clinical_info %>% 
-    ggplot(aes(x = BM_Plasma_Cell_Percent)) + geom_histogram() + 
-    labs(x = "Bone marrow plasma cell (%)", y = "Number of patients",
-         caption = str_c("Number missing = ", n_missing)) +
-    theme_bw(base_size = 20)
-  print(p)
-  dev.off()
-  
-  pdf(str_c(paper_supp, "clinical_variables.ldh.pdf"), height = 10, width = 15,
-      useDingbats = FALSE)
-  n_missing <- seqfish_clinical_info %>% filter(is.na(LDH)) %>% nrow()
-  p <- seqfish_clinical_info %>% 
-    ggplot(aes(x = LDH)) + geom_histogram() +
-    labs(x = "Lactate dehydrogenase (LDH) (U/L)", y = "Number of patients",
-         caption = str_c("Number missing = ", n_missing)) +
-    theme_bw(base_size = 20)
-  print(p)
-  dev.off()
-  
-  # ============================================================================
   # Data type summary
   # ============================================================================
+  
   n_samples_total <- samples_all %>% nrow()
   n_samples_primary <- samples_primary %>% nrow()
   n_samples_seqfish <- seqfish_clinical_info %>% 
@@ -299,398 +99,405 @@ if (TRUE) {
   n_samples_seqfish_na <- seqfish_clinical_info %>% 
     filter(is.na(seqfish_Study_Visit_ID)) %>% nrow()
   
-  n_samples_t_seqfish <- seqfish_clinical_info %>% select(updated_seqfish_t_IGH_WHSC1) %>% filter(!is.na(updated_seqfish_t_IGH_WHSC1)) %>% nrow()
-  n_samples_t_seqfish_na <- seqfish_clinical_info %>% select(updated_seqfish_t_IGH_WHSC1) %>% filter(is.na(updated_seqfish_t_IGH_WHSC1)) %>% nrow()
+  n_samples_t_seqfish <- seqfish_clinical_info %>% 
+    select(updated_seqfish_t_IGH_WHSC1) %>% 
+    filter(!is.na(updated_seqfish_t_IGH_WHSC1)) %>% 
+    nrow()
+  n_samples_t_seqfish_na <- seqfish_clinical_info %>% 
+    select(updated_seqfish_t_IGH_WHSC1) %>% 
+    filter(is.na(updated_seqfish_t_IGH_WHSC1)) %>% 
+    nrow()
   
-  n_samples_cnv_seqfish <- seqfish_clinical_info %>% select(SeqWGS_Cp_12p13_20percent) %>% filter(!is.na(SeqWGS_Cp_12p13_20percent)) %>% nrow()
-  n_samples_cnv_seqfish_na <- seqfish_clinical_info %>% select(SeqWGS_Cp_12p13_20percent) %>% filter(is.na(SeqWGS_Cp_12p13_20percent)) %>% nrow()
+  n_samples_cnv_seqfish <- seqfish_clinical_info %>% 
+    select(SeqWGS_Cp_12p13_20percent) %>% 
+    filter(!is.na(SeqWGS_Cp_12p13_20percent)) %>% 
+    nrow()
+  n_samples_cnv_seqfish_na <- seqfish_clinical_info %>% 
+    select(SeqWGS_Cp_12p13_20percent) %>% 
+    filter(is.na(SeqWGS_Cp_12p13_20percent)) %>% 
+    nrow()
   
   # X14 is the column of SRR,SRR for WGS tumor,normal
-  n_samples_wgs <- file_locations %>% filter(X14 != "NA,NA") %>% nrow()
-  n_samples_wgs_na <- file_locations %>% filter(X14 == "NA,NA") %>% nrow()
-  
-  print(str_c("Number of patients: ", n_samples_primary))
-  print(samples_primary %>% left_join(samples_all, by = "srr") %>% pull(tissue_source) %>% table())
-  print(str_c("Number with WGS: ", n_samples_wgs, "/", n_samples_primary, " = ", round(100*n_samples_wgs/n_samples_primary, digits = 1), "%"))
-  print(str_c("Number with Seq-FISH translocations: ", n_samples_t_seqfish, "/", n_samples_primary, " = ", round(100*n_samples_t_seqfish/n_samples_primary, digits = 1), "%"))
-  print(str_c("Number with Seq-FISH CNV: ", n_samples_cnv_seqfish, "/", n_samples_primary, " = ", round(100*n_samples_cnv_seqfish/n_samples_primary, digits = 1), "%"))
-  print(str_c("Number with additional samples: ", samples_all %>% 
-                group_by(mmrf) %>% 
-                summarize(count = n()) %>% 
-                filter(count > 1) %>% 
-                nrow()))
-  print(str_c("Number of total RNA samples: ", n_samples_total))
+  n_samples_wgs <- file_locations %>%
+    filter(X14 != "NA,NA") %>%
+    nrow()
+  n_samples_wgs_na <- file_locations %>% 
+    filter(X14 == "NA,NA") %>% 
+    nrow()
   
   # ============================================================================
   # Summary table output
   # ============================================================================
-  summary_tibble <- tribble(
-    ~Category, ~Subcategory, ~N, ~Missing, 
-    ~Percentage, ~Min, ~`25%`, ~Median, ~Mean, ~`75%`, ~Max,
-    "Hyperdiploid Status", 
-    "Hyperdiploid",
-    n_hyperdiploid_samples,
-    ".", 
-    n_hyperdiploid_samples/(n_samples_primary - n_na_hyperdiploid_samples),
-    ".",  ".",    ".",     ".",   ".",    ".",
-    
-    "Hyperdiploid Status", 
-    "Non-Hyperdiploid",
-    n_nonhyperdiploid_samples,
-    ".", 
-    n_nonhyperdiploid_samples/(n_samples_primary - n_na_hyperdiploid_samples),
-    ".",  ".",    ".",     ".",   ".",    ".",  
-    
-    "Hyperdiploid Status", 
-    NA,
-    n_na_hyperdiploid_samples,
-    ".", 
-    ".",
-    ".",  ".",    ".",     ".",   ".",    ".",  
-    
-    "Age",
-    ".",
-    n_samples_primary - age_na,
-    age_na,
-    ".",
-    as.numeric(str_split(age_summary[1,1], ":", simplify = TRUE)[1,2]),
-    as.numeric(str_split(age_summary[2,1], ":", simplify = TRUE)[1,2]),
-    as.numeric(str_split(age_summary[3,1], ":", simplify = TRUE)[1,2]),
-    as.numeric(str_split(age_summary[4,1], ":", simplify = TRUE)[1,2]),
-    as.numeric(str_split(age_summary[5,1], ":", simplify = TRUE)[1,2]),
-    as.numeric(str_split(age_summary[6,1], ":", simplify = TRUE)[1,2]),
-    
-    "Bone marrow plasma cell (%)",
-    ".",
-    n_samples_primary - plasma_na,
-    plasma_na,
-    ".",
-    as.numeric(str_split(plasma_summary[1,1], ":", simplify = TRUE)[1,2]),
-    as.numeric(str_split(plasma_summary[2,1], ":", simplify = TRUE)[1,2]),
-    as.numeric(str_split(plasma_summary[3,1], ":", simplify = TRUE)[1,2]),
-    as.numeric(str_split(plasma_summary[4,1], ":", simplify = TRUE)[1,2]),
-    as.numeric(str_split(plasma_summary[5,1], ":", simplify = TRUE)[1,2]),
-    as.numeric(str_split(plasma_summary[6,1], ":", simplify = TRUE)[1,2]),
-    
-    "LDH",
-    ".",
-    n_samples_primary - ldh_na,
-    ldh_na,
-    ".",
-    as.numeric(str_split(ldh_summary[1,1], ":", simplify = TRUE)[1,2]),
-    as.numeric(str_split(ldh_summary[2,1], ":", simplify = TRUE)[1,2]),
-    as.numeric(str_split(ldh_summary[3,1], ":", simplify = TRUE)[1,2]),
-    as.numeric(str_split(ldh_summary[4,1], ":", simplify = TRUE)[1,2]),
-    as.numeric(str_split(ldh_summary[5,1], ":", simplify = TRUE)[1,2]),
-    as.numeric(str_split(ldh_summary[6,1], ":", simplify = TRUE)[1,2]),
-    
-    "Sex",
-    "Female",
-    as.numeric(str_split(sex_summary[2,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(sex_summary[2,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - sex_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Sex",
-    "Male",
-    as.numeric(str_split(sex_summary[1,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(sex_summary[1,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - sex_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Sex",
-    NA,
-    sex_na,
-    ".",
-    ".",
-    ".", ".", ".", ".", ".", ".",
-    
-    "Race",
-    "White",
-    as.numeric(str_split(race_summary[1,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(race_summary[1,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - race_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Race",
-    "Black",
-    as.numeric(str_split(race_summary[2,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(race_summary[2,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - race_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Race",
-    "Other",
-    as.numeric(str_split(race_summary[3,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(race_summary[3,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - race_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Race",
-    NA,
-    race_na,
-    ".",
-    ".",
-    ".", ".", ".", ".", ".", ".",
-    
-    "Bone Marrow Transplant",
-    "No",
-    as.numeric(str_split(bmt_summary[1,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(bmt_summary[1,1], ":", simplify = TRUE)[1,2])/(n_samples_primary - bmt_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Bone Marrow Transplant",
-    "Yes",
-    as.numeric(str_split(bmt_summary[2,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(bmt_summary[2,1], ":", simplify = TRUE)[1,2])/(n_samples_primary - bmt_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Bone Marrow Transplant",
-    NA,
-    bmt_na,
-    ".",
-    ".",
-    ".", ".", ".", ".", ".", ".",
-    
-    "Treatment",
-    "Bortezomib-based",
-    as.numeric(str_split(treatment_summary[1,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(treatment_summary[1,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Treatment",
-    "Carfilzomib-based",
-    as.numeric(str_split(treatment_summary[2,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(treatment_summary[2,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Treatment",
-    "combined bortezomib/carfilzomib-based",
-    as.numeric(str_split(treatment_summary[3,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(treatment_summary[3,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Treatment",
-    "combined bortezomib/IMIDs-based",
-    as.numeric(str_split(treatment_summary[4,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(treatment_summary[4,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Treatment",
-    "combined bortezomib/IMIDs/carfilzomib-based",
-    as.numeric(str_split(treatment_summary[5,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(treatment_summary[5,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Treatment",
-    "combined IMIDs/carfilzomib-based",
-    as.numeric(str_split(treatment_summary[6,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(treatment_summary[6,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Treatment",
-    "IMIDs-based",
-    as.numeric(str_split(treatment_summary[7,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(treatment_summary[7,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Treatment",
-    NA,
-    treatment_na,
-    ".",
-    ".",
-    ".", ".", ".", ".", ".", ".",
-    
-    
-    "ECOG",
-    "0 = Fully active",
-    as.numeric(str_split(ecog_summary[1,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(ecog_summary[1,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2])),
-    ".", ".", ".", ".", ".", ".",
-    
-    "ECOG",
-    "1 = Restricted in physically strenuous activity",
-    as.numeric(str_split(ecog_summary[2,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(ecog_summary[2,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2])),
-    ".", ".", ".", ".", ".", ".",
-    
-    "ECOG",
-    "2 = Ambulatory and capable of all self-care",
-    as.numeric(str_split(ecog_summary[3,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(ecog_summary[3,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2])),
-    ".", ".", ".", ".", ".", ".",
-    
-    "ECOG",
-    "3 = Capable of only limited self-care",
-    as.numeric(str_split(ecog_summary[4,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(ecog_summary[4,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2])),
-    ".", ".", ".", ".", ".", ".",
-    
-    "ECOG",
-    "4 = Completely disabled",
-    as.numeric(str_split(ecog_summary[5,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(ecog_summary[5,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2])),
-    ".", ".", ".", ".", ".", ".",
-    
-    "ECOG",
-    NA,
-    as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    ".",
-    ".", ".", ".", ".", ".", ".", 
-    
-    "ISS Stage",
-    "I",
-    as.numeric(str_split(stage_summary[1,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(stage_summary[1,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(stage_summary[4,1], ":", simplify = TRUE)[1,2])),
-    ".", ".", ".", ".", ".", ".", 
-    
-    "ISS Stage",
-    "II",
-    as.numeric(str_split(stage_summary[2,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(stage_summary[2,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(stage_summary[4,1], ":", simplify = TRUE)[1,2])),
-    ".", ".", ".", ".", ".", ".", 
-    
-    "ISS Stage",
-    "III",
-    as.numeric(str_split(stage_summary[3,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(stage_summary[3,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(stage_summary[4,1], ":", simplify = TRUE)[1,2])),
-    ".", ".", ".", ".", ".", ".", 
-    
-    "ISS Stage",
-    NA,
-    as.numeric(str_split(stage_summary[4,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    ".",
-    ".", ".", ".", ".", ".", ".",
-    
-    "Bone lesions",
-    "No",
-    as.numeric(str_split(bone_summary[1,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(bone_summary[1,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - bone_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Bone lesions",
-    "Yes",
-    as.numeric(str_split(bone_summary[2,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(bone_summary[2,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - bone_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Bone lesions",
-    NA,
-    bone_na,
-    ".",
-    ".",
-    ".", ".", ".", ".", ".", ".",
-    
-    "Plasmacytoma",
-    "No",
-    as.numeric(str_split(plasmacytoma_summary[1,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(plasmacytoma_summary[1,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - plasmacytoma_na),
-    ".", ".", ".", ".", ".", ".",
-    
-    "Plasmacytoma",
-    "Yes",
-    as.numeric(str_split(plasmacytoma_summary[2,1], ":", simplify = TRUE)[1,2]),
-    ".",
-    as.numeric(str_split(plasmacytoma_summary[2,1], ":", 
-                         simplify = TRUE)[1,2])/(n_samples_primary - plasmacytoma_na),
-    ".", ".", ".", ".", ".", ".", 
-    
-    "Plasmacytoma",
-    NA,
-    plasmacytoma_na,
-    ".",
-    ".",
-    ".", ".", ".", ".", ".", ".", 
-    
-    "Number of samples",
-    "Total (includes multiple time points) (with RNA-seq)",
-    n_samples_total, 
-    ".",
-    ".",
-    ".", ".", ".", ".", ".", ".",
-    
-    "Number of samples",
-    "Primary (with RNA-seq)",
-    n_samples_primary,
-    ".",
-    n_samples_primary/n_samples_primary,
-    ".", ".", ".", ".", ".", ".",
-    
-    "Number of samples",
-    "Primary (with RNA-seq + seqFISH translocations)",
-    n_samples_t_seqfish,
-    n_samples_t_seqfish_na,
-    n_samples_t_seqfish/n_samples_primary,
-    ".", ".", ".", ".", ".", ".",
-    
-    "Number of samples",
-    "Primary (with RNA-seq + seqFISH CNV)",
-    n_samples_cnv_seqfish,
-    n_samples_cnv_seqfish_na,
-    n_samples_cnv_seqfish/n_samples_primary,
-    ".", ".", ".", ".", ".", ".",
-    
-    "Number of samples",
-    "Primary (with RNA-seq + WGS)",
-    n_samples_wgs,
-    n_samples_wgs_na,
-    n_samples_wgs/n_samples_primary,
-    ".", ".", ".", ".", ".", "."
-  )
   
-  summary_tibble <- summary_tibble %>% arrange(Category, Subcategory)
-  write_tsv(summary_tibble, str_c(paper_supp, "summary_table.txt"), 
-            na = "NA", append = FALSE, col_names = TRUE)
+  if (TRUE) {
+    summary_tibble <- tribble(
+      ~Category, ~Subcategory, ~N, ~Missing, 
+      ~Percentage, ~Min, ~`25%`, ~Median, ~Mean, ~`75%`, ~Max,
+      "Hyperdiploid Status", 
+      "Hyperdiploid",
+      n_hyperdiploid_samples,
+      ".", 
+      n_hyperdiploid_samples/(n_samples_primary - n_na_hyperdiploid_samples),
+      ".",  ".",    ".",     ".",   ".",    ".",
+      
+      "Hyperdiploid Status", 
+      "Non-Hyperdiploid",
+      n_nonhyperdiploid_samples,
+      ".", 
+      n_nonhyperdiploid_samples/(n_samples_primary - n_na_hyperdiploid_samples),
+      ".",  ".",    ".",     ".",   ".",    ".",  
+      
+      "Hyperdiploid Status", 
+      NA,
+      n_na_hyperdiploid_samples,
+      ".", 
+      ".",
+      ".",  ".",    ".",     ".",   ".",    ".",  
+      
+      "Age",
+      ".",
+      n_samples_primary - age_na,
+      age_na,
+      ".",
+      as.numeric(str_split(age_summary[1,1], ":", simplify = TRUE)[1,2]),
+      as.numeric(str_split(age_summary[2,1], ":", simplify = TRUE)[1,2]),
+      as.numeric(str_split(age_summary[3,1], ":", simplify = TRUE)[1,2]),
+      as.numeric(str_split(age_summary[4,1], ":", simplify = TRUE)[1,2]),
+      as.numeric(str_split(age_summary[5,1], ":", simplify = TRUE)[1,2]),
+      as.numeric(str_split(age_summary[6,1], ":", simplify = TRUE)[1,2]),
+      
+      "Bone marrow plasma cell (%)",
+      ".",
+      n_samples_primary - plasma_na,
+      plasma_na,
+      ".",
+      as.numeric(str_split(plasma_summary[1,1], ":", simplify = TRUE)[1,2]),
+      as.numeric(str_split(plasma_summary[2,1], ":", simplify = TRUE)[1,2]),
+      as.numeric(str_split(plasma_summary[3,1], ":", simplify = TRUE)[1,2]),
+      as.numeric(str_split(plasma_summary[4,1], ":", simplify = TRUE)[1,2]),
+      as.numeric(str_split(plasma_summary[5,1], ":", simplify = TRUE)[1,2]),
+      as.numeric(str_split(plasma_summary[6,1], ":", simplify = TRUE)[1,2]),
+      
+      "LDH",
+      ".",
+      n_samples_primary - ldh_na,
+      ldh_na,
+      ".",
+      as.numeric(str_split(ldh_summary[1,1], ":", simplify = TRUE)[1,2]),
+      as.numeric(str_split(ldh_summary[2,1], ":", simplify = TRUE)[1,2]),
+      as.numeric(str_split(ldh_summary[3,1], ":", simplify = TRUE)[1,2]),
+      as.numeric(str_split(ldh_summary[4,1], ":", simplify = TRUE)[1,2]),
+      as.numeric(str_split(ldh_summary[5,1], ":", simplify = TRUE)[1,2]),
+      as.numeric(str_split(ldh_summary[6,1], ":", simplify = TRUE)[1,2]),
+      
+      "Sex",
+      "Female",
+      as.numeric(str_split(sex_summary[2,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(sex_summary[2,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - sex_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Sex",
+      "Male",
+      as.numeric(str_split(sex_summary[1,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(sex_summary[1,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - sex_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Sex",
+      NA,
+      sex_na,
+      ".",
+      ".",
+      ".", ".", ".", ".", ".", ".",
+      
+      "Race",
+      "White",
+      as.numeric(str_split(race_summary[1,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(race_summary[1,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - race_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Race",
+      "Black",
+      as.numeric(str_split(race_summary[2,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(race_summary[2,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - race_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Race",
+      "Other",
+      as.numeric(str_split(race_summary[3,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(race_summary[3,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - race_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Race",
+      NA,
+      race_na,
+      ".",
+      ".",
+      ".", ".", ".", ".", ".", ".",
+      
+      "Bone Marrow Transplant",
+      "No",
+      as.numeric(str_split(bmt_summary[1,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(bmt_summary[1,1], ":", simplify = TRUE)[1,2])/(n_samples_primary - bmt_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Bone Marrow Transplant",
+      "Yes",
+      as.numeric(str_split(bmt_summary[2,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(bmt_summary[2,1], ":", simplify = TRUE)[1,2])/(n_samples_primary - bmt_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Bone Marrow Transplant",
+      NA,
+      bmt_na,
+      ".",
+      ".",
+      ".", ".", ".", ".", ".", ".",
+      
+      "Treatment",
+      "Bortezomib-based",
+      as.numeric(str_split(treatment_summary[1,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(treatment_summary[1,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Treatment",
+      "Carfilzomib-based",
+      as.numeric(str_split(treatment_summary[2,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(treatment_summary[2,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Treatment",
+      "combined bortezomib/carfilzomib-based",
+      as.numeric(str_split(treatment_summary[3,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(treatment_summary[3,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Treatment",
+      "combined bortezomib/IMIDs-based",
+      as.numeric(str_split(treatment_summary[4,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(treatment_summary[4,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Treatment",
+      "combined bortezomib/IMIDs/carfilzomib-based",
+      as.numeric(str_split(treatment_summary[5,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(treatment_summary[5,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Treatment",
+      "combined IMIDs/carfilzomib-based",
+      as.numeric(str_split(treatment_summary[6,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(treatment_summary[6,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Treatment",
+      "IMIDs-based",
+      as.numeric(str_split(treatment_summary[7,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(treatment_summary[7,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - treatment_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Treatment",
+      NA,
+      treatment_na,
+      ".",
+      ".",
+      ".", ".", ".", ".", ".", ".",
+      
+      
+      "ECOG",
+      "0 = Fully active",
+      as.numeric(str_split(ecog_summary[1,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(ecog_summary[1,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2])),
+      ".", ".", ".", ".", ".", ".",
+      
+      "ECOG",
+      "1 = Restricted in physically strenuous activity",
+      as.numeric(str_split(ecog_summary[2,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(ecog_summary[2,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2])),
+      ".", ".", ".", ".", ".", ".",
+      
+      "ECOG",
+      "2 = Ambulatory and capable of all self-care",
+      as.numeric(str_split(ecog_summary[3,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(ecog_summary[3,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2])),
+      ".", ".", ".", ".", ".", ".",
+      
+      "ECOG",
+      "3 = Capable of only limited self-care",
+      as.numeric(str_split(ecog_summary[4,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(ecog_summary[4,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2])),
+      ".", ".", ".", ".", ".", ".",
+      
+      "ECOG",
+      "4 = Completely disabled",
+      as.numeric(str_split(ecog_summary[5,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(ecog_summary[5,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2])),
+      ".", ".", ".", ".", ".", ".",
+      
+      "ECOG",
+      NA,
+      as.numeric(str_split(ecog_summary[6,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      ".",
+      ".", ".", ".", ".", ".", ".", 
+      
+      "ISS Stage",
+      "I",
+      as.numeric(str_split(stage_summary[1,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(stage_summary[1,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(stage_summary[4,1], ":", simplify = TRUE)[1,2])),
+      ".", ".", ".", ".", ".", ".", 
+      
+      "ISS Stage",
+      "II",
+      as.numeric(str_split(stage_summary[2,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(stage_summary[2,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(stage_summary[4,1], ":", simplify = TRUE)[1,2])),
+      ".", ".", ".", ".", ".", ".", 
+      
+      "ISS Stage",
+      "III",
+      as.numeric(str_split(stage_summary[3,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(stage_summary[3,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - as.numeric(str_split(stage_summary[4,1], ":", simplify = TRUE)[1,2])),
+      ".", ".", ".", ".", ".", ".", 
+      
+      "ISS Stage",
+      NA,
+      as.numeric(str_split(stage_summary[4,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      ".",
+      ".", ".", ".", ".", ".", ".",
+      
+      "Bone lesions",
+      "No",
+      as.numeric(str_split(bone_summary[1,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(bone_summary[1,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - bone_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Bone lesions",
+      "Yes",
+      as.numeric(str_split(bone_summary[2,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(bone_summary[2,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - bone_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Bone lesions",
+      NA,
+      bone_na,
+      ".",
+      ".",
+      ".", ".", ".", ".", ".", ".",
+      
+      "Plasmacytoma",
+      "No",
+      as.numeric(str_split(plasmacytoma_summary[1,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(plasmacytoma_summary[1,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - plasmacytoma_na),
+      ".", ".", ".", ".", ".", ".",
+      
+      "Plasmacytoma",
+      "Yes",
+      as.numeric(str_split(plasmacytoma_summary[2,1], ":", simplify = TRUE)[1,2]),
+      ".",
+      as.numeric(str_split(plasmacytoma_summary[2,1], ":", 
+                           simplify = TRUE)[1,2])/(n_samples_primary - plasmacytoma_na),
+      ".", ".", ".", ".", ".", ".", 
+      
+      "Plasmacytoma",
+      NA,
+      plasmacytoma_na,
+      ".",
+      ".",
+      ".", ".", ".", ".", ".", ".", 
+      
+      "Number of samples",
+      "Total (includes multiple time points) (with RNA-seq)",
+      n_samples_total, 
+      ".",
+      ".",
+      ".", ".", ".", ".", ".", ".",
+      
+      "Number of samples",
+      "Primary (with RNA-seq)",
+      n_samples_primary,
+      ".",
+      n_samples_primary/n_samples_primary,
+      ".", ".", ".", ".", ".", ".",
+      
+      "Number of samples",
+      "Primary (with RNA-seq + seqFISH translocations)",
+      n_samples_t_seqfish,
+      n_samples_t_seqfish_na,
+      n_samples_t_seqfish/n_samples_primary,
+      ".", ".", ".", ".", ".", ".",
+      
+      "Number of samples",
+      "Primary (with RNA-seq + seqFISH CNV)",
+      n_samples_cnv_seqfish,
+      n_samples_cnv_seqfish_na,
+      n_samples_cnv_seqfish/n_samples_primary,
+      ".", ".", ".", ".", ".", ".",
+      
+      "Number of samples",
+      "Primary (with RNA-seq + WGS)",
+      n_samples_wgs,
+      n_samples_wgs_na,
+      n_samples_wgs/n_samples_primary,
+      ".", ".", ".", ".", ".", "."
+    )
+    
+    summary_tibble <- summary_tibble %>% arrange(Category, Subcategory)
+    write_tsv(summary_tibble, str_c(paper_supp, "summary_table.txt"), 
+              na = "NA", append = FALSE, col_names = TRUE)  
+  }
+  
 }
 
 # ==============================================================================
-# Basic survival plots of MMRF patients -- Supplemental
-# Originally written September 2018, Updated April 2019
+# Basic survival plots of MMRF patients
 # ==============================================================================
 
 if (TRUE) {
@@ -707,25 +514,51 @@ if (TRUE) {
                      data = EFS_tibble)
   
   # Plot survival curve stratified by Stage
-  pdf(str_c(paper_supp, "event_free_survival.pdf"), width = 7.25, height = 5,
+  pdf(str_c(paper_supp, "event_free_survival.pdf"), width = 3.5, height = 3.5,
       useDingbats = FALSE)
-  print(ggsurvplot(EFS_fit, data = EFS_tibble,  conf.int = TRUE,
-             surv.median.line = "hv", pval = TRUE,
-             legend.labs = c("ISS Stage I", "ISS Stage II", "ISS Stage III"),
-             xlab = "Time (days)",
-             ggtheme = theme_survminer()))
+  
+  print(ggsurvplot(EFS_fit, data = EFS_tibble, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("ISS Stage I", "ISS Stage II", "ISS Stage III"),
+                   legend = "bottom",
+                   xlab = "Time (days)", 
+                   ylab = "Progression-Free Survival Probability",
+                   ggtheme = theme_survminer(base_size = 12,
+                                             base_family = "",
+                                             font.main = c(12, "plain", "black"),
+                                             font.submain = c(12, "plain", "black"),
+                                             font.x = c(12, "plain", "black"),
+                                             font.y = c(12, "plain", "black"),
+                                             font.caption = c(12, "plain", "black"),
+                                             font.tickslab = c(8, "plain", "black"),
+                                             legend = c("top", "bottom", "left", "right", "none"),
+                                             font.legend = c(8, "plain", "black")),
+                   conf.int.alpha = 0.1))
+  
   dev.off()
   
-  # Some survival stats
-  # Number of samples necessary data
-  seqfish_clinical_info %>% 
-    filter(is.na(ISS_Stage) | is.na(EFS)) %>% nrow()
-  # Number of censored samples
-  summary(EFS_fit)$table[,"n.start"] - summary(EFS_fit)$table[,"events"]
-  # Number of samples with event (progression, death)
-  summary(EFS_fit)$table[,"events"]
-  # Median years of event-free survival
-  summary(EFS_fit)$table[,"median"]
+  pdf(str_c(paper_supp, "event_free_survival.no_legend.pdf"), width = 3.5, height = 3.5,
+      useDingbats = FALSE)
+  
+  print(ggsurvplot(EFS_fit, data = EFS_tibble, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("ISS Stage I", "ISS Stage II", "ISS Stage III"),
+                   legend = "none",
+                   xlab = "Time (days)", 
+                   ylab = "Progression-Free Survival Probability",
+                   ggtheme = theme_survminer(base_size = 12,
+                                             base_family = "",
+                                             font.main = c(12, "plain", "black"),
+                                             font.submain = c(12, "plain", "black"),
+                                             font.x = c(12, "plain", "black"),
+                                             font.y = c(12, "plain", "black"),
+                                             font.caption = c(12, "plain", "black"),
+                                             font.tickslab = c(8, "plain", "black"),
+                                             legend = c("top", "bottom", "left", "right", "none"),
+                                             font.legend = c(8, "plain", "black")),
+                   conf.int.alpha = 0.1))
+  
+  dev.off()
   
   # ============================================================================
   # Create Death survival object
@@ -738,129 +571,157 @@ if (TRUE) {
   death_fit <- survfit(Surv(OS, OS_censor == 0) ~ ISS_Stage, data = death_tibble)
   
   # Plot survival curve stratified by Stage
-  pdf(str_c(paper_supp, "overall_survival.pdf"), width = 7.25, height = 5)
-  print(ggsurvplot(death_fit, data = death_tibble,  conf.int = TRUE,
-             surv.median.line = "hv", pval = TRUE, 
-             legend.labs = c("ISS Stage I", "ISS Stage II", "ISS Stage III"),
-             xlab = "Time (days)",
-             ggtheme = theme_survminer()))
+  pdf(str_c(paper_supp, "overall_survival.pdf"), width = 3.5, height = 3.5,
+      useDingbats = FALSE)
+  
+  print(ggsurvplot(death_fit, data = death_tibble, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("ISS Stage I", "ISS Stage II", "ISS Stage III"),
+                   legend = "bottom",
+                   xlab = "Time (days)", 
+                   ylab = "Overall Survival Probability",
+                   ggtheme = theme_survminer(base_size = 12,
+                                             base_family = "",
+                                             font.main = c(12, "plain", "black"),
+                                             font.submain = c(12, "plain", "black"),
+                                             font.x = c(12, "plain", "black"),
+                                             font.y = c(12, "plain", "black"),
+                                             font.caption = c(12, "plain", "black"),
+                                             font.tickslab = c(8, "plain", "black"),
+                                             legend = c("top", "bottom", "left", "right", "none"),
+                                             font.legend = c(8, "plain", "black")),
+                   conf.int.alpha = 0.1))
+  
   dev.off()
   
-  # Some survival stats
-  seqfish_clinical_info %>% 
-    filter(is.na(ISS_Stage) | is.na(OS)) %>% nrow()
-  # Number of censored samples
-  summary(death_fit)$table[,"n.start"] - summary(death_fit)$table[,"events"]
-  # Number of samples with event (progression, death)
-  summary(death_fit)$table[,"events"]
-  # Median years of event-free survival
-  summary(death_fit)$table[,"median"]
+  pdf(str_c(paper_supp, "overall_survival.no_legend.pdf"), width = 3.5, height = 3.5,
+      useDingbats = FALSE)
+  
+  print(ggsurvplot(death_fit, data = death_tibble, conf.int = TRUE,
+                   surv.median.line = "hv", pval = TRUE,
+                   legend.labs = c("ISS Stage I", "ISS Stage II", "ISS Stage III"),
+                   legend = "none",
+                   xlab = "Time (days)", 
+                   ylab = "Overall Survival Probability",
+                   ggtheme = theme_survminer(base_size = 12,
+                                             base_family = "",
+                                             font.main = c(12, "plain", "black"),
+                                             font.submain = c(12, "plain", "black"),
+                                             font.x = c(12, "plain", "black"),
+                                             font.y = c(12, "plain", "black"),
+                                             font.caption = c(12, "plain", "black"),
+                                             font.tickslab = c(8, "plain", "black"),
+                                             legend = c("top", "bottom", "left", "right", "none"),
+                                             font.legend = c(8, "plain", "black")),
+                   conf.int.alpha = 0.1))
+  
+  dev.off()
   
   # ============================================================================
   # Survival table 
   # ============================================================================
   
-  survival_tibble <- tribble(
-    ~`Category`, ~`ISS Stage`, ~`N Samples`, ~`N Events`, ~`N Censored`, ~`Median Survival (Days)`, ~`95% Confidence Interval (Days)`,
-    "Event Free", "Stage I", 
-    summary(EFS_fit)$table["ISS_Stage=1","records"],
-    summary(EFS_fit)$table["ISS_Stage=1","events"],
-    summary(EFS_fit)$table["ISS_Stage=1","records"] - 
+  if (TRUE) {
+    survival_tibble <- tribble(
+      ~`Category`, ~`ISS Stage`, ~`N Samples`, ~`N Events`, ~`N Censored`, 
+      ~`Median Survival (Days)`, ~`95% Confidence Interval (Days)`,
+      "Event Free", "Stage I", 
+      summary(EFS_fit)$table["ISS_Stage=1","records"],
       summary(EFS_fit)$table["ISS_Stage=1","events"],
-  summary(EFS_fit)$table["ISS_Stage=1","median"],
-  str_c(str_replace_na(summary(EFS_fit)$table["ISS_Stage=1","0.95LCL"]),
-        str_replace_na(summary(EFS_fit)$table["ISS_Stage=1","0.95UCL"]),
-        sep = " - "),
+      summary(EFS_fit)$table["ISS_Stage=1","records"] - 
+        summary(EFS_fit)$table["ISS_Stage=1","events"],
+      summary(EFS_fit)$table["ISS_Stage=1","median"],
+      str_c(str_replace_na(summary(EFS_fit)$table["ISS_Stage=1","0.95LCL"]),
+            str_replace_na(summary(EFS_fit)$table["ISS_Stage=1","0.95UCL"]),
+            sep = " - "),
+      
+      "Event Free", "Stage II", 
+      summary(EFS_fit)$table["ISS_Stage=2","records"],
+      summary(EFS_fit)$table["ISS_Stage=2","events"],
+      summary(EFS_fit)$table["ISS_Stage=2","records"] - 
+        summary(EFS_fit)$table["ISS_Stage=2","events"],
+      summary(EFS_fit)$table["ISS_Stage=2","median"],
+      str_c(str_c(str_replace_na(summary(EFS_fit)$table["ISS_Stage=2","0.95LCL"]), 
+                  str_replace_na(summary(EFS_fit)$table["ISS_Stage=2","0.95UCL"]), 
+                  sep = " - ")),
+      
+      "Event Free", "Stage III", 
+      summary(EFS_fit)$table["ISS_Stage=3","records"],
+      summary(EFS_fit)$table["ISS_Stage=3","events"],
+      summary(EFS_fit)$table["ISS_Stage=3","records"] - 
+        summary(EFS_fit)$table["ISS_Stage=3","events"],
+      summary(EFS_fit)$table["ISS_Stage=3","median"],
+      str_c(str_c(str_replace_na(summary(EFS_fit)$table["ISS_Stage=3","0.95LCL"]), 
+                  str_replace_na(summary(EFS_fit)$table["ISS_Stage=3","0.95UCL"]), 
+                  sep = " - ")),
+      
+      
+      "Overall", "Stage I", 
+      summary(death_fit)$table["ISS_Stage=1","records"],
+      summary(death_fit)$table["ISS_Stage=1","events"],
+      summary(death_fit)$table["ISS_Stage=1","records"] - 
+        summary(death_fit)$table["ISS_Stage=1","events"],
+      summary(death_fit)$table["ISS_Stage=1","median"],
+      str_c(str_replace_na(summary(death_fit)$table["ISS_Stage=1","0.95LCL"]),
+            str_replace_na(summary(death_fit)$table["ISS_Stage=1","0.95UCL"]),
+            sep = " - "),
+      
+      "Overall", "Stage II", 
+      summary(death_fit)$table["ISS_Stage=2","records"],
+      summary(death_fit)$table["ISS_Stage=2","events"],
+      summary(death_fit)$table["ISS_Stage=2","records"] - 
+        summary(death_fit)$table["ISS_Stage=2","events"],
+      summary(death_fit)$table["ISS_Stage=2","median"],
+      str_c(str_c(str_replace_na(summary(death_fit)$table["ISS_Stage=2","0.95LCL"]), 
+                  str_replace_na(summary(death_fit)$table["ISS_Stage=2","0.95UCL"]), 
+                  sep = " - ")),
+      
+      "Overall", "Stage III", 
+      summary(death_fit)$table["ISS_Stage=3","records"],
+      summary(death_fit)$table["ISS_Stage=3","events"],
+      summary(death_fit)$table["ISS_Stage=3","records"] - 
+        summary(death_fit)$table["ISS_Stage=3","events"],
+      summary(death_fit)$table["ISS_Stage=3","median"],
+      str_c(str_c(str_replace_na(summary(death_fit)$table["ISS_Stage=3","0.95LCL"]), 
+                  str_replace_na(summary(death_fit)$table["ISS_Stage=3","0.95UCL"]), 
+                  sep = " - "))
+      
+    )
+    
+    write_tsv(survival_tibble, str_c(paper_supp, "survival_table.txt"), 
+              na = "NA", append = FALSE, col_names = TRUE)
+  }
   
-  "Event Free", "Stage II", 
-  summary(EFS_fit)$table["ISS_Stage=2","records"],
-  summary(EFS_fit)$table["ISS_Stage=2","events"],
-  summary(EFS_fit)$table["ISS_Stage=2","records"] - 
-    summary(EFS_fit)$table["ISS_Stage=2","events"],
-  summary(EFS_fit)$table["ISS_Stage=2","median"],
-  str_c(str_c(str_replace_na(summary(EFS_fit)$table["ISS_Stage=2","0.95LCL"]), 
-              str_replace_na(summary(EFS_fit)$table["ISS_Stage=2","0.95UCL"]), 
-              sep = " - ")),
+  # ============================================================================
+  # Some overall survival figures
+  # ============================================================================
   
-  "Event Free", "Stage III", 
-  summary(EFS_fit)$table["ISS_Stage=3","records"],
-  summary(EFS_fit)$table["ISS_Stage=3","events"],
-  summary(EFS_fit)$table["ISS_Stage=3","records"] - 
-    summary(EFS_fit)$table["ISS_Stage=3","events"],
-  summary(EFS_fit)$table["ISS_Stage=3","median"],
-  str_c(str_c(str_replace_na(summary(EFS_fit)$table["ISS_Stage=3","0.95LCL"]), 
-              str_replace_na(summary(EFS_fit)$table["ISS_Stage=3","0.95UCL"]), 
-              sep = " - ")),
-        
-  
-  "Overall", "Stage I", 
-  summary(death_fit)$table["ISS_Stage=1","records"],
-  summary(death_fit)$table["ISS_Stage=1","events"],
-  summary(death_fit)$table["ISS_Stage=1","records"] - 
-    summary(death_fit)$table["ISS_Stage=1","events"],
-  summary(death_fit)$table["ISS_Stage=1","median"],
-  str_c(str_replace_na(summary(death_fit)$table["ISS_Stage=1","0.95LCL"]),
-        str_replace_na(summary(death_fit)$table["ISS_Stage=1","0.95UCL"]),
-        sep = " - "),
-  
-  "Overall", "Stage II", 
-  summary(death_fit)$table["ISS_Stage=2","records"],
-  summary(death_fit)$table["ISS_Stage=2","events"],
-  summary(death_fit)$table["ISS_Stage=2","records"] - 
-    summary(death_fit)$table["ISS_Stage=2","events"],
-  summary(death_fit)$table["ISS_Stage=2","median"],
-  str_c(str_c(str_replace_na(summary(death_fit)$table["ISS_Stage=2","0.95LCL"]), 
-              str_replace_na(summary(death_fit)$table["ISS_Stage=2","0.95UCL"]), 
-              sep = " - ")),
-  
-  "Overall", "Stage III", 
-  summary(death_fit)$table["ISS_Stage=3","records"],
-  summary(death_fit)$table["ISS_Stage=3","events"],
-  summary(death_fit)$table["ISS_Stage=3","records"] - 
-    summary(death_fit)$table["ISS_Stage=3","events"],
-  summary(death_fit)$table["ISS_Stage=3","median"],
-  str_c(str_c(str_replace_na(summary(death_fit)$table["ISS_Stage=3","0.95LCL"]), 
-              str_replace_na(summary(death_fit)$table["ISS_Stage=3","0.95UCL"]), 
-              sep = " - "))
-  
-  )
-
-  write_tsv(survival_tibble, str_c(paper_supp, "survival_table.txt"), 
-            na = "NA", append = FALSE, col_names = TRUE)
-
+  n_patients_progressed <- seqfish_clinical_info %>% 
+    filter(!is.na(EFS), !is.na(EFS_censor)) %>% 
+    filter(EFS_censor == 0) %>% 
+    nrow()
+  n_patients_with_pfs_data <- seqfish_clinical_info %>% 
+    filter(!is.na(EFS), !is.na(EFS_censor)) %>% 
+    nrow()
+  n_patients_died <- seqfish_clinical_info %>% 
+    filter(!is.na(OS), !is.na(OS_censor)) %>% 
+    filter(OS_censor == 0) %>% 
+    nrow()
+  n_patients_with_os_data <- seqfish_clinical_info %>% 
+    filter(!is.na(OS), !is.na(OS_censor)) %>% 
+    nrow()
+  summary_os_followup <- seqfish_clinical_info %>% 
+    filter(!is.na(OS), !is.na(OS_censor)) %>% 
+    pull(OS) %>% 
+    summary()
+  summary_efs_followup <- seqfish_clinical_info %>% 
+    filter(!is.na(EFS), !is.na(EFS_censor)) %>%
+    pull(EFS) %>%
+    summary()
 }
-
-mmrf_primary_pretreatment <- samples_primary %>% 
-  left_join(samples_all, by = c("mmrf", "srr")) %>% 
-  filter(visit == 1) %>% 
-  pull(mmrf)
-print("Number of samples with primary same as pre-treatment: ")
-print(samples_primary %>% left_join(samples_all, by = c("mmrf", "srr")) %>% pull(visit) %>% table())
-print(samples_primary %>% left_join(samples_all, by = c("mmrf", "srr")) %>% pull(visit) %>% table()/n_samples_primary)
-
-print(summary_tibble %>% 
-        filter(Category %in% 
-                 c("Age", "Hyperdiploid Status", "ISS Stage", "Race", "Treatment", "Bone Marrow Transplant")))
-print(survival_tibble %>% filter(Category == "Event Free")) %>% 
-  pull(`Median Survival (Days)`)/365.25
-
-n_patients_progressed <- seqfish_clinical_info %>% filter(!is.na(EFS), !is.na(EFS_censor)) %>% filter(EFS_censor == 0) %>% nrow()
-n_patients_with_pfs_data <- seqfish_clinical_info %>% filter(!is.na(EFS), !is.na(EFS_censor)) %>% nrow()
-n_patients_died <- seqfish_clinical_info %>% filter(!is.na(OS), !is.na(OS_censor)) %>% filter(OS_censor == 0) %>% nrow()
-n_patients_with_os_data <- seqfish_clinical_info %>% filter(!is.na(OS), !is.na(OS_censor)) %>% nrow()
-summary_os_followup <- seqfish_clinical_info %>% filter(!is.na(OS), !is.na(OS_censor)) %>% pull(OS) %>% summary()
-summary_efs_followup <- seqfish_clinical_info %>% filter(!is.na(EFS), !is.na(EFS_censor)) %>% pull(EFS) %>% summary()
-
-print(str_c("Number of patients progressed: ", n_patients_progressed, "/", n_patients_with_pfs_data, " = ", round(100*n_patients_progressed/n_patients_with_pfs_data, 3), "%"))
-print(str_c("Number of patients died: ", n_patients_died, "/", n_patients_with_os_data, " = ", round(100*n_patients_died/n_patients_with_os_data, 3), "%"))
-print("Summary of EFS followup:")
-print(summary_efs_followup)
-print("Summary of OS followup:")
-print(summary_os_followup)
 
 # ==============================================================================
 # Number of fusions per sample
-# Originally written August 2018, Updated April 2019
 # ==============================================================================
 
 if (TRUE) {
@@ -876,20 +737,9 @@ if (TRUE) {
   hpd_key <- tribble(~SeqWGS_Cp_Hyperdiploid_Call, ~hyperdiploid_categories, ~count,
                      0, str_c("Non-Hyperdiploid (", n_not_hdp, ")"), n_not_hdp,
                      1, str_c("Hyperdiploid (", n_hdp, ")"), n_hdp,
-                     NA, str_c("Not Available (", n_na_hdp, ")"), n_na_hdp
-  )
+                     NA, str_c("Not Available (", n_na_hdp, ")"), n_na_hdp)
   
-  plot_df <- seqfish_clinical_info %>% select(mmrf, SeqWGS_Cp_Hyperdiploid_Call) %>% 
-    left_join(fusions_primary, by = "mmrf") %>%
-    group_by(mmrf, SeqWGS_Cp_Hyperdiploid_Call, srr) %>% 
-    summarize(n = n(), 
-              n_ig = sum(geneA %in% c("IGH", "IGL", "IGK") | 
-                           geneB %in% c("IGH", "IGL", "IGK"))) %>%
-    ungroup() %>%
-    mutate(n_fusions = n - is.na(srr)) %>%
-    left_join(hpd_key, by = "SeqWGS_Cp_Hyperdiploid_Call")
-  
-  # t-test to compare number of fusions between hyperdiploidy and not
+  # MWU to compare number of fusions between hyperdiploidy and not
   
   n_fusions_with_hyperdiploid_info <- seqfish_clinical_info %>% 
     left_join(fusions_primary, by = "mmrf") %>% 
@@ -899,35 +749,38 @@ if (TRUE) {
               n_ig = sum(geneA %in% c("IGH", "IGL", "IGK") | 
                            geneB %in% c("IGH", "IGL", "IGK"))) %>% 
     ungroup() %>% 
-    mutate(n_corrected = n - is.na(srr))
+    mutate(n_corrected = n - is.na(srr)) # 0 for those without any calls
   
   n_fusions_hyperdiploid <- n_fusions_with_hyperdiploid_info %>% 
-    filter(SeqWGS_Cp_Hyperdiploid_Call == 1) %>% pull(n_corrected)
+    filter(SeqWGS_Cp_Hyperdiploid_Call == 1) %>% 
+    pull(n_corrected)
   n_fusions_nonhyperdiploid <- n_fusions_with_hyperdiploid_info %>% 
-    filter(SeqWGS_Cp_Hyperdiploid_Call == 0) %>% pull(n_corrected)
+    filter(SeqWGS_Cp_Hyperdiploid_Call == 0) %>% 
+    pull(n_corrected)
   n_fusions_hyperdiploid_ig <- n_fusions_with_hyperdiploid_info %>% 
-    filter(SeqWGS_Cp_Hyperdiploid_Call == 1) %>% pull(n_ig)
+    filter(SeqWGS_Cp_Hyperdiploid_Call == 1) %>% 
+    pull(n_ig)
   n_fusions_nonhyperdiploid_ig <- n_fusions_with_hyperdiploid_info %>%
-    filter(SeqWGS_Cp_Hyperdiploid_Call == 0) %>% pull(n_ig)
-  if ( wilcox.test(n_fusions_hyperdiploid, n_fusions_nonhyperdiploid)$p.value < 0.05) {
-    print("Number of fusions significantly different between HRD and non-HRD.")
-    print(wilcox.test(n_fusions_hyperdiploid, n_fusions_nonhyperdiploid))
-  } else {
-    print("Number of fusions not significantly different between non- and hyperdiploid.")
-  }
-  print(str_c("Number of fusions HRD: ", round(mean(n_fusions_hyperdiploid), 1)))
-  print(str_c("Number of fusions non-HRD: ", round(mean(n_fusions_nonhyperdiploid), 1)))
-  if ( wilcox.test(n_fusions_hyperdiploid_ig, n_fusions_nonhyperdiploid_ig)$p.value < 0.05) {
-    print("Number of IG fusions significantly different between non- and hyperdiploid.")
-    print(wilcox.test(n_fusions_hyperdiploid_ig, n_fusions_nonhyperdiploid_ig))
-  } else {
-    print("Number of IG fusions not significantly different between non- and hyperdiploid.")
-  }
-  print(str_c("Number of Ig fusions HRD: ", round(mean(n_fusions_hyperdiploid_ig), 1)))
-  print(str_c("Number of Ig fusions non-HRD: ", round(mean(n_fusions_nonhyperdiploid_ig), 1)))
+    filter(SeqWGS_Cp_Hyperdiploid_Call == 0) %>% 
+    pull(n_ig)
+  
+  wilcox_n_fusions <- wilcox.test(n_fusions_hyperdiploid, n_fusions_nonhyperdiploid)
+  
+  wilcox_n_ig_fusions <- wilcox.test(n_fusions_hyperdiploid_ig, n_fusions_nonhyperdiploid_ig)
   
   # Plot number of fusions per sample
-  
+
+  plot_df <- seqfish_clinical_info %>% 
+    select(mmrf, SeqWGS_Cp_Hyperdiploid_Call) %>% 
+    left_join(fusions_primary, by = "mmrf") %>%
+    group_by(mmrf, SeqWGS_Cp_Hyperdiploid_Call, srr) %>% 
+    summarize(n = n(), 
+              n_ig = sum(geneA %in% c("IGH", "IGL", "IGK") | 
+                           geneB %in% c("IGH", "IGL", "IGK"))) %>%
+    ungroup() %>%
+    mutate(n_fusions = n - is.na(srr)) %>%
+    left_join(hpd_key, by = "SeqWGS_Cp_Hyperdiploid_Call")
+    
   plot_df %>% 
     ggplot(aes(x = n_fusions)) + 
     geom_histogram(binwidth = 1, center = 0) + 
@@ -949,7 +802,8 @@ if (TRUE) {
   
   # Plot frequency of number of fusions per sample
   
-  n_fusion_tibble <- plot_df %>% group_by(hyperdiploid_categories) %>% 
+  n_fusion_tibble <- plot_df %>% 
+    group_by(hyperdiploid_categories) %>% 
     summarize(`Median` = median(n_fusions), 
               `Mean` = round(mean(n_fusions),1), 
               `Max` = max(n_fusions),
@@ -966,7 +820,8 @@ if (TRUE) {
   
   n_fusion_all <- n_fusion_tibble %>% bind_rows(overall_n_fusion_tibble)
   
-  plot_df %>% ggplot(aes(x = n_fusions, y = ..density..)) + 
+  plot_df %>% 
+    ggplot(aes(x = n_fusions, y = ..density..)) + 
     geom_vline(xintercept = c(0, 3), color = "grey70") + 
     geom_freqpoly(aes(color = fct_reorder(hyperdiploid_categories, count)), 
                   binwidth = 1, center = 0, size = 2, show.legend = FALSE) +
@@ -999,15 +854,15 @@ if (TRUE) {
     ggsave(str_c(paper_main, "freqpoly_n_fusions_per_sample.pdf"), 
            device = "pdf", width = 5, height = 5/1.618, useDingbats = FALSE)
   
-} # change median IG to mean
+}
 
 # ==============================================================================
-# Top recurrent fusions (with validation)
-# April 2019
+# Top recurrent fusions (with WGS support)
 # ==============================================================================
 
 if (TRUE) {
-  keep_fusions <- fusions_primary %>% group_by(fusion) %>% 
+  keep_fusions <- fusions_primary %>% 
+    group_by(fusion) %>% 
     summarize(count = n(), 
               n_not_na = sum(!is.na(n_discordant)), 
               n_validated = sum(!is.na(n_discordant) & n_discordant >= 3)) %>% 
@@ -1015,7 +870,8 @@ if (TRUE) {
     mutate(validation_pct = 100*n_validated/n_not_na) %>%
     filter(n_validated >= 1) %>% pull(fusion)
   
-  total_each_fusion <- fusions_primary %>% filter(fusion %in% keep_fusions) %>%
+  total_each_fusion <- fusions_primary %>% 
+    filter(fusion %in% keep_fusions) %>%
     mutate(fusion = case_when(geneB %in% c("IGH", "IGK", "IGL") ~ str_c(fusion, "*"), # mark as reciprocal
                               TRUE ~ fusion)) %>%
     group_by(fusion) %>% summarize(total = n())
@@ -1066,7 +922,6 @@ if (TRUE) {
 
 # ==============================================================================
 # Create a plot showing the overlap/agreement between tools
-# Originally written September 2018, Updated April 2019
 # ==============================================================================
 
 if (TRUE) {
@@ -1074,19 +929,30 @@ if (TRUE) {
   # Plot tool overlap (upsetr)
   
   upsetr_df <- data.frame(fusions_primary %>% select(starts_with("called_by")))
+  
   names(upsetr_df) <- c("EricScript", "FusionCatcher", "INTEGRATE", 
                         "PRADA", "STAR-Fusion")
+  
   pdf(file = str_c(paper_supp, "tool_overlap.upsetr.pdf"), 
      width = 7.25, height = 4, useDingbats = FALSE)
-  upset(upsetr_df, nsets = ncol(upsetr_df), nintersects = NA, order.by = "freq",
+  
+  upset(upsetr_df, 
+        nsets = ncol(upsetr_df),
+        nintersects = NA,
+        order.by = "freq",
         set_size.angles = 90,
-        text.scale = 1.5, point.size = 3, line.size = 1)
+        text.scale = 1.5,
+        point.size = 3,
+        line.size = 1)
+  
   dev.off()
+  
 }
 
 # ==============================================================================
 # Fusion overview paragraph output
 # ==============================================================================
+
 n_igh_whsc1 <- fusions_primary %>% 
   filter(fusion %in% c("IGH--WHSC1", "WHSC1--IGH")) %>% 
   pull(srr) %>% unique() %>% length()
@@ -1110,14 +976,65 @@ myc_pvt1_ig_fusions <- fusions_primary %>%
   filter((geneA %in% c("MYC", "PVT1") & geneB %in% c("IGH", "IGK", "IGL")) |
            (geneB %in% c("MYC", "PVT1") & geneA %in% c("IGH", "IGK", "IGL"))) %>%
   pull(fusion) %>% table() %>% sort()
+
+print(str_c("Number of patients: ", n_samples_primary))
+print("Tissue Sources:")
+print(samples_primary %>%
+        left_join(samples_all, by = "srr") %>%
+        pull(tissue_source) %>%
+        table())
+print(str_c("Primary = pre-treatment: ", length(mmrf_primary_pretreatment), "/", n_samples_primary, " = ", round(100*length(mmrf_primary_pretreatment)/n_samples_primary, 2)))
+print(str_c("Number with additional samples: ", samples_all %>% 
+              group_by(mmrf) %>% 
+              summarize(count = n()) %>% 
+              filter(count > 1) %>% 
+              nrow()))
+print(str_c("Number of total RNA samples: ", n_samples_total))
+
+print("Patient Age:")
+print(summary_tibble %>% filter(Category == "Age"))
+print("Patient Stage:")
+print(summary_tibble %>% filter(Category == "ISS Stage"))
+print("Summary of EFS followup:")
+print(summary_efs_followup)
+print(summary_efs_followup/365.25)
+print(str_c("Number of patients progressed: ", n_patients_progressed, "/", n_patients_with_pfs_data, " = ", round(100*n_patients_progressed/n_patients_with_pfs_data, 3), "%"))
+print("Summary of OS followup:")
+print(summary_os_followup)
+print(summary_os_followup/365.25)
+print(str_c("Number of patients died: ", n_patients_died, "/", n_patients_with_os_data, " = ", round(100*n_patients_died/n_patients_with_os_data, 3), "%"))
+print("Survival by ISS Stage:")
+print(survival_tibble %>% filter(Category == "Event Free")) %>% 
+  pull(`Median Survival (Days)`)/365.25
+print("Hyperdiploid Status:")
+print(summary_tibble %>% filter(Category == "Hyperdiploid Status"))
+print("Patient Ancestry:")
+print(summary_tibble %>% filter(Category == "Race"))
+print("Treatment Regimens:")
+print(summary_tibble %>% filter(Category == "Treatment"))
+print("Bone Marrow Transplants:")
+print(summary_tibble %>% filter(Category == "Bone Marrow Transplant"))
+
 print(str_c("IGH WHSC1 fusions: ", n_igh_whsc1, "/", n_samples_primary, " = ", round(100*n_igh_whsc1/n_samples_primary, 1)))
 print(str_c("IGH WHSC1 validated: ", n_igh_whsc1_validated, "/", n_igh_whsc1_with_wgs, " = ", round(100*n_igh_whsc1_validated/n_igh_whsc1_with_wgs, 1)))
-print(str_c("Overall fusion validation rate: ", round(100*post_filtering_validation_rate, 1), "%"))
-print(str_c("TCGA Pancancer fusion validation rate: ", round(100*tcga_validation_rate, 1), "%"))
 print(str_c("Fusions involving IGH/IGK/IGL: ", n_igh_fusions, "/", n_fusions_total, " = ", round(100*prop_igh_fusions, 1), "%"))
 print("MYC or PVT1 and IG fusions: ")
 print(myc_pvt1_ig_fusions)
+
+print(str_c("Number of fusions HRD: ", round(mean(n_fusions_hyperdiploid), 1)))
+print(str_c("Number of fusions non-HRD: ", round(mean(n_fusions_nonhyperdiploid), 1)))
+print(wilcox_n_fusions)
+
+print(str_c("Number of Ig fusions HRD: ", round(mean(n_fusions_hyperdiploid_ig), 1)))
+print(str_c("Number of Ig fusions non-HRD: ", round(mean(n_fusions_nonhyperdiploid_ig), 1)))
+print(wilcox_n_ig_fusions)
+
+print("Number of fusions overall:")
+print(seqfish_clinical_info %>% pull(total_fusions) %>% summary())
+
+print(str_c("Number of significantly undervalidated fusions: ", significantly_under_validated_fusions %>% length()))
+print(str_c("Overall fusion validation rate: ", round(100*post_filtering_validation_rate, 1), "%"))
+print(str_c("TCGA Pancancer fusion validation rate: ", round(100*tcga_validation_rate, 1), "%"))
 print(str_c("Number of fusion tools: (out of ", n_fusions_total, ")"))
 print(fusions_primary %>% pull(CallerN) %>% table())
 print(fusions_primary %>% pull(CallerN) %>% table()/n_fusions_total)
-print(str_c("Number of significantly undervalidated fusions: ", significantly_under_validated_fusions %>% length()))
