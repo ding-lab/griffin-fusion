@@ -7,4 +7,4 @@
 * Mutation calls from WXS
 * Clinical data including time to progression
 
-Please see [Fuscia](github.com/ding-lab/fuscia) for single cell RNA-seq fusion detection.
+Please see [Fuscia](https://github.com/ding-lab/fuscia) for single cell RNA-seq fusion detection.
