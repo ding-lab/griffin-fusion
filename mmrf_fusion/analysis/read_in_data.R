@@ -15,8 +15,8 @@ library(Seurat)
 library(survival)
 library(survminer)
 library(tidyverse)
-library(viridis)
 library(UpSetR)
+library(viridis)
 
 # ==============================================================================
 # Sample lists (MMRF, SRR) of data related to samples in this analysis

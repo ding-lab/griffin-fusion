@@ -964,8 +964,10 @@ n_igh_whsc1_validated <- fusions_primary %>%
   filter(fusion %in% c("IGH--WHSC1")) %>% 
   filter(!is.na(n_discordant), n_discordant >= 3) %>% 
   pull(srr) %>% unique() %>% length()
-n_fusions_with_wgs <- fusions_primary %>% filter(!is.na(n_discordant)) %>% nrow()
-n_fusions_validated <- fusions_primary %>% filter(!is.na(n_discordant), n_discordant >= 3) %>% nrow()
+n_fusions_with_wgs <- fusions_primary %>% 
+  filter(!is.na(n_discordant)) %>% nrow()
+n_fusions_validated <- fusions_primary %>% 
+  filter(!is.na(n_discordant), n_discordant >= 3) %>% nrow()
 post_filtering_validation_rate <- n_fusions_validated/n_fusions_with_wgs
 n_igh_fusions <- fusions_primary %>% 
   filter(geneA %in% c("IGH", "IGK", "IGL") | 
@@ -983,7 +985,9 @@ print(samples_primary %>%
         left_join(samples_all, by = "srr") %>%
         pull(tissue_source) %>%
         table())
-print(str_c("Primary = pre-treatment: ", length(mmrf_primary_pretreatment), "/", n_samples_primary, " = ", round(100*length(mmrf_primary_pretreatment)/n_samples_primary, 2)))
+print(str_c("Primary = pre-treatment: ", 
+            length(mmrf_primary_pretreatment), "/", n_samples_primary, " = ", 
+            round(100*length(mmrf_primary_pretreatment)/n_samples_primary, 2), "%"))
 print(str_c("Number with additional samples: ", samples_all %>% 
               group_by(mmrf) %>% 
               summarize(count = n()) %>% 
@@ -998,11 +1002,15 @@ print(summary_tibble %>% filter(Category == "ISS Stage"))
 print("Summary of EFS followup:")
 print(summary_efs_followup)
 print(summary_efs_followup/365.25)
-print(str_c("Number of patients progressed: ", n_patients_progressed, "/", n_patients_with_pfs_data, " = ", round(100*n_patients_progressed/n_patients_with_pfs_data, 3), "%"))
+print(str_c("Number of patients progressed: ", 
+            n_patients_progressed, "/", n_patients_with_pfs_data, " = ",
+            round(100*n_patients_progressed/n_patients_with_pfs_data, 3), "%"))
 print("Summary of OS followup:")
 print(summary_os_followup)
 print(summary_os_followup/365.25)
-print(str_c("Number of patients died: ", n_patients_died, "/", n_patients_with_os_data, " = ", round(100*n_patients_died/n_patients_with_os_data, 3), "%"))
+print(str_c("Number of patients died: ",
+            n_patients_died, "/", n_patients_with_os_data, " = ", 
+            round(100*n_patients_died/n_patients_with_os_data, 3), "%"))
 print("Survival by ISS Stage:")
 print(survival_tibble %>% filter(Category == "Event Free")) %>% 
   pull(`Median Survival (Days)`)/365.25
@@ -1015,26 +1023,39 @@ print(summary_tibble %>% filter(Category == "Treatment"))
 print("Bone Marrow Transplants:")
 print(summary_tibble %>% filter(Category == "Bone Marrow Transplant"))
 
-print(str_c("IGH WHSC1 fusions: ", n_igh_whsc1, "/", n_samples_primary, " = ", round(100*n_igh_whsc1/n_samples_primary, 1)))
-print(str_c("IGH WHSC1 validated: ", n_igh_whsc1_validated, "/", n_igh_whsc1_with_wgs, " = ", round(100*n_igh_whsc1_validated/n_igh_whsc1_with_wgs, 1)))
-print(str_c("Fusions involving IGH/IGK/IGL: ", n_igh_fusions, "/", n_fusions_total, " = ", round(100*prop_igh_fusions, 1), "%"))
+print(str_c("IGH WHSC1 fusions: ", 
+            n_igh_whsc1, "/", n_samples_primary, " = ",
+            round(100*n_igh_whsc1/n_samples_primary, 1), "%"))
+print(str_c("IGH WHSC1 validated: ",
+            n_igh_whsc1_validated, "/", n_igh_whsc1_with_wgs, " = ", 
+            round(100*n_igh_whsc1_validated/n_igh_whsc1_with_wgs, 1), "%"))
+print(str_c("Fusions involving IGH/IGK/IGL: ", 
+            n_igh_fusions, "/", n_fusions_total, " = ", 
+            round(100*prop_igh_fusions, 1), "%"))
 print("MYC or PVT1 and IG fusions: ")
 print(myc_pvt1_ig_fusions)
 
-print(str_c("Number of fusions HRD: ", round(mean(n_fusions_hyperdiploid), 1)))
-print(str_c("Number of fusions non-HRD: ", round(mean(n_fusions_nonhyperdiploid), 1)))
+print(str_c("Number of fusions HRD: ", 
+            round(mean(n_fusions_hyperdiploid), 1)))
+print(str_c("Number of fusions non-HRD: ", 
+            round(mean(n_fusions_nonhyperdiploid), 1)))
 print(wilcox_n_fusions)
 
-print(str_c("Number of Ig fusions HRD: ", round(mean(n_fusions_hyperdiploid_ig), 1)))
-print(str_c("Number of Ig fusions non-HRD: ", round(mean(n_fusions_nonhyperdiploid_ig), 1)))
+print(str_c("Number of Ig fusions HRD: ", 
+            round(mean(n_fusions_hyperdiploid_ig), 1)))
+print(str_c("Number of Ig fusions non-HRD: ", 
+            round(mean(n_fusions_nonhyperdiploid_ig), 1)))
 print(wilcox_n_ig_fusions)
 
 print("Number of fusions overall:")
 print(seqfish_clinical_info %>% pull(total_fusions) %>% summary())
 
-print(str_c("Number of significantly undervalidated fusions: ", significantly_under_validated_fusions %>% length()))
-print(str_c("Overall fusion validation rate: ", round(100*post_filtering_validation_rate, 1), "%"))
-print(str_c("TCGA Pancancer fusion validation rate: ", round(100*tcga_validation_rate, 1), "%"))
+print(str_c("Number of significantly undervalidated fusions: ", 
+            significantly_under_validated_fusions %>% length()))
+print(str_c("Overall fusion validation rate: ", 
+            round(100*post_filtering_validation_rate, 1), "%"))
+print(str_c("TCGA Pancancer fusion validation rate: ", 
+            round(100*tcga_validation_rate, 1), "%"))
 print(str_c("Number of fusion tools: (out of ", n_fusions_total, ")"))
 print(fusions_primary %>% pull(CallerN) %>% table())
 print(fusions_primary %>% pull(CallerN) %>% table()/n_fusions_total)

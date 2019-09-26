@@ -1,5 +1,6 @@
 # ==============================================================================
 # MYC PVT1 story
+# Steven Foltz (github: envest)
 # ==============================================================================
 
 paper_main = "paper/main/06_myc_pvt1/"
@@ -21,8 +22,9 @@ expr_plot_df <- expr_plot_df %>% mutate(cnv_factor = factor(categorical_cnv,
                                                                        "AMPLIFICATION"), 
                                                             exclude = NULL))
 
-# START HERE
-
+# ==============================================================================
+# Plot MYC expression and fusion breakpoints
+# ==============================================================================
 if (TRUE) {
   
   get_t822 <- function(delly){
@@ -230,8 +232,9 @@ if (TRUE) {
            width = 7.25, height = 4, useDingbats = FALSE)
 }
 
-# SURVIVAL MYC--IGL vs. PVT1--IGL
-
+# ==============================================================================
+# Survival MYC--IGL vs. PVT1--IGL
+# ==============================================================================
 if (TRUE) {
   
   EFS_tibble <- seqfish_clinical_info %>%
@@ -242,7 +245,6 @@ if (TRUE) {
     replace_na(list(fusion = "_None")) %>% 
     mutate(myc_mutant = mmrf %in% mmrf_with_myc_mutation$mmrf,
            ISS_Stage = factor(ISS_Stage, labels = c("I", "II", "III"))) %>%
-    #mutate(myc_mutant = case_when(myc_mutant == TRUE & fusion != "_None" ~ fusion)) %>%
     filter(mmrf %in% mmrf_with_primary_mutation_calls)
   
   early_tibble <- seqfish_clinical_info %>%
@@ -253,24 +255,18 @@ if (TRUE) {
     replace_na(list(fusion = "_None")) %>% 
     mutate(myc_mutant = mmrf %in% mmrf_with_myc_mutation$mmrf,
            ISS_Stage = factor(ISS_Stage, labels = c("I", "II", "III"))) %>%
-    #mutate(myc_mutant = case_when(myc_mutant == TRUE & fusion != "_None" ~ fusion)) %>%
     filter(mmrf %in% mmrf_with_primary_mutation_calls)
   
   # There are no overlaps in samples with all EFS parameters but could be in general
   plot_survival_list <- list()
   plot_survival_list[["base_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age, data = EFS_tibble)
   plot_survival_list[["PVT1_MYC_fusion_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fusion, data = EFS_tibble)
-  plot_survival_list[["PVT1_MYC_fusion_mutant_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fusion + myc_mutant, data = EFS_tibble)
   plot_survival_list[["anova_PVT1_MYC_fusion_EFS"]] <- anova(plot_survival_list[["base_EFS"]], plot_survival_list[["PVT1_MYC_fusion_EFS"]])
-  plot_survival_list[["anova_PVT1_MYC_fusion_EFS"]] <- anova(plot_survival_list[["base_EFS"]], plot_survival_list[["PVT1_MYC_fusion_mutant_EFS"]])
-  plot_survival_list[["anova_PVT1_MYC_fusion_mutant_EFS"]] <- anova(plot_survival_list[["PVT1_MYC_fusion_EFS"]], plot_survival_list[["PVT1_MYC_fusion_mutant_EFS"]])
   
-  fit <- survfit(Surv(EFS, EFS_censor == 0) ~ fusion + myc_mutant, data = EFS_tibble)
-  print("Kaplan-Meier estimates for MYC/PVT1/IGL fusion:")
-  print(fit)
+  fit_fusion_mutant <- survfit(Surv(EFS, EFS_censor == 0) ~ fusion + myc_mutant, data = EFS_tibble)
   pdf(str_c(paper_main, "PVT1_MYC.EFS.with_legend.pdf"),
       width = 3.5, height = 3.5, useDingbats = FALSE)
-  print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
+  print(ggsurvplot(fit_fusion_mutant, data = EFS_tibble, conf.int = TRUE,
                    surv.median.line = "hv", pval = TRUE,
                    legend.labs = c("Neither Reported", "MYC mutation", "MYC--IGL", "PVT1--IGL"), 
                    legend = "right", 
@@ -291,7 +287,7 @@ if (TRUE) {
   dev.off()
   pdf(str_c(paper_main, "PVT1_MYC.EFS.without_legend.pdf"),
       width = 3.5, height = 3.5, useDingbats = FALSE)
-  print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
+  print(ggsurvplot(fit_fusion_mutant, data = EFS_tibble, conf.int = TRUE,
                    surv.median.line = "hv", pval = TRUE,
                    legend.labs = c("Neither Reported", "MYC mutation", "MYC--IGL", "PVT1--IGL"), 
                    legend = "none",
@@ -310,25 +306,13 @@ if (TRUE) {
                                              font.legend = c(8, "plain", "black")),
                    conf.int.alpha = 0.1))
   dev.off()
-  
-  print(plot_survival_list[["PVT1_MYC_fusion_EFS"]])
-  print(exp(confint(plot_survival_list[["PVT1_MYC_fusion_EFS"]])))
-  
 }
 
 # ==============================================================================
-# Paragraph info
+# Manuscript paragraph info
 # ==============================================================================
-n_myc_fusions_with_wgs <- fusions_primary %>% 
-  filter((geneA %in% c("PVT1", "MYC") & geneB %in% c("IGH", "IGK", "IGL")) |
-           (geneB %in% c("PVT1", "MYC") & geneA %in% c("IGH", "IGK", "IGL"))) %>%
-  filter(!is.na(n_discordant)) %>% nrow()
-n_myc_fusions_validated <- fusions_primary %>%
-  filter((geneA %in% c("PVT1", "MYC") & geneB %in% c("IGH", "IGK", "IGL")) |
-           (geneB %in% c("PVT1", "MYC") & geneA %in% c("IGH", "IGK", "IGL"))) %>%
-  filter(!is.na(n_discordant), n_discordant >= 3) %>% nrow()
-
-n_myc_igl_any_stage <- fusions_primary %>% filter(fusion == "MYC--IGL") %>% 
+n_myc_igl_any_stage <- fusions_primary %>% 
+  filter(fusion == "MYC--IGL") %>% 
   select(mmrf, fusion) %>% 
   left_join(seqfish_clinical_info %>% 
               select(mmrf, ISS_Stage), by = "mmrf") %>% 
@@ -357,6 +341,15 @@ n_pvt1_igl_stageI <- fusions_primary %>% filter(fusion == "PVT1--IGL") %>%
   nrow()
 
 print(str_c("Number of samples with MYC mutation: ", mmrf_with_myc_mutation %>% nrow()))
-print(str_c("Proportion of PVT1--IGL Stage I: ", n_pvt1_igl_stageI, "/", n_pvt1_igl_any_stage, " = ", round(100*n_pvt1_igl_stageI/n_pvt1_igl_any_stage, 2), "%"))
-print(str_c("Proportion of MYC--IGL Stage I: ", n_myc_igl_stageI, "/", n_myc_igl_any_stage, " = ", round(100*n_myc_igl_stageI/n_myc_igl_any_stage, 2), "%"))
-print(str_c("MYC/PVT1 IG fusions validated: ", n_myc_fusions_validated, "/", n_myc_fusions_with_wgs, " = ", round(100*n_myc_fusions_validated/n_myc_fusions_with_wgs, 2), "%"))
+
+print("Kaplan-Meier estimates for MYC/PVT1/IGL fusion:")
+print(fit_fusion_mutant)
+print(str_c("Proportion of PVT1--IGL Stage I: ", 
+            n_pvt1_igl_stageI, "/", n_pvt1_igl_any_stage, " = ", 
+            round(100*n_pvt1_igl_stageI/n_pvt1_igl_any_stage, 2), "%"))
+print(str_c("Proportion of MYC--IGL Stage I: ", 
+            n_myc_igl_stageI, "/", n_myc_igl_any_stage, " = ", 
+            round(100*n_myc_igl_stageI/n_myc_igl_any_stage, 2), "%"))
+
+print(plot_survival_list[["PVT1_MYC_fusion_EFS"]])
+print(exp(confint(plot_survival_list[["PVT1_MYC_fusion_EFS"]])))

@@ -1,6 +1,6 @@
 # ==============================================================================
 # Multiple samples
-# Steven Foltz (smfoltz@wustl.edu)
+# Steven Foltz (github: envest)
 # ==============================================================================
 
 paper_main = "paper/main/03_multiple/"
@@ -35,11 +35,6 @@ if (TRUE) {
     summarize(n()) %>%
     pull(fusion)
   
-  # Samples with multiple timepoints
-  
-  #samples_with_multiple_timepoints <- fusions_all %>% 
-  #  filter(has_secondary == 1) %>% pull(mmrf) %>% unique()
-
   # samples with multiple bone marrow samples
   mtp_bm_samples <- samples_all %>% 
     filter(tissue_source == "BM") %>%
@@ -72,21 +67,21 @@ if (TRUE) {
   # method to overlap fusion calls from two SRRs
   get_fusion_overlap <- function(fusion_df, srr1, srr2){
     list_of_fusions_srr1 <- fusion_df %>%
-      #filter(fusion_recurrence > 1) %>%
       filter(srr == srr1) %>% 
       pull(fusion) %>% 
       sort()
     list_of_fusions_srr2 <- fusion_df %>% 
-      #filter(fusion_recurrence > 1) %>%
       filter(srr == srr2) %>% 
       pull(fusion) %>% 
       sort()
-    if ("IGH--WHSC1" %in% list_of_fusions_srr1 | "WHSC1--IGH" %in% list_of_fusions_srr1) {
+    if ("IGH--WHSC1" %in% list_of_fusions_srr1 | 
+        "WHSC1--IGH" %in% list_of_fusions_srr1) {
       srr1_has_founder <- 1
     } else {
       srr1_has_founder <- 0
     }
-    if ("IGH--WHSC1" %in% list_of_fusions_srr2 | "WHSC1--IGH" %in% list_of_fusions_srr2) {
+    if ("IGH--WHSC1" %in% list_of_fusions_srr2 | 
+        "WHSC1--IGH" %in% list_of_fusions_srr2) {
       srr2_has_founder <- 1
     } else {
       srr2_has_founder <- 0
@@ -102,7 +97,9 @@ if (TRUE) {
   p_df <- mtp_bm_samples %>% 
     rowwise() %>%
     mutate(overlaps = get_fusion_overlap(fusions_all, first_srr, second_srr)) %>%
-    separate(overlaps, into = c("n_fusions_srr1", "n_fusions_srr2", "overlap_srr12", "ighwhsc1"), sep = ":") %>%
+    separate(overlaps, 
+             into = c("n_fusions_srr1", "n_fusions_srr2", 
+                      "overlap_srr12", "ighwhsc1"), sep = ":") %>%
     mutate(n_fusions_srr1 = as.integer(n_fusions_srr1),
            n_fusions_srr2 = as.integer(n_fusions_srr2),
            overlap_srr12 = as.integer(overlap_srr12),
@@ -113,7 +110,9 @@ if (TRUE) {
     rowwise() %>%
     mutate(min_srr12 = min(n_fusions_srr1, n_fusions_srr2)) %>%
     ungroup() %>% 
-    mutate(igh_whsc1 = factor(igh_whsc1, levels = c("Both samples", "Neither sample", "TP1 only", "TP2 only"), ordered = TRUE))
+    mutate(igh_whsc1 = factor(igh_whsc1, 
+                              levels = c("Both samples", "Neither sample", 
+                                         "TP1 only", "TP2 only"), ordered = TRUE))
   
   p_df_min_max <- p_df %>% pull(min_srr12) %>% max()
   
@@ -250,7 +249,10 @@ if (TRUE) {
           legend.background = element_blank(),
           legend.text = element_text(size = 10))
   
-  q_lines <- ggplot(data = q_df %>% mutate(patient_visit = factor(str_c(mmrf, first_srr, second_srr))) %>% mutate(patient_visit = fct_reorder2(patient_visit, overlap_srr12 - max_srr12, overlap_srr12, .desc = TRUE)) %>% mutate(patient_visit = fct_rev(patient_visit))) +
+  q_lines <- ggplot(data = q_df %>% 
+                      mutate(patient_visit = factor(str_c(mmrf, first_srr, second_srr))) %>% 
+                      mutate(patient_visit = fct_reorder2(patient_visit, overlap_srr12 - max_srr12, overlap_srr12, .desc = TRUE)) %>% 
+                      mutate(patient_visit = fct_rev(patient_visit))) +
     geom_segment(aes(x = overlap_srr12, 
                      xend = min_srr12,
                      y = patient_visit,
@@ -277,18 +279,6 @@ if (TRUE) {
                    color = igh_whsc1),
                shape = 4,
                size = 2) +
-    #geom_text(aes(x = n_fusions_srr1, 
-    #              y = patient_visit,
-    #              color = igh_whsc1),
-    #          vjust = 0,
-    #          nudge_y = 0.1,
-    #          label = "BM") +
-    #geom_text(aes(x = n_fusions_srr2, 
-    #              y = patient_visit,
-    #              color = igh_whsc1),
-    #          vjust = 1,
-    #          nudge_y = -0.1,
-    #          label = "PB") +
     scale_x_continuous(breaks = seq(0, q_df_max, 3)) +
     scale_color_brewer(palette = "Set2", drop = FALSE, direction = -1) +
     labs(x = "Number of Fusions",
@@ -415,7 +405,6 @@ if (TRUE) {
 
 # ==============================================================================
 # Multiple time point fusions along with multiple exome seq mutations data
-# Updated April 2019
 # ==============================================================================
 
 if (TRUE) {
@@ -571,7 +560,6 @@ if (TRUE) {
           panel.grid.minor = element_blank(),
           panel.border = element_blank(),
           axis.ticks = element_blank(),
-          #strip.text = element_blank(),
           strip.background = element_blank(),
           axis.text = element_text(size = 8),
           axis.title = element_text(size = 12))
@@ -626,38 +614,6 @@ if (TRUE) {
 }
 
 # ==============================================================================
-# PB BM%
-# ==============================================================================
-
-if (TRUE) {
-  seqfish_clinical_info %>%
-    left_join(samples_all %>% filter(tissue_source == "PB") %>% select(mmrf, tissue_source) %>% unique(), by = "mmrf") %>%
-    ggplot(aes(x = tissue_source, y = BM_Plasma_Cell_Percent)) +
-    geom_violin(color = "black",
-                draw_quantiles = 0.5) +
-    geom_jitter(height = 0, width = 0.2, shape = 16, alpha = 0.25) + 
-    theme_bw() +
-    scale_y_continuous(expand = c(0,0), limits = c(-0.02, 100)) +
-    scale_x_discrete(expand = c(0,0), labels = c("Has PB sample", "No PB sample")) +
-    labs(x = "Tissue Source", y = "Bone Marrow Plasma Cell Percentage (%)") +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank(),
-          plot.background = element_blank(),
-          panel.grid.minor = element_blank(),
-          panel.grid.major.x = element_blank(),
-          strip.background = element_blank(),
-          axis.ticks = element_blank(),
-          panel.spacing.x = unit(0.1, units = "inches"),
-          axis.title = element_text(size = 12),
-          #axis.text.x = element_blank(),
-          strip.text = element_text(size = 10)
-    ) +
-    ggsave(str_c(paper_supp, "peripheral_blood_bm_pct.pdf"),
-           width = 3.5, height = 3.5, useDingbats = FALSE)
-  
-}
-
-# ==============================================================================
 # Fusion multiple time points paragraph output
 # ==============================================================================
 n_mmrf_with_multiple_samples <- samples_all %>% 
@@ -665,6 +621,14 @@ n_mmrf_with_multiple_samples <- samples_all %>%
   summarize(count = n()) %>% 
   filter(count > 1) %>% 
   nrow()
+pb_bm_overlap_assessment <- q_df %>% 
+  mutate(x = overlap_srr12/min_srr12) %>% 
+  filter(max_srr12 >= 3) %>% 
+  mutate(y = case_when(overlap_srr12/min_srr12 >= 2/3 ~ "Good Overlap", 
+                       TRUE ~ "Poor Overlap")) %>% 
+  pull(y) %>% 
+  table()
+
 print(str_c("Number of patients with multiple samples: ", n_mmrf_with_multiple_samples))
 print(str_c("Number of patients with two BM samples: ", n_patients_two_bm))
 print("Table of IGH--WHSC1 fusions detected in BM samples:")
@@ -676,4 +640,6 @@ print(str_c("Number of clinic visits for BM PB comparison: ", n_visits_bmpb))
 print("Correlation between n_fusions BM and PB: ")
 print(cor_bmpb_n_fusions)
 print("Overlap between PB and BM samples:")
-print(q_df %>% mutate(x = overlap_srr12/min_srr12) %>% filter(max_srr12 >= 3) %>% mutate(y = case_when(overlap_srr12/min_srr12 >= 2/3 ~ "Good Overlap", TRUE ~ "Poor Overlap")) %>% pull(y) %>% table())
+print("Good and bad BM PB overlap:")
+print(pb_bm_overlap_assessment)
+print(pb_bm_overlap_assessment/sum(pb_bm_overlap_assessment))

@@ -1,6 +1,6 @@
 # ==============================================================================
 # scRNA analysis (in-house samples)
-# Steven Foltz (smfoltz@wustl.edu)
+# Steven Foltz (github: envest)
 # ==============================================================================
 
 paper_main = "paper/main/05_single_cell/"
@@ -256,9 +256,7 @@ plot_gene_expression_violin <- function(bulk_sc, seurat_object, tsne_umap, ensg,
     geom_violin(scale = "width",
                 color = "black",
                 draw_quantiles = 0.5) +
-    geom_jitter(#aes(color = expression),
-                #width = 0.5,
-                height = 0,
+    geom_jitter(height = 0,
                 shape = 16,
                 size = 1.5,
                 show.legend = FALSE,
@@ -333,7 +331,6 @@ plot_two_genes_expression <- function(seurat_object, tsne_umap, ensg1, ensg2, id
 plot_gene_cnv <- function(infercnv, tsne_umap, reduction = "UMAP", id, gene, dir = paper_supp) {
   
   if (reduction %in% c("UMAP", "t-SNE")) {
-    #plot_df <- get_gene_cnv(infercnv, tsne_umap, this_gene = gene) %>% arrange(desc(cnv))
     plot_df <- get_gene_cnv(infercnv, tsne_umap, this_gene = gene) %>% 
       rowwise() %>%
       mutate(diff = max(1, cnv) - min(1, cnv)) %>% 
@@ -409,7 +406,6 @@ plot_chr_cnv <- function(infercnv, tsne_umap, reduction = "UMAP", id, chr, dir =
   p <- p + geom_point(aes(color = mean_cnv),
                       shape = 16,
                       size = 1.5,
-                      #show.legend = FALSE,
                       alpha = 0.25) +
     annotate("text", label = chr,
              x = -Inf, y = Inf, 
@@ -577,9 +573,6 @@ plot_cell_chimeric_transcripts <- function(bulk_sc, tsne_umap, reduction = "UMAP
            p + guides(color = FALSE),
            width = 3.5, height = 3.5, useDingbats = FALSE)
   }
-  
-  
-
 }
 
 # ==============================================================================
@@ -600,15 +593,11 @@ plot_two_genes_correlation <- function(two_genes_expression, bulk_sc, dir = pape
     arrange(chimeric_transcript_detected) %>%
     ungroup()
   
-  print(str_c(id, " correlation between ", gene1, " and ", gene2, ":"))
-  
   gene12_correlation <- plot_df %>%
     filter(expression1 > 0, expression2 > 0) %>%
     select(expression1, expression2) %>%
     as.matrix() %>%
     cor()
-  
-  print(gene12_correlation)
   
   max_expr1 <- plot_df %>% pull(expression1) %>% max()
   max_expr2 <- plot_df %>% pull(expression2) %>% max()
@@ -639,10 +628,6 @@ plot_two_genes_correlation <- function(two_genes_expression, bulk_sc, dir = pape
 
 #General analysis both samples
 if (TRUE) {
-  
-  # ==============================================================================
-  # ANALYSIS
-  # ==============================================================================
   
   # ==============================================================================
   # Plot cell types of each sample

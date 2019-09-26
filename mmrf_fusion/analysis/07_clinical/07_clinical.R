@@ -1,6 +1,6 @@
 # ==============================================================================
 # Clinical (MMRF Fusions)
-# Steven Foltz (smfoltz@wustl.edu)
+# Steven Foltz (github: envest)
 # ==============================================================================
 
 paper_main = "paper/main/07_clinical/"
@@ -12,7 +12,6 @@ dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 
 # ==============================================================================
 # Druggable fusions table
-# Steven Foltz (smfoltz@wustl.edu), April 2019
 # ==============================================================================
 
 if (TRUE) {
@@ -72,14 +71,13 @@ if (TRUE) {
 
 # ==============================================================================
 # Survival association with fusion events
-# Steven Foltz (smfoltz@wustl.edu), April 2019
 # ==============================================================================
 
 if (TRUE) {
   
   coxph_model_EFS_list <- list()
   
-  fusions_gt2 <- seqfish_clinical_info %>%
+  fusions_ge10 <- seqfish_clinical_info %>%
     filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
     left_join(fusions_primary, by = "mmrf") %>% 
     filter(!is.na(fusion)) %>%
@@ -89,7 +87,7 @@ if (TRUE) {
     filter(count >= 10) %>% 
     pull(fusion)
   
-  genes_gt2 <- bind_rows(seqfish_clinical_info %>%
+  genes_ge10 <- bind_rows(seqfish_clinical_info %>%
                            filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
                            left_join(fusions_primary, by = "mmrf") %>% 
                            filter(!is.na(fusion)) %>% 
@@ -107,12 +105,7 @@ if (TRUE) {
     filter(count >= 10) %>% 
     pull(gene)
   
-  n_tests_fusions <- 1
-  n_tests_genes <- 1
-  
-  for (this_fusion in fusions_gt2) {
-    #print(this_fusion)
-    
+  for (this_fusion in fusions_ge10) {
     EFS_tibble <- seqfish_clinical_info %>%
       filter(mmrf %in% mmrf_primary_pretreatment) %>%
       filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
@@ -126,15 +119,13 @@ if (TRUE) {
       p_value_EFS <- summary(coxph_model_EFS)$coefficients[str_c("fusion", this_fusion), 5]
       p_value_model_comparison <- anova(baseline_coxph_model_EFS, coxph_model_EFS)["P(>|Chi|)"][2,1]
       
-      if (p_value_EFS < 0.05/n_tests_fusions & p_value_model_comparison < 0.05/n_tests_fusions) {
+      if (p_value_EFS < 0.05 & p_value_model_comparison < 0.05) {
         coxph_model_EFS_list[[this_fusion]] <- coxph_model_EFS
       }
     }
   }
   
-  for (this_gene in genes_gt2) {
-    #print(this_gene)
-    
+  for (this_gene in genes_ge10) {
     EFS_tibble <- seqfish_clinical_info %>%
       filter(mmrf %in% mmrf_primary_pretreatment) %>%
       filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
@@ -149,7 +140,7 @@ if (TRUE) {
       p_value_EFS <- summary(coxph_model_EFS)$coefficients[str_c("gene", this_gene), 5]
       p_value_model_comparison <- anova(baseline_coxph_model_EFS, coxph_model_EFS)["P(>|Chi|)"][2,1]
       
-      if (p_value_EFS < 0.05/n_tests_fusions & p_value_model_comparison < 0.05/n_tests_fusions) {
+      if (p_value_EFS < 0.05 & p_value_model_comparison < 0.05) {
         coxph_model_EFS_list[[this_gene]] <- coxph_model_EFS
       }
     }
@@ -158,9 +149,7 @@ if (TRUE) {
   #### early relapse
   coxph_model_early_list <- list()
   
-  for (this_fusion in fusions_gt2) {
-    #print(this_fusion)
-    
+  for (this_fusion in fusions_ge10) {
     early_tibble <- seqfish_clinical_info %>%
       filter(mmrf %in% mmrf_primary_pretreatment) %>%
       filter(!is.na(ISS_Stage), !is.na(early_relapse_censor), !is.na(Age)) %>%
@@ -174,15 +163,13 @@ if (TRUE) {
       p_value_early <- summary(coxph_model_early)$coefficients[str_c("fusion", this_fusion), 5]
       p_value_model_comparison <- anova(baseline_coxph_model_early, coxph_model_early)["P(>|Chi|)"][2,1]
       
-      if (p_value_early < 0.05/n_tests_fusions & p_value_model_comparison < 0.05/n_tests_fusions) {
+      if (p_value_early < 0.05 & p_value_model_comparison < 0.05) {
         coxph_model_early_list[[this_fusion]] <- coxph_model_early
       }
     }
   }
   
-  for (this_gene in genes_gt2) {
-    #print(this_gene)
-    
+  for (this_gene in genes_ge10) {
     early_tibble <- seqfish_clinical_info %>%
       filter(mmrf %in% mmrf_primary_pretreatment) %>%
       filter(!is.na(ISS_Stage), !is.na(early_relapse_censor), !is.na(Age)) %>%
@@ -197,7 +184,7 @@ if (TRUE) {
       p_value_early <- summary(coxph_model_early)$coefficients[str_c("gene", this_gene), 5]
       p_value_model_comparison <- anova(baseline_coxph_model_early, coxph_model_early)["P(>|Chi|)"][2,1]
       
-      if (p_value_early < 0.05/n_tests_fusions & p_value_model_comparison < 0.05/n_tests_fusions) {
+      if (p_value_early < 0.05 & p_value_model_comparison < 0.05) {
         coxph_model_early_list[[this_gene]] <- coxph_model_early
       }
     }
@@ -209,31 +196,26 @@ if (TRUE) {
     filter(!is.na(ISS_Stage), !is.na(EFS), !is.na(Age), !is.na(total_fusions)) %>% 
     select(mmrf, Age, total_fusions, ISS_Stage, EFS, EFS_censor)
   total_fusions_coxph_model <- coxph(Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + total_fusions, data = EFS_tibble)
-  print("HR estimate for total_fusions:")
-  print(total_fusions_coxph_model)
-  print("Confidence intervals for total_fusions HR:")
-  print(exp(confint(total_fusions_coxph_model)))
   
   early_tibble <- seqfish_clinical_info %>% 
     filter(mmrf %in% mmrf_primary_pretreatment) %>%
     filter(!is.na(ISS_Stage), !is.na(early_relapse_time), !is.na(Age), !is.na(total_fusions)) %>% 
     select(mmrf, Age, total_fusions, ISS_Stage, early_relapse_time, early_relapse_censor)
   total_fusions_coxph_model_early <- coxph(Surv(early_relapse_time, early_relapse_censor == 0) ~ ISS_Stage + Age + total_fusions, data = early_tibble)
-  print(total_fusions_coxph_model_early)
-  
-  print(coxph_model_EFS_list %>% names())
-  print(coxph_model_early_list %>% names())
-  
-  ##############################################################################
+
+  # ============================================================================
   # Double hit vs. Triple hit
-  ##############################################################################
+  # ============================================================================
   
   triple_hit <- seqfish_clinical_info %>%
     filter(mmrf %in% mmrf_primary_pretreatment) %>%
-    filter(!is.na(EFS), !is.na(EFS_censor), !is.na(amp1q), !is.na(del17p), !is.na(updated_seqfish_t_IGH_WHSC1), !is.na(Age), !is.na(ISS_Stage)) %>%
-    select(EFS, EFS_censor, amp1q, del17p, updated_seqfish_t_IGH_WHSC1, Age, ISS_Stage)
-  
-  #coxph(Surv(EFS, EFS_censor == 0) ~ amp1q + del17p + updated_seqfish_t_IGH_WHSC1 + Age + ISS_Stage, data = triple_hit)
+    filter(!is.na(EFS), !is.na(EFS_censor), 
+           !is.na(amp1q), !is.na(del17p), !is.na(updated_seqfish_t_IGH_WHSC1), 
+           !is.na(Age), !is.na(ISS_Stage)) %>%
+    select(EFS, EFS_censor, 
+           amp1q, del17p, 
+           updated_seqfish_t_IGH_WHSC1, 
+           Age, ISS_Stage)
   
   fit_double <- survfit(Surv(EFS, EFS_censor == 0) ~ amp1q + del17p, data = triple_hit)
   fit_triple <- survfit(Surv(EFS, EFS_censor == 0) ~ amp1q + del17p + updated_seqfish_t_IGH_WHSC1, data = triple_hit)
@@ -329,117 +311,14 @@ if (TRUE) {
                                              font.legend = c(8, "plain", "black")),
                    conf.int.alpha = 0.1))
   dev.off()
-  
-  print("PFS time for double/triple hit:")
-  print(fit_double)
-  print(fit_triple)
-
-  ##############################################################################
 }
 
-################################################################################
-# Look at other clinical associations
-# Written April 2019
-################################################################################
-
-if (FALSE) { # No longer relevant after removing t-test due to bad assumptions
-  set.seed(10)
-
-  testing_tbl_pvalue_adjusted <- read_tsv(
-    "paper/supplemental/02_expression/testing_tbl_pvalue_adjusted.tsv")
-  
-  clinical_features <- testing_tbl_pvalue_adjusted %>% 
-    filter(event_type == "Fusion Clinical", fdr < 0.05) %>% 
-    pull(event2) %>% unique()
-  
-  genes_list <- list()
-  for (clinical_feature in clinical_features) {
-    genes_list[[clinical_feature]] <- testing_tbl_pvalue_adjusted %>% 
-      filter(event_type == "Fusion Clinical", 
-             event2 == clinical_feature, fdr < 0.05) %>% pull(event1)
-  }
-  
-  plot_df_together <- NULL
-  for (clinical_feature in clinical_features) {
-    plot_df <- seqfish_clinical_info %>% 
-      select(mmrf, clinical_feature) %>%
-      filter(is.na(clinical_feature) | clinical_feature != "NA") %>%
-      rename("clinical_interest" = clinical_feature) %>%
-      left_join(fusions_primary %>% 
-                  filter(geneA %in% genes_list[[clinical_feature]] | 
-                           geneB %in% genes_list[[clinical_feature]]), by = "mmrf") %>%
-      select(mmrf, clinical_interest, fusion, geneA, geneB) %>%
-      mutate(feature = clinical_feature,
-             relevant_gene = case_when(geneA %in% genes_list[[clinical_feature]] ~ geneA,
-                                       geneB %in% genes_list[[clinical_feature]] ~ geneB),
-             has_fusion = case_when(is.na(relevant_gene) ~ "No Fusion",
-                                    TRUE ~ "Fusion"))
-    
-    plot_df_together <- bind_rows(plot_df_together, plot_df)
-  }
-  
-  add_genes <- plot_df_together %>% 
-    filter(has_fusion == "Fusion") %>% 
-    group_by(feature) %>% 
-    summarize(max_value = max(clinical_interest, na.rm = TRUE), 
-              gene_names = str_c(sort(unique(relevant_gene)), collapse = ",\n"))
-
-  genes_add <- plot_df_together %>% 
-    filter(has_fusion == "Fusion") %>% 
-    select(feature, relevant_gene) %>%
-    unique() %>% arrange(relevant_gene) %>%
-    group_by(feature) %>%
-    mutate(gene_number = row_number()) %>%
-    mutate(separator = case_when(gene_number %% 3 == 0 ~ ",\n",
-                                 TRUE ~ ", ")) %>%
-    summarize(gene_list = str_sub(str_c(relevant_gene, separator, collapse = ""), 1, -3))
-  
-  values_add <- plot_df_together %>% 
-    filter(has_fusion == "Fusion") %>% 
-    group_by(feature) %>% 
-    summarize(max_value = max(clinical_interest, na.rm = TRUE))
-  
-  text_add <- genes_add %>% left_join(values_add, by = "feature")
-  
-  plot_df_together <- plot_df_together %>% mutate(feature = case_when(feature == "BM_Plasma_Cell_Percent" ~ "Bone Marrow Plasma Cell (%)",
-                                                  feature == "LDH" ~ "LDH (units/L)"))
-  text_add <- text_add %>% mutate(feature = case_when(feature == "BM_Plasma_Cell_Percent" ~ "Bone Marrow Plasma Cell (%)",
-                                                      feature == "LDH" ~ "LDH (units/L)"))
-  
-  p <- ggplot(plot_df_together, aes(x = has_fusion, y = clinical_interest)) +
-    geom_violin(fill = "black", alpha = 0.1, scale = "width", color = NA, show.legend = FALSE) +
-    geom_jitter(aes(color = relevant_gene), height = 0, width = 0.1, shape = 16) +
-    scale_color_brewer(palette = "Set3", na.value = "grey50", direction = -1) +
-    geom_text(data = text_add, aes(x = "Fusion",
-                                   y = max_value*1.1,
-                                   label = gene_list),
-              hjust = 0,
-              fontface = "italic",
-              show.legend = FALSE) +
-    facet_wrap(~ feature, nrow = 1, scales = "free_x") + 
-    coord_flip() +
-    labs(x = NULL, y = NULL) +
-    theme_bw() +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank(),
-          strip.background = element_blank(),
-          strip.text = element_text(size = 12),
-          panel.grid.minor = element_blank(),
-          panel.grid.major.x = element_blank(),
-          #panel.grid.major.y = element_blank(),
-          axis.ticks = element_blank())
-  
-    ggsave(str_c(paper_supp, "clinical_associations.pdf"), p, width = 7.25, height = 7.25/(2*1.618), useDingbats = FALSE)
-    ggsave(str_c(paper_supp, "clinical_associations.no_legend.pdf"), p + guides(color = FALSE), width = 7.25, height = 7.25/(2*1.618), useDingbats = FALSE)
-}
-
-################################################################################
+# ==============================================================================
 # Connection to TCGA cancer fusion calls
-# Written April 2019
-################################################################################
+# ==============================================================================
 
 if (TRUE) {
-  x <- fusions_primary %>% 
+  tcga_direct_overlap <- fusions_primary %>% 
     filter(drug_geneA | drug_geneB) %>% 
     group_by(fusion) %>% 
     summarize(mmrf_count = n()) %>% ungroup() %>% 
@@ -454,9 +333,10 @@ if (TRUE) {
     rename("Fusion" = "fusion", "TCGA_Sample_Count" = "count") %>%
     write_tsv(str_c(paper_main, "TCGA_overlap.tsv"))
   
-  p <- ggplot(x, aes(x = factor(Fusion, levels = c("SND1--BRAF", "TPM3--NTRK1", "NOTCH2--SEC22B"), ordered = TRUE), 
-                y = TCGA_Sample_Count, 
-                fill = Cancer)) + 
+  p <- ggplot(tcga_direct_overlap, 
+              aes(x = factor(Fusion, levels = c("SND1--BRAF", "TPM3--NTRK1", "NOTCH2--SEC22B"), ordered = TRUE), 
+                  y = TCGA_Sample_Count, 
+                  fill = Cancer)) + 
     geom_col(alpha = 0.75) + 
     scale_fill_brewer(palette = "BuPu") +
     theme_bw() +
@@ -481,112 +361,23 @@ if (TRUE) {
 }
 
 # ==============================================================================
-# Types of kinases
-# Written April 2019 -- Supp
-# ==============================================================================
-
-if (TRUE) {
-  p <- kinases %>%
-    group_by(kinase_group_full_name) %>% 
-    summarize(count = n()) %>% 
-    ungroup() %>%
-    ggplot(aes(x = fct_reorder(kinase_group_full_name, count), y = count)) +
-    geom_col(position = "dodge") +
-    coord_flip(expand = FALSE) +
-    labs(y = "Fusion Count", x = "Kinase Group") +
-    scale_y_continuous(position = "right") +
-    theme_bw() +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank(),
-          panel.grid = element_blank(),
-          axis.ticks.x = element_blank(),
-          axis.ticks.y = element_blank(),
-          legend.position = "bottom",
-          legend.direction = "vertical",
-          axis.text.x = element_text(size = 8),
-          axis.text.y = element_text(size = 10),
-          axis.title = element_text(size = 12)
-    )
-  
-  ggsave(str_c(paper_supp, "kinase_groups.without_legend.pdf"), 
-         p + guides(fill = FALSE), 
-         width = 7.25, height = 3.5, useDingbats = FALSE)
-  
-}
-
-# ==============================================================================
-# Expression correlation of CBX7--CSNK1E the only recurrent fusion with
-# 3' intact kinase
-# Written April 2019 -- Supplemental
-# ==============================================================================
-
-if (FALSE) {
-  geneA <- "CBX7"
-  geneB <- "CSNK1E"
-  this_fusion = str_c(geneA, "--", geneB)
-  
-  fusion_samples <- kinases %>% 
-    filter(KinasePos == "3P_KINASE", KinaseDomain == "Intact") %>% 
-    filter(Fusion == this_fusion) %>% 
-    pull(SampleID)
-  
-  geneA_expr <- expression_primary %>% filter(gene == geneA) %>%
-    select(srr, gene, log10tpm, pct) %>%
-    rename(geneA = gene, geneA_log10tpm = log10tpm, geneA_pct = pct)
-  
-  geneB_expr <- expression_primary %>% filter(gene == geneB) %>%
-    select(srr, gene, log10tpm, pct) %>%
-    rename(geneB = gene, geneB_log10tpm = log10tpm, geneB_pct = pct)
-  
-  geneA_geneB_expr <- geneA_expr %>% left_join(geneB_expr, by = "srr") %>%
-    mutate(has_fusion = srr %in% fusion_samples) %>%
-    arrange(has_fusion)
-  
-  ggplot(geneA_geneB_expr, 
-         aes(x = geneA_pct, y = geneB_pct, color = has_fusion)) +
-    geom_point(shape = 16, size = 2) + 
-    coord_fixed() + 
-    geom_segment(x = 0, xend = 1, y = 0, yend = 1, 
-                 linetype = 2, show.legend = FALSE,
-                 color = "grey90") +
-    scale_x_continuous(expand = c(0.01, 0.01), limits = c(0,1)) +
-    scale_y_continuous(expand = c(0.01, 0.01), limits = c(0,1)) +
-    scale_color_manual(values = c("grey90", "black")) +
-    labs(x = str_c(geneA, " Expression Percentile"),
-         y = str_c(geneB, " Expression Percentile"),
-         color = str_c(this_fusion, "\nFusion Reported")) +
-    theme_bw() +
-    theme(panel.background = element_blank(),
-          panel.border = element_blank(),
-          panel.grid = element_blank(),
-          axis.ticks = element_blank(),
-          axis.text = element_text(size = 8),
-          axis.title = element_text(size = 10),
-          legend.position = "bottom"
-    ) +
-    ggsave(str_c(paper_supp, "CBX7--CSNK1E.expression.pdf"),
-           width = 3.5, height = 3.5, useDingbats = FALSE)  
-}
-
-# ==============================================================================
-# NTRK1 fusion structures -- manually create based on agFusion output
-# Written April 2019 -- Main
+# NTRK1 fusion structures -- manually created based on agFusion output
 # ==============================================================================
 
 if (TRUE) {
   structure_tbl <- tribble(~mmrf,          ~fusion,          ~element, ~fill_color, ~exterior_color, ~start, ~stop,   ~class,
-                            1232,     "TPR--NTRK1",             "TPR",           1,               1,      0,   366,   "gene",
-                            1232,     "TPR--NTRK1",           "NTRK1",           2,               1,    366,   764,   "gene",
-                            1232,     "TPR--NTRK1", "Tyrosine Kinase",           4,               2,    480,   749, "domain",
-                            1656,    "TPM3--NTRK1",            "TPM3",           1,               1,      0,   258,   "gene",
-                            1656,    "TPM3--NTRK1",           "NTRK1",           2,               1,    258,   656,   "gene",
-                            1656,    "TPM3--NTRK1",     "Tropomyosin",           3,               2,     49,   258, "domain",
-                            1656,    "TPM3--NTRK1", "Tyrosine Kinase",           4,               2,    372,   641, "domain",
-                            2490, "ARHGEF2--NTRK1",         "ARHGEF2",           1,               1,      0,   962,   "gene",
-                            2490, "ARHGEF2--NTRK1",           "NTRK1",           2,               1,    962,  1307,   "gene",
-                            2490, "ARHGEF2--NTRK1",          "RhoGEF",           3,               2,    239,	  431, "domain",
-                            2490, "ARHGEF2--NTRK1",              "PH",           3,               2,    474,   570, "domain",
-                            2490, "ARHGEF2--NTRK1", "Tyrosine Kinase",           4,               2,   1023,	 1292, "domain") %>%
+                           1232,     "TPR--NTRK1",             "TPR",           1,               1,      0,   366,   "gene",
+                           1232,     "TPR--NTRK1",           "NTRK1",           2,               1,    366,   764,   "gene",
+                           1232,     "TPR--NTRK1", "Tyrosine Kinase",           4,               2,    480,   749, "domain",
+                           1656,    "TPM3--NTRK1",            "TPM3",           1,               1,      0,   258,   "gene",
+                           1656,    "TPM3--NTRK1",           "NTRK1",           2,               1,    258,   656,   "gene",
+                           1656,    "TPM3--NTRK1",     "Tropomyosin",           3,               2,     49,   258, "domain",
+                           1656,    "TPM3--NTRK1", "Tyrosine Kinase",           4,               2,    372,   641, "domain",
+                           2490, "ARHGEF2--NTRK1",         "ARHGEF2",           1,               1,      0,   962,   "gene",
+                           2490, "ARHGEF2--NTRK1",           "NTRK1",           2,               1,    962,  1307,   "gene",
+                           2490, "ARHGEF2--NTRK1",          "RhoGEF",           3,               2,    239,	  431, "domain",
+                           2490, "ARHGEF2--NTRK1",              "PH",           3,               2,    474,   570, "domain",
+                           2490, "ARHGEF2--NTRK1", "Tyrosine Kinase",           4,               2,   1023,	 1292, "domain") %>%
     mutate(fusion = factor(fusion, levels = c("TPM3--NTRK1", "TPR--NTRK1", "ARHGEF2--NTRK1")),
            fill_color = factor(fill_color),
            exterior_color = factor(exterior_color),
@@ -627,11 +418,10 @@ if (TRUE) {
 
 # ==============================================================================
 # 3' intact kinase TCGA overlap
-# Written April 2018 Supplement
 # ==============================================================================
 
 if (TRUE) {
-  plot_df <- kinases %>% 
+  tcga_kinase_overlap <- kinases %>% 
     filter(KinasePos == "3P_KINASE" &
              KinaseDomain == "Intact" |
              (geneB == "MAP3K14" & SampleID %in% map3k14_intact_manual_review)) %>% 
@@ -646,13 +436,13 @@ if (TRUE) {
     summarize(count2 = n()) %>%
     filter(!is.na(Cancer))
   
-  n_3p_kinase_cancer_types <- plot_df %>% pull(Cancer) %>% unique() %>% length()
+  n_3p_kinase_cancer_types <- tcga_kinase_overlap %>% pull(Cancer) %>% unique() %>% length()
   
-  ggplot(data = plot_df, aes(y = geneB_mmrf_count, x = Cancer)) + 
+  ggplot(data = tcga_kinase_overlap, aes(y = geneB_mmrf_count, x = Cancer)) + 
     geom_tile(aes(fill = factor(count2))) + 
-    geom_text(data = plot_df %>% filter(count2 < 6), aes(label = count2),
+    geom_text(data = tcga_kinase_overlap %>% filter(count2 < 6), aes(label = count2),
               color = "#000000") +
-    geom_text(data = plot_df %>% filter(count2 >= 6), aes(label = count2),
+    geom_text(data = tcga_kinase_overlap %>% filter(count2 >= 6), aes(label = count2),
               color = "#ffffff") +
     scale_fill_brewer(palette = "Blues") +
     labs(x = "TCGA Cancer Type",
@@ -706,9 +496,6 @@ if (TRUE) {
 # ==============================================================================
 
 if (TRUE) {
-  # ==============================================================================
-  # APOBEC signature association with fusion events
-  # ==============================================================================
   
   apobec_q25 <- mutsig %>% pull(APOBEC) %>% quantile(.25)
   apobec_q75 <- mutsig %>% pull(APOBEC) %>% quantile(.75)
@@ -810,26 +597,48 @@ if (TRUE) {
 # ==============================================================================
 # Fusion druggable/clinical paragraph output
 # ==============================================================================
+n_patients_druggable <- fusions_primary %>% 
+  filter(drug_geneA == 1 | drug_geneB == 1 | drug_fusion == 1) %>% 
+  pull(mmrf) %>% unique() %>% length()
+
+multiple_kinase_overlap <- tcga_kinase_overlap %>% ungroup() %>% filter(count2 > 1) %>% 
+  separate(geneB_mmrf_count, into = c("gene", "count", "end"), by = c(" ", "(")) %>% 
+  filter(count > 1) %>% pull(gene) %>% unique() %>% print()
+
 n_tcga_ntrk1 <- pancan_fusions %>% 
   filter(str_detect(Fusion, pattern = "--NTRK1")) %>%
   pull(Cancer) %>% unique() %>% length()
-print(str_c("Number of TCGA cancer types with 3' NTRK1 fusion: ", n_tcga_ntrk1))
+
+print(str_c("Proportion of patients with druggable fusion: ", 
+            n_patients_druggable, "/", n_samples_primary, " = ", 
+            round(100*n_patients_druggable/n_samples_primary, 2), "%"))
 print("Number of fusion genes in DEPO. All sensitive?")
 drug_df %>% pull(Effect) %>% table() %>% print()
 print("Example: BRAF fusions are druggable:")
 drug_df %>% filter(gene == "BRAF") %>% print()
-print(str_c("Number of TCGA cancer types with overlapping 3' kinase: ", n_3p_kinase_cancer_types))
+print("Number of TCGA cancer types with direct overlap:")
+tcga_direct_overlap %>% pull(Cancer) %>% unique() %>% length() %>% print()
+print("Number of TCGA cancer types with 3' kinase overlap:")
+print(n_3p_kinase_cancer_types)
+print("Cancer types with multiple reported overlaps:")
+print(multiple_kinase_overlap)
+print(str_c("Number of TCGA cancer types with 3' NTRK1 fusion: ", n_tcga_ntrk1))
+
 print("Info for NTRK1 story: ")
 fusions_all %>% filter(geneB == "NTRK1") %>% 
   select(mmrf, srr, fusion, sample_number, has_secondary, visit_number, 
          LeftBreakpoint, RightBreakpoint, PROT_FUSION_TYPE, Callers, n_discordant, 
          geneA_pct, geneB_pct, geneA_log2ratio_cnv, geneB_log2ratio_cnv) %>% print()
 
-n_patients_druggable <- fusions_primary %>% 
-  filter(drug_geneA == 1 | drug_geneB == 1 | drug_fusion == 1) %>% 
-  pull(mmrf) %>% unique() %>% length()
-print(str_c("Proportion of patients with druggable fusion: ", 
-            n_patients_druggable, "/", n_samples_primary, " = ", 
-            round(100*n_patients_druggable/n_samples_primary, 2), "%"))
-
 print(str_c("Proportion of patients with outlier APOBEC score: ", n_high_apobec, "/", n_with_signature_score, " = ", 100*round(n_high_apobec/n_with_signature_score, 4), "%"))
+
+print("")
+print("# ===== CLINICAL INFO FOR OVERVIEW SECTION ===== #")
+print("")
+print("HR estimate for total_fusions:")
+print(total_fusions_coxph_model)
+print("Confidence intervals for total_fusions HR:")
+print(exp(confint(total_fusions_coxph_model)))
+print("PFS time for double/triple hit:")
+print(fit_double)
+print(fit_triple)

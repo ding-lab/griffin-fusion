@@ -1,6 +1,6 @@
 # ==============================================================================
 # Expression (MMRF Fusions)
-# Steven Foltz (smfoltz@wustl.edu)
+# Steven Foltz (github: envest)
 # ==============================================================================
 
 paper_main = "paper/main/02_expression/"
@@ -10,19 +10,18 @@ paper_supp = "paper/supplementary/02_expression/"
 dir.create(paper_main, recursive = TRUE, showWarnings = FALSE)
 dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 
-# CHANGE TO TRUE ONLY IF YOU NEED TO CREATE TESTING FILE FOR THE FIRST TIME
-rerun <- FALSE
-rerun_plots <- FALSE
+# CHANGE TO TRUE ONLY IF YOU NEED TO CREATE TESTING FILE OR PLOTS FOR FIRST TIME
+recreate_testing_tbl <- FALSE
+recreate_plot_df <- FALSE
+recreate_all_plots <- FALSE
 
 # ==============================================================================
 # Measure associations between fusion status and expression and clinical info
-# Steven Foltz (smfoltz@wustl.edu), August 2018
 # ==============================================================================
 
+# functions for testing
 if (TRUE) {
-  
-  recreate_testing_tbl <- rerun
-  
+
   # ============================================================================
   # General Functions
   # ============================================================================
@@ -219,7 +218,7 @@ if (TRUE) {
                                  test_statistic,  p.value)
     
     return(return_test_stats)
-    }
+  }
   
   # ============================================================================
   # Event correlations
@@ -542,7 +541,7 @@ if (TRUE) {
                                         "Plasmacytoma",
                                         "del17p",
                                         "amp1q",
-                                        "HRD")
+                                        "HRD") # here HRD is High Risk Disease
   
   continuous_clinical_variable_names <- c("Age", 
                                           "BM_Plasma_Cell_Percent", 
@@ -562,229 +561,204 @@ if (TRUE) {
     select(mmrf, srr, fusion_gene) %>% 
     distinct() %>% group_by(fusion_gene) %>% 
     summarize(count = n()) %>% filter(count >= 3) %>% arrange(desc(count))
+}
+
+# now the actual testing
+if (recreate_testing_tbl) {
   
-  # ============================================================================
-  # Business
-  # ============================================================================
+  testing_tbl <- tribble(~event1, ~event2, ~event_type, ~test_performed,
+                         ~n_samples_with, ~n_samples_without,
+                         ~n_samples_with_tested, ~n_samples_without_tested,
+                         ~n_samples_na_tested, ~median_value, 
+                         ~test_statistic, ~p.value)
   
-  if (recreate_testing_tbl) {
-    testing_tbl <- tribble(~event1, ~event2, ~event_type, ~test_performed,
-                           ~n_samples_with, ~n_samples_without,
-                           ~n_samples_with_tested, ~n_samples_without_tested,
-                           ~n_samples_na_tested, ~median_value, 
-                           ~test_statistic, ~p.value)
+  # Test expression of genes involved in seqFISH translocations
+  for (full_seqfish_name in seqfish_gene_names) {
+    print(full_seqfish_name)
+    gene <- str_split(full_seqfish_name, "_", simplify = TRUE)[5]
+    print(gene)
+    samples_with <- get_ids_with_seqfish(full_seqfish_name, 
+                                         seqfish_tbl = seqfish_clinical_info, 
+                                         samples_tbl = samples_primary)
+    samples_without <- get_ids_without_seqfish(full_seqfish_name, 
+                                               seqfish_tbl = seqfish_clinical_info, 
+                                               samples_tbl = samples_primary)
     
-    # Test expression of genes involved in seqFISH translocations
-    for (full_seqfish_name in seqfish_gene_names) {
-      print(full_seqfish_name)
-      gene <- str_split(full_seqfish_name, "_", simplify = TRUE)[5]
-      print(gene)
-      samples_with <- get_ids_with_seqfish(full_seqfish_name, 
-                                           seqfish_tbl = seqfish_clinical_info, 
-                                           samples_tbl = samples_primary)
-      samples_without <- get_ids_without_seqfish(full_seqfish_name, 
-                                                 seqfish_tbl = seqfish_clinical_info, 
-                                                 samples_tbl = samples_primary)
-      
-      if ( samples_with %>% nrow < 3) {
-        next
-      }
-      
-      new_ttest_row <- test_event_expression(
-        samples_with, samples_without, this_gene = gene, 
-        event_type = "seqFISH Expression", 
-        expression_tbl = expression_primary,
-        t_test = TRUE, outlier = FALSE)
-      testing_tbl <- bind_rows(testing_tbl, new_ttest_row)
-      
-      new_outlier_row <- test_event_expression(
-        samples_with, samples_without, this_gene = gene, 
-        event_type = "seqFISH Expression Outlier", 
-        expression_tbl = expression_primary,
-        t_test = FALSE, outlier = TRUE)
-      testing_tbl <- bind_rows(testing_tbl, new_outlier_row)
+    if ( samples_with %>% nrow < 3) {
+      next
     }
     
-    # Test fusion pairs
-    for (fusion in fusion_pairs_gt2$fusion) {
-      print(fusion)
-      samples_with <- get_ids_with_fusion(fusion, fusions_primary)
-      samples_without <- get_ids_without_fusion(fusion, fusions_primary, 
-                                                samples_primary)
-      
-      for (this_feature in seqfish_variable_names) {
-        new_seqfish_row <- test_event_clinical_discrete(
-          samples_with, samples_without, event = fusion, 
-          event_type = "Fusion seqFISH", 
-          clinical_tbl = seqfish_clinical_info, 
-          clinical_feature = this_feature, fisher_test = TRUE, 
-          return_tibble = FALSE, return_table = FALSE)
-        testing_tbl <- bind_rows(testing_tbl, new_seqfish_row)
-      }
-      
-      for (this_feature in discrete_clinical_variable_names) {
-        new_discrete_row <- test_event_clinical_discrete(
-          samples_with, samples_without, event = fusion, 
-          event_type = "Fusion Clinical", 
-          clinical_tbl = seqfish_clinical_info, 
-          clinical_feature = this_feature, fisher_test = TRUE, 
-          return_tibble = FALSE, return_table = FALSE)
-        testing_tbl <- bind_rows(testing_tbl, new_discrete_row)
-      }
-      
-      for (this_feature in continuous_clinical_variable_names) {
-        
-        new_continuous_row_mwu <- test_event_clinical_continuous(
-          samples_with, samples_without, event = fusion, 
-          event_type = "Fusion Clinical", 
-          clinical_tbl = seqfish_clinical_info, 
-          clinical_feature = this_feature, t_test = FALSE, mwu_test = TRUE, 
-          return_tibble = FALSE)
-        testing_tbl <- bind_rows(testing_tbl, new_continuous_row_mwu)
-      }
-    }
+    new_ttest_row <- test_event_expression(
+      samples_with, samples_without, this_gene = gene, 
+      event_type = "seqFISH Expression", 
+      expression_tbl = expression_primary,
+      t_test = TRUE, outlier = FALSE)
+    testing_tbl <- bind_rows(testing_tbl, new_ttest_row)
     
-    # Test genes recurrently involved in fusions
-    for (gene in fusion_genes_gt2$fusion_gene) {
-      if ( gene %in% c("IGH", "IGK", "IGL", 
-                       "IGHpseudo", "IGKpseudo", "IGLpseudo")) {
-        next
-      }
-      print(gene)
-      samples_with <- get_ids_with_gene(gene, fusions_primary)
-      samples_without <- get_ids_without_gene(gene, fusions_primary, 
-                                              samples_primary)
-      
-      new_ttest_row <- test_event_expression(
-        samples_with, samples_without, this_gene = gene, 
-        event_type = "Fusion Gene Expression", 
-        expression_tbl = expression_primary,
-        t_test = TRUE, outlier = FALSE)
-      testing_tbl <- bind_rows(testing_tbl, new_ttest_row)
-      
-      new_outlier_row <- test_event_expression(
-        samples_with, samples_without, this_gene = gene, 
-        event_type = "Fusion Gene Expression Outlier", 
-        expression_tbl = expression_primary,
-        t_test = FALSE, outlier = TRUE)
-      testing_tbl <- bind_rows(testing_tbl, new_outlier_row)
-      
-      for (this_feature in seqfish_variable_names) {
-        new_seqfish_row <- test_event_clinical_discrete(
-          samples_with, samples_without, event = gene, 
-          event_type = "Fusion Gene seqFISH", 
-          clinical_tbl = seqfish_clinical_info, 
-          clinical_feature = this_feature, fisher_test = TRUE, 
-          return_tibble = FALSE, return_table = FALSE)
-        testing_tbl <- bind_rows(testing_tbl, new_seqfish_row)
-      }
-      
-      for (this_feature in discrete_clinical_variable_names) {
-        new_discrete_row <- test_event_clinical_discrete(
-          samples_with, samples_without, event = gene, 
-          event_type = "Fusion Gene Clinical", 
-          clinical_tbl = seqfish_clinical_info, 
-          clinical_feature = this_feature, fisher_test = TRUE, 
-          return_tibble = FALSE, return_table = FALSE)
-        testing_tbl <- bind_rows(testing_tbl, new_discrete_row)
-      }
-      
-      for (this_feature in continuous_clinical_variable_names) {
-        
-        new_continuous_row_mwu <- test_event_clinical_continuous(
-          samples_with, samples_without, event = gene, 
-          event_type = "Fusion Gene Clinical", 
-          clinical_tbl = seqfish_clinical_info, 
-          clinical_feature = this_feature, t_test = FALSE, mwu_test = TRUE, 
-          return_tibble = FALSE)
-        testing_tbl <- bind_rows(testing_tbl, new_continuous_row_mwu)
-      }
-    }
-    
-    # Test seqfish events
-    for (seqfish in seqfish_variable_names) {
-      print(seqfish)
-      samples_with <- get_ids_with_seqfish(seqfish, 
-                                           seqfish_tbl = seqfish_clinical_info, 
-                                           samples_tbl = samples_primary)
-      samples_without <- get_ids_without_seqfish(seqfish, 
-                                                 seqfish_tbl = seqfish_clinical_info, 
-                                                 samples_tbl = samples_primary)
-      
-      if ( samples_with %>% nrow < 3) {
-        next
-      }
-      
-      for (this_feature in discrete_clinical_variable_names) {
-        new_discrete_row <- test_event_clinical_discrete(
-          samples_with, samples_without, event = seqfish, 
-          event_type = "seqFISH Clinical", 
-          clinical_tbl = seqfish_clinical_info, 
-          clinical_feature = this_feature, fisher_test = TRUE, 
-          return_tibble = FALSE, return_table = FALSE)
-        testing_tbl <- bind_rows(testing_tbl, new_discrete_row)
-      }
-      
-      for (this_feature in continuous_clinical_variable_names) {
-        
-        new_continuous_row_mwu <- test_event_clinical_continuous(
-          samples_with, samples_without, event = seqfish, 
-          event_type = "seqFISH Clinical", 
-          clinical_tbl = seqfish_clinical_info, 
-          clinical_feature = this_feature, t_test = FALSE, mwu_test = TRUE, 
-          return_tibble = FALSE)
-        testing_tbl <- bind_rows(testing_tbl, new_continuous_row_mwu)
-      }
-      
-    }
-    
-    testing_tbl_pvalue_adjusted <- testing_tbl %>% 
-      filter( !is.na(test_performed) ) %>%
-      mutate(bonferroni = p.adjust(p.value, method = "bonferroni")) %>%
-      mutate(BH = p.adjust(p.value, method = "BH")) %>%
-      mutate(BY = p.adjust(p.value, method = "BY")) %>%
-      mutate(fdr = p.adjust(p.value, method = "fdr"))
-    
-    write_tsv(testing_tbl, str_c(paper_supp, "testing_tbl.tsv"))
-    write_tsv(testing_tbl_pvalue_adjusted, 
-              str_c(paper_supp, "testing_tbl_pvalue_adjusted.tsv"))
-    
-  } else {
-    testing_tbl <- read_tsv(str_c(paper_supp, "testing_tbl.tsv"))
-    testing_tbl_pvalue_adjusted <- read_tsv(
-      str_c(paper_supp, "testing_tbl_pvalue_adjusted.tsv"))
+    new_outlier_row <- test_event_expression(
+      samples_with, samples_without, this_gene = gene, 
+      event_type = "seqFISH Expression Outlier", 
+      expression_tbl = expression_primary,
+      t_test = FALSE, outlier = TRUE)
+    testing_tbl <- bind_rows(testing_tbl, new_outlier_row)
   }
+  
+  # Test fusion pairs
+  for (fusion in fusion_pairs_gt2$fusion) {
+    print(fusion)
+    samples_with <- get_ids_with_fusion(fusion, fusions_primary)
+    samples_without <- get_ids_without_fusion(fusion, fusions_primary, 
+                                              samples_primary)
+    
+    for (this_feature in seqfish_variable_names) {
+      new_seqfish_row <- test_event_clinical_discrete(
+        samples_with, samples_without, event = fusion, 
+        event_type = "Fusion seqFISH", 
+        clinical_tbl = seqfish_clinical_info, 
+        clinical_feature = this_feature, fisher_test = TRUE, 
+        return_tibble = FALSE, return_table = FALSE)
+      testing_tbl <- bind_rows(testing_tbl, new_seqfish_row)
+    }
+    
+    for (this_feature in discrete_clinical_variable_names) {
+      new_discrete_row <- test_event_clinical_discrete(
+        samples_with, samples_without, event = fusion, 
+        event_type = "Fusion Clinical", 
+        clinical_tbl = seqfish_clinical_info, 
+        clinical_feature = this_feature, fisher_test = TRUE, 
+        return_tibble = FALSE, return_table = FALSE)
+      testing_tbl <- bind_rows(testing_tbl, new_discrete_row)
+    }
+    
+    for (this_feature in continuous_clinical_variable_names) {
+      
+      new_continuous_row_mwu <- test_event_clinical_continuous(
+        samples_with, samples_without, event = fusion, 
+        event_type = "Fusion Clinical", 
+        clinical_tbl = seqfish_clinical_info, 
+        clinical_feature = this_feature, t_test = FALSE, mwu_test = TRUE, 
+        return_tibble = FALSE)
+      testing_tbl <- bind_rows(testing_tbl, new_continuous_row_mwu)
+    }
+  }
+  
+  # Test genes recurrently involved in fusions
+  for (gene in fusion_genes_gt2$fusion_gene) {
+    if ( gene %in% c("IGH", "IGK", "IGL", 
+                     "IGHpseudo", "IGKpseudo", "IGLpseudo")) {
+      next
+    }
+    print(gene)
+    samples_with <- get_ids_with_gene(gene, fusions_primary)
+    samples_without <- get_ids_without_gene(gene, fusions_primary, 
+                                            samples_primary)
+    
+    new_ttest_row <- test_event_expression(
+      samples_with, samples_without, this_gene = gene, 
+      event_type = "Fusion Gene Expression", 
+      expression_tbl = expression_primary,
+      t_test = TRUE, outlier = FALSE)
+    testing_tbl <- bind_rows(testing_tbl, new_ttest_row)
+    
+    new_outlier_row <- test_event_expression(
+      samples_with, samples_without, this_gene = gene, 
+      event_type = "Fusion Gene Expression Outlier", 
+      expression_tbl = expression_primary,
+      t_test = FALSE, outlier = TRUE)
+    testing_tbl <- bind_rows(testing_tbl, new_outlier_row)
+    
+    for (this_feature in seqfish_variable_names) {
+      new_seqfish_row <- test_event_clinical_discrete(
+        samples_with, samples_without, event = gene, 
+        event_type = "Fusion Gene seqFISH", 
+        clinical_tbl = seqfish_clinical_info, 
+        clinical_feature = this_feature, fisher_test = TRUE, 
+        return_tibble = FALSE, return_table = FALSE)
+      testing_tbl <- bind_rows(testing_tbl, new_seqfish_row)
+    }
+    
+    for (this_feature in discrete_clinical_variable_names) {
+      new_discrete_row <- test_event_clinical_discrete(
+        samples_with, samples_without, event = gene, 
+        event_type = "Fusion Gene Clinical", 
+        clinical_tbl = seqfish_clinical_info, 
+        clinical_feature = this_feature, fisher_test = TRUE, 
+        return_tibble = FALSE, return_table = FALSE)
+      testing_tbl <- bind_rows(testing_tbl, new_discrete_row)
+    }
+    
+    for (this_feature in continuous_clinical_variable_names) {
+      
+      new_continuous_row_mwu <- test_event_clinical_continuous(
+        samples_with, samples_without, event = gene, 
+        event_type = "Fusion Gene Clinical", 
+        clinical_tbl = seqfish_clinical_info, 
+        clinical_feature = this_feature, t_test = FALSE, mwu_test = TRUE, 
+        return_tibble = FALSE)
+      testing_tbl <- bind_rows(testing_tbl, new_continuous_row_mwu)
+    }
+  }
+  
+  # Test seqfish events
+  for (seqfish in seqfish_variable_names) {
+    print(seqfish)
+    samples_with <- get_ids_with_seqfish(seqfish, 
+                                         seqfish_tbl = seqfish_clinical_info, 
+                                         samples_tbl = samples_primary)
+    samples_without <- get_ids_without_seqfish(seqfish, 
+                                               seqfish_tbl = seqfish_clinical_info, 
+                                               samples_tbl = samples_primary)
+    
+    if ( samples_with %>% nrow < 3) {
+      next
+    }
+    
+    for (this_feature in discrete_clinical_variable_names) {
+      new_discrete_row <- test_event_clinical_discrete(
+        samples_with, samples_without, event = seqfish, 
+        event_type = "seqFISH Clinical", 
+        clinical_tbl = seqfish_clinical_info, 
+        clinical_feature = this_feature, fisher_test = TRUE, 
+        return_tibble = FALSE, return_table = FALSE)
+      testing_tbl <- bind_rows(testing_tbl, new_discrete_row)
+    }
+    
+    for (this_feature in continuous_clinical_variable_names) {
+      
+      new_continuous_row_mwu <- test_event_clinical_continuous(
+        samples_with, samples_without, event = seqfish, 
+        event_type = "seqFISH Clinical", 
+        clinical_tbl = seqfish_clinical_info, 
+        clinical_feature = this_feature, t_test = FALSE, mwu_test = TRUE, 
+        return_tibble = FALSE)
+      testing_tbl <- bind_rows(testing_tbl, new_continuous_row_mwu)
+    }
+    
+  }
+  
+  testing_tbl_pvalue_adjusted <- testing_tbl %>% 
+    filter( !is.na(test_performed) ) %>%
+    mutate(bonferroni = p.adjust(p.value, method = "bonferroni")) %>%
+    mutate(BH = p.adjust(p.value, method = "BH")) %>%
+    mutate(BY = p.adjust(p.value, method = "BY")) %>%
+    mutate(fdr = p.adjust(p.value, method = "fdr"))
+  
+  write_tsv(testing_tbl, str_c(paper_supp, "testing_tbl.tsv"))
+  write_tsv(testing_tbl_pvalue_adjusted, 
+            str_c(paper_supp, "testing_tbl_pvalue_adjusted.tsv"))
+  
+} else { # read in saved file
+  testing_tbl <- read_tsv(str_c(paper_supp, "testing_tbl.tsv"))
+  testing_tbl_pvalue_adjusted <- read_tsv(
+    str_c(paper_supp, "testing_tbl_pvalue_adjusted.tsv"))
 }
 
 # ==============================================================================
 # Plot expression of samples with and without fusion or seqFISH events
-# Originally written October 2018, Updated April 2019
 # ==============================================================================
 
+# functions for plotting
 if (TRUE) {
-  
-  # Set seed for reproducibility
-  set.seed(10)
-  
-  # Change to TRUE only if you want to recreate all plots from the start
-  recreate_plot_df <- rerun_plots
-  recreate_all_plots <- rerun_plots
-  
-  dir.create(paper_supp, showWarnings = FALSE)
-  dir.create(str_c(paper_supp, "all_plots"), showWarnings = FALSE)
-  dir.create(str_c(paper_supp, "significant_plots"), showWarnings = FALSE)
-  dir.create(str_c(paper_supp, "seqFISH"), showWarnings = FALSE)
-  dir.create(str_c(paper_supp, "seqFISH/fusions"), showWarnings = FALSE)
-  dir.create(str_c(paper_supp, "seqFISH/translocations"), showWarnings = FALSE)
-  
-  testing_tbl <- read_tsv(str_c(paper_supp, "testing_tbl.tsv"))
-  testing_tbl_pvalue_adjusted <- read_tsv(
-    str_c(paper_supp, "testing_tbl_pvalue_adjusted.tsv"))
-  
-  ymax_expression_value <- plyr::round_any(
-    max(expression_primary$log10tpm), 
-    accuracy = .1, f = ceiling)
-  
   # ============================================================================
   # General Functions
   # ============================================================================
@@ -949,7 +923,6 @@ if (TRUE) {
       p <- p + geom_label_repel(data = plot_df %>% filter(!is.na(fusion_label)),
                                 aes(x = fusion_jitter,
                                     y = log10tpm,
-                                    #color = cnv_factor,
                                     label = fusion_label),
                                 point.padding = 0.5,
                                 show.legend = FALSE)
@@ -959,13 +932,6 @@ if (TRUE) {
                                 labels = c("No fusion", "Fusion"))
     
     p <- p + ylim(0, ymax_value)
-    
-    #color_scale <- c("#1f78b4", "#a6cee3", # deletions
-    #                 "#b2df8a", # neutral 
-    #                 "#cab2d6", #missing
-    #                 "#fb9a99", "#e31a1c") # amplifications
-    
-    #p <- p + scale_color_manual(values = color_scale, drop = FALSE)
     
     p <- p + scale_color_brewer(palette = "Paired", drop = FALSE)
     
@@ -996,14 +962,17 @@ if (TRUE) {
                      axis.ticks.y = element_blank(),
                      axis.title = element_text(size = 12),
                      axis.ticks.x = element_blank(),
-                     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 10, color = "grey50", face = "italic"),
+                     axis.text.x = element_text(angle = 90, 
+                                                vjust = 0.5, hjust = 1, 
+                                                size = 10, 
+                                                color = "grey50", 
+                                                face = "italic"),
                      strip.background = element_blank(),
                      strip.text = element_text(size = 10,
                                                face = "italic"),
                      panel.background = element_blank(),
                      panel.border = element_blank(),
                      panel.spacing.x = unit(0.025, units = "inches"),
-                     #panel.grid.major = element_line(size = 0.1),
                      panel.grid.major.x = element_blank(),
                      panel.grid.minor.x = element_blank(),
                      panel.grid.minor.y = element_blank())
@@ -1102,14 +1071,17 @@ if (TRUE) {
                      axis.ticks.y = element_blank(),
                      axis.title = element_text(size = 12),
                      axis.ticks.x = element_blank(),
-                     axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 10, color = "grey50", face = "italic"),
+                     axis.text.x = element_text(angle = 90, 
+                                                vjust = 0.5, hjust = 1, 
+                                                size = 10, 
+                                                color = "grey50", 
+                                                face = "italic"),
                      strip.background = element_blank(),
                      strip.text = element_text(size = 10,
                                                face = "italic"),
                      panel.background = element_blank(),
                      panel.border = element_blank(),
                      panel.spacing.x = unit(0.025, units = "inches"),
-                     #panel.grid.major = element_line(size = 0.1),
                      panel.grid.major.x = element_blank(),
                      panel.grid.minor.x = element_blank(),
                      panel.grid.minor.y = element_blank())
@@ -1197,7 +1169,6 @@ if (TRUE) {
                      panel.background = element_blank(),
                      panel.border = element_blank(),
                      panel.spacing.x = unit(0.025, units = "inches"),
-                     #panel.grid.major = element_line(size = 0.1),
                      panel.grid.major.x = element_blank(),
                      panel.grid.minor.x = element_blank(),
                      panel.grid.minor.y = element_blank())
@@ -1255,14 +1226,13 @@ if (TRUE) {
                                       labels = c("None reported",
                                                  fusion1,
                                                  fusion2,
-                                                 "Both reported")
-                                      
-      )
+                                                 "Both reported"))
       )
     
     if (pretty) {
-      plot_df <- plot_df %>% mutate(fusion_category = case_when( fusion_category == "None reported" ~ "None Reported",
-                                                                 TRUE ~ str_c(fusion1, " or\n", fusion2)))
+      plot_df <- plot_df %>% 
+        mutate(fusion_category = case_when( fusion_category == "None reported" ~ "None Reported",
+                                            TRUE ~ str_c(fusion1, " or\n", fusion2)))
     }
     
     p <- ggplot(plot_df)
@@ -1290,7 +1260,7 @@ if (TRUE) {
     p <- p + coord_fixed(ratio = 1)
     
     if (pretty) { 
-      p <- p + theme(#panel.grid.major = element_line(size = 0.1),
+      p <- p + theme(
         panel.background = element_blank(),
         panel.border = element_blank(),
         panel.grid.minor = element_blank(),
@@ -1303,7 +1273,6 @@ if (TRUE) {
         legend.title = element_text(size = 10),
         axis.title = element_text(size = 12),
         axis.text = element_text(size = 8)) +
-        #scale_color_brewer(palette = "Oranges", direction = -1) +
         scale_color_manual(values = c("#D9565C", "#EDA9AB"))
       
     }
@@ -1318,252 +1287,267 @@ if (TRUE) {
     shh <- dev.off()
     
   }
-  
-  # ============================================================================
-  # Create plot data frame
-  # ============================================================================
-  
-  if (recreate_plot_df) {
-    return_fusions <- function(fusions_df, this_srr, gene){
-      return_value <- fusions_df %>% filter(srr == this_srr,
-                                            geneA == gene | geneB == gene) %>%
-        pull(fusion) %>% str_c(collapse = "\n")
-      if (identical(return_value, character(0))) {
-        return_value <- NA
-      }
-      return(return_value)
+}
+
+# create plot data frame
+if (recreate_plot_df) {
+  return_fusions <- function(fusions_df, this_srr, gene){
+    return_value <- fusions_df %>% filter(srr == this_srr,
+                                          geneA == gene | geneB == gene) %>%
+      pull(fusion) %>% str_c(collapse = "\n")
+    if (identical(return_value, character(0))) {
+      return_value <- NA
     }
-    
-    return_translocations <- function(seqfish_df, this_mmrf, gene, 
-                                      seqfish_gene_names, seqfish_genes){
-      if (gene %in% seqfish_genes) {
-        return_value <- seqfish_df %>% filter(mmrf == this_mmrf) %>%
-          pull( seqfish_gene_names[which(seqfish_genes == gene)] )
-      } else {
-        return_value <- NA
-      }
-      return(return_value)
-    }
-    
-    return_translocations_formatted <- function(gene, seqfish_genes, 
-                                                seqfish_gene_names_formatted){
-      if (gene %in% seqfish_genes) {
-        return_value <- seqfish_gene_names_formatted[which(seqfish_genes == gene)]
-      } else {
-        return(NA)
-      }
-      return(return_value)
-    }
-    
-    categorical_cnv <- function(vec) {
-      sd_factor <- sd(vec, na.rm = TRUE)
-      b = c(2 + sd_factor*c(-Inf, -3, -1, 1, 3, Inf))
-      cnv_categories <- vec %>% cut(breaks = b)
-      return(cnv_categories)
-    }
-    
-    plot_df <- expression_primary %>% 
-      filter(gene %in% fusion_genes_gt2$fusion_gene | 
-               gene %in% seqfish_genes |
-               gene %in% keep_genes) %>% 
-      mutate(categorical_cnv = categorical_cnv(2*2^gene_avg_cnv)) %>% 
-      mutate(cnv_factor = factor(categorical_cnv, 
-                                 labels = c("DELETION",
-                                            "Deletion",
-                                            "Neutral",
-                                            "Missing",
-                                            "Amplification",
-                                            "AMPLIFICATION"), 
-                                 exclude = NULL)) %>%
-      rowwise() %>% 
-      mutate(translocation_indicator = return_translocations(
-        seqfish_clinical_info, mmrf, gene, seqfish_gene_names, seqfish_genes)) %>%
-      mutate(seqfish_gene_names_formatted = return_translocations_formatted(
-        gene, seqfish_genes, seqfish_gene_names_formatted)) %>%
-      mutate(fusion_label = return_fusions(fusions_primary, srr, gene)) %>%
-      ungroup() %>%
-      mutate(fusion_status = !is.na(fusion_label)) %>%
-      mutate(fusion_indicator = as.numeric(fusion_status)) %>%
-      mutate(fusion_jitter = jitter(fusion_indicator)) %>%
-      mutate(translocation_jitter = jitter(translocation_indicator)) %>%
-      left_join(seqfish_clinical_info, by = "mmrf")
-    
-    write_tsv(plot_df, str_c(paper_supp, "expression_plot_tibble.tsv"))
-  } else {
-    plot_df <- read_tsv(str_c(paper_supp, "expression_plot_tibble.tsv"))
-    plot_df <- plot_df %>% mutate(cnv_factor = factor(categorical_cnv,
-                                                      labels = c("DELETION",
-                                                                 "Deletion",
-                                                                 "Neutral",
-                                                                 "Missing",
-                                                                 "Amplification",
-                                                                 "AMPLIFICATION"), 
-                                                      exclude = NULL))
+    return(return_value)
   }
   
-  # ============================================================================
-  # Business
-  # ============================================================================
-  
-  if (recreate_all_plots) {
-    
-    # Plot expression of genes involved in seqFISH translocations
-    for (this_gene in seqfish_genes) {
-      print(this_gene)
-      n_samples_with_fusion <- plot_df %>% 
-        filter(gene == this_gene, !is.na(fusion_label)) %>% nrow()
-      if (n_samples_with_fusion > 2) {
-        t_index = which(seqfish_genes == this_gene)
-        t_name = seqfish_gene_names[t_index]
-        t_format = seqfish_gene_names_formatted_short[t_index]
-        plot_fusion_expression_1d(plot_df,
-                                  this_gene,
-                                  labels = FALSE,
-                                  translocation = t_name,
-                                  translocation_formatted = t_format,
-                                  ymax_value = ymax_expression_value,
-                                  pdf_path = str_c(paper_supp, 
-                                                   "seqFISH/fusions/", 
-                                                   this_gene, ".pdf"),
-                                  pdf_width = 10,
-                                  pdf_height = 10,
-                                  seed = 10)
-        plot_translocation_expression_1d(plot_df,
-                                         this_gene,
-                                         labels = FALSE,
-                                         ymax_value = ymax_expression_value,
-                                         pdf_path = str_c(paper_supp, "seqFISH/",
-                                                          "translocations/",
-                                                          this_gene, ".pdf"),
-                                         pdf_width = 10, 
-                                         pdf_height = 10,
-                                         seed = 10)
-      }
+  return_translocations <- function(seqfish_df, this_mmrf, gene, 
+                                    seqfish_gene_names, seqfish_genes){
+    if (gene %in% seqfish_genes) {
+      return_value <- seqfish_df %>% filter(mmrf == this_mmrf) %>%
+        pull( seqfish_gene_names[which(seqfish_genes == gene)] )
+    } else {
+      return_value <- NA
     }
-    
+    return(return_value)
+  }
+  
+  return_translocations_formatted <- function(gene, seqfish_genes, 
+                                              seqfish_gene_names_formatted){
+    if (gene %in% seqfish_genes) {
+      return_value <- seqfish_gene_names_formatted[which(seqfish_genes == gene)]
+    } else {
+      return(NA)
+    }
+    return(return_value)
+  }
+  
+  categorical_cnv <- function(vec) {
+    sd_factor <- sd(vec, na.rm = TRUE)
+    b = c(2 + sd_factor*c(-Inf, -3, -1, 1, 3, Inf))
+    cnv_categories <- vec %>% cut(breaks = b)
+    return(cnv_categories)
+  }
+  
+  plot_df <- expression_primary %>% 
+    filter(gene %in% fusion_genes_gt2$fusion_gene | 
+             gene %in% seqfish_genes |
+             gene %in% keep_genes) %>% 
+    mutate(categorical_cnv = categorical_cnv(2*2^gene_avg_cnv)) %>% 
+    mutate(cnv_factor = factor(categorical_cnv, 
+                               labels = c("DELETION",
+                                          "Deletion",
+                                          "Neutral",
+                                          "Missing",
+                                          "Amplification",
+                                          "AMPLIFICATION"), 
+                               exclude = NULL)) %>%
+    rowwise() %>% 
+    mutate(translocation_indicator = return_translocations(
+      seqfish_clinical_info, mmrf, gene, seqfish_gene_names, seqfish_genes)) %>%
+    mutate(seqfish_gene_names_formatted = return_translocations_formatted(
+      gene, seqfish_genes, seqfish_gene_names_formatted)) %>%
+    mutate(fusion_label = return_fusions(fusions_primary, srr, gene)) %>%
+    ungroup() %>%
+    mutate(fusion_status = !is.na(fusion_label)) %>%
+    mutate(fusion_indicator = as.numeric(fusion_status)) %>%
+    mutate(fusion_jitter = jitter(fusion_indicator)) %>%
+    mutate(translocation_jitter = jitter(translocation_indicator)) %>%
+    left_join(seqfish_clinical_info, by = "mmrf")
+  
+  write_tsv(plot_df, str_c(paper_supp, "expression_plot_tibble.tsv"))
+} else {
+  plot_df <- read_tsv(str_c(paper_supp, "expression_plot_tibble.tsv"))
+  plot_df <- plot_df %>% mutate(cnv_factor = factor(categorical_cnv,
+                                                    labels = c("DELETION",
+                                                               "Deletion",
+                                                               "Neutral",
+                                                               "Missing",
+                                                               "Amplification",
+                                                               "AMPLIFICATION"), 
+                                                    exclude = NULL))
+}
+
+# make the plots
+if (recreate_all_plots) {
+  
+  # Set seed for reproducibility
+  set.seed(10)
+  
+  # Create output directories
+  dir.create(paper_supp, showWarnings = FALSE)
+  dir.create(str_c(paper_supp, "all_plots"), showWarnings = FALSE)
+  dir.create(str_c(paper_supp, "significant_plots"), showWarnings = FALSE)
+  dir.create(str_c(paper_supp, "seqFISH"), showWarnings = FALSE)
+  dir.create(str_c(paper_supp, "seqFISH/fusions"), showWarnings = FALSE)
+  dir.create(str_c(paper_supp, "seqFISH/translocations"), showWarnings = FALSE)
+  
+  # max value for y-axis for consistency across all plots
+  ymax_expression_value <- plyr::round_any(
+    max(expression_primary$log10tpm), 
+    accuracy = .1, f = ceiling)
+
+  # Plot expression of genes involved in seqFISH translocations
+  for (this_gene in seqfish_genes) {
+    print(this_gene)
+    n_samples_with_fusion <- plot_df %>% 
+      filter(gene == this_gene, !is.na(fusion_label)) %>% nrow()
+    if (n_samples_with_fusion > 2) {
+      t_index = which(seqfish_genes == this_gene)
+      t_name = seqfish_gene_names[t_index]
+      t_format = seqfish_gene_names_formatted_short[t_index]
+      plot_fusion_expression_1d(plot_df,
+                                this_gene,
+                                labels = FALSE,
+                                translocation = t_name,
+                                translocation_formatted = t_format,
+                                ymax_value = ymax_expression_value,
+                                pdf_path = str_c(paper_supp, 
+                                                 "seqFISH/fusions/", 
+                                                 this_gene, ".pdf"),
+                                pdf_width = 10,
+                                pdf_height = 10,
+                                seed = 10)
+      plot_translocation_expression_1d(plot_df,
+                                       this_gene,
+                                       labels = FALSE,
+                                       ymax_value = ymax_expression_value,
+                                       pdf_path = str_c(paper_supp, "seqFISH/",
+                                                        "translocations/",
+                                                        this_gene, ".pdf"),
+                                       pdf_width = 10, 
+                                       pdf_height = 10,
+                                       seed = 10)
+    }
+  }
+  
+  plot_fusion_expression_1d(plot_df,
+                            seqfish_genes,
+                            labels = FALSE,
+                            ymax_value = ymax_expression_value,
+                            pdf_path = str_c(paper_supp, "seqFISH/fusions/",
+                                             "all.pdf"),
+                            pdf_width = 4*length(seqfish_gene_names),
+                            pdf_height = 10,
+                            seed = 10)  
+  
+  plot_translocation_expression_1d(plot_df,
+                                   seqfish_genes,
+                                   labels = FALSE,
+                                   ymax_value = ymax_expression_value,
+                                   pdf_path = str_c(paper_supp, 
+                                                    "seqFISH/translocations/",
+                                                    "all.pdf"),
+                                   pdf_width = 4*length(seqfish_gene_names),
+                                   pdf_height = 10,
+                                   seed = 10)  
+  
+  # Plot expression of genes recurrently involved in fusions
+  for (this_gene in fusion_genes_gt2$fusion_gene) {
+    if ( this_gene %in% c("IGH", "IGK", "IGL",
+                          "IGHpseudo", "IGKpseudo", "IGLpseudo")) {
+      next
+    }
+    print(this_gene)
     plot_fusion_expression_1d(plot_df,
-                              seqfish_genes,
+                              this_gene,
                               labels = FALSE,
                               ymax_value = ymax_expression_value,
-                              pdf_path = str_c(paper_supp, "seqFISH/fusions/",
-                                               "all.pdf"),
-                              pdf_width = 4*length(seqfish_gene_names),
+                              pdf_path = str_c(paper_supp, "all_plots/", 
+                                               this_gene, ".pdf"),
+                              pdf_width = 10,
                               pdf_height = 10,
                               seed = 10)  
-    
-    plot_translocation_expression_1d(plot_df,
-                                     seqfish_genes,
-                                     labels = FALSE,
-                                     ymax_value = ymax_expression_value,
-                                     pdf_path = str_c(paper_supp, 
-                                                      "seqFISH/translocations/",
-                                                      "all.pdf"),
-                                     pdf_width = 4*length(seqfish_gene_names),
-                                     pdf_height = 10,
-                                     seed = 10)  
-    
-    # Plot expression of genes recurrently involved in fusions
-    for (this_gene in fusion_genes_gt2$fusion_gene) {
-      if ( this_gene %in% c("IGH", "IGK", "IGL",
-                            "IGHpseudo", "IGKpseudo", "IGLpseudo")) {
-        next
-      }
-      print(this_gene)
-      plot_fusion_expression_1d(plot_df,
-                                this_gene,
-                                labels = FALSE,
-                                ymax_value = ymax_expression_value,
-                                pdf_path = str_c(paper_supp, "all_plots/", 
-                                                 this_gene, ".pdf"),
-                                pdf_width = 10,
-                                pdf_height = 10,
-                                seed = 10)  
-      plot_fusion_expression_1d(plot_df,
-                                this_gene,
-                                labels = TRUE,
-                                ymax_value = ymax_expression_value,
-                                pdf_path = str_c(paper_supp, "all_plots/", 
-                                                 this_gene, ".labeled.pdf"),
-                                pdf_width = 10,
-                                pdf_height = 10,
-                                seed = 10)
-    }
-    
-    # Plot expression of genes from driver, oncogene, tsg, and druggable lists
-    for (this_gene in keep_genes) {
-      if ( this_gene %in% c("IGH", "IGK", "IGL",
-                            "IGHpseudo", "IGKpseudo", "IGLpseudo")) {
-        next
-      }
-      if ( this_gene %in% fusion_genes_gt2$fusion_gene) {
-        next
-      }
-      print(this_gene)
-      plot_fusion_expression_1d(plot_df,
-                                this_gene,
-                                labels = FALSE,
-                                ymax_value = ymax_expression_value,
-                                pdf_path = str_c(paper_supp, "all_plots/", 
-                                                 this_gene, ".pdf"),
-                                pdf_width = 10,
-                                pdf_height = 10,
-                                seed = 10)  
-      plot_fusion_expression_1d(plot_df,
-                                this_gene,
-                                labels = TRUE,
-                                ymax_value = ymax_expression_value,
-                                pdf_path = str_c(paper_supp, "all_plots/", 
-                                                 this_gene, ".labeled.pdf"),
-                                pdf_width = 10,
-                                pdf_height = 10,
-                                seed = 10)
-    }
-    
-    significant_fusion_expresion_genes <- testing_tbl_pvalue_adjusted %>% 
-      filter(fdr < 0.05 | median_value > 0.9, 
-             event_type %in% c("Fusion Gene Expression", 
-                               "Fusion Gene Expression Outlier")) %>% 
-      pull(event1) %>% unique()
-    
-    for (this_gene in significant_fusion_expresion_genes) {
-      print(this_gene)
-      n_samples_with_fusion <- plot_df %>% 
-        filter(gene == this_gene, !is.na(fusion_label)) %>% nrow()
-      if (n_samples_with_fusion > 2) {
-        plot_fusion_expression_1d(plot_df,
-                                  this_gene, 
-                                  labels = FALSE,
-                                  ymax_value = ymax_expression_value,
-                                  pdf_path = str_c(paper_supp, 
-                                                   "significant_plots/",
-                                                   this_gene, ".pdf"),
-                                  pdf_width = 10,
-                                  pdf_height = 10,
-                                  seed = 10)  
-        plot_fusion_expression_1d(plot_df,
-                                  this_gene, 
-                                  labels = TRUE,
-                                  ymax_value = ymax_expression_value,
-                                  pdf_path = str_c(paper_supp, 
-                                                   "significant_plots/",
-                                                   this_gene, ".labeled.pdf"),
-                                  pdf_width = 10,
-                                  pdf_height = 10,
-                                  seed = 10)  
-      }
-    }
-    
     plot_fusion_expression_1d(plot_df,
-                              significant_fusion_expresion_genes,
-                              labels = FALSE,
+                              this_gene,
+                              labels = TRUE,
                               ymax_value = ymax_expression_value,
-                              pdf_path = str_c(paper_supp, "significant_plots/", 
-                                               "all.pdf"),
-                              pdf_width = 4*length(significant_fusion_expresion_genes),
+                              pdf_path = str_c(paper_supp, "all_plots/", 
+                                               this_gene, ".labeled.pdf"),
+                              pdf_width = 10,
                               pdf_height = 10,
                               seed = 10)
   }
   
+  # Plot expression of genes from driver, oncogene, tsg, and druggable lists
+  for (this_gene in keep_genes) {
+    if ( this_gene %in% c("IGH", "IGK", "IGL",
+                          "IGHpseudo", "IGKpseudo", "IGLpseudo")) {
+      next
+    }
+    if ( this_gene %in% fusion_genes_gt2$fusion_gene) {
+      next
+    }
+    print(this_gene)
+    plot_fusion_expression_1d(plot_df,
+                              this_gene,
+                              labels = FALSE,
+                              ymax_value = ymax_expression_value,
+                              pdf_path = str_c(paper_supp, "all_plots/", 
+                                               this_gene, ".pdf"),
+                              pdf_width = 10,
+                              pdf_height = 10,
+                              seed = 10)  
+    plot_fusion_expression_1d(plot_df,
+                              this_gene,
+                              labels = TRUE,
+                              ymax_value = ymax_expression_value,
+                              pdf_path = str_c(paper_supp, "all_plots/", 
+                                               this_gene, ".labeled.pdf"),
+                              pdf_width = 10,
+                              pdf_height = 10,
+                              seed = 10)
+  }
+  
+  significant_fusion_expresion_genes <- testing_tbl_pvalue_adjusted %>% 
+    filter(fdr < 0.05 | median_value > 0.9, 
+           event_type %in% c("Fusion Gene Expression", 
+                             "Fusion Gene Expression Outlier")) %>% 
+    pull(event1) %>% unique()
+  
+  for (this_gene in significant_fusion_expresion_genes) {
+    print(this_gene)
+    n_samples_with_fusion <- plot_df %>% 
+      filter(gene == this_gene, !is.na(fusion_label)) %>% nrow()
+    if (n_samples_with_fusion > 2) {
+      plot_fusion_expression_1d(plot_df,
+                                this_gene, 
+                                labels = FALSE,
+                                ymax_value = ymax_expression_value,
+                                pdf_path = str_c(paper_supp, 
+                                                 "significant_plots/",
+                                                 this_gene, ".pdf"),
+                                pdf_width = 10,
+                                pdf_height = 10,
+                                seed = 10)  
+      plot_fusion_expression_1d(plot_df,
+                                this_gene, 
+                                labels = TRUE,
+                                ymax_value = ymax_expression_value,
+                                pdf_path = str_c(paper_supp, 
+                                                 "significant_plots/",
+                                                 this_gene, ".labeled.pdf"),
+                                pdf_width = 10,
+                                pdf_height = 10,
+                                seed = 10)  
+    }
+  }
+  
+  plot_fusion_expression_1d(plot_df,
+                            significant_fusion_expresion_genes,
+                            labels = FALSE,
+                            ymax_value = ymax_expression_value,
+                            pdf_path = str_c(paper_supp, "significant_plots/", 
+                                             "all.pdf"),
+                            pdf_width = 4*length(significant_fusion_expresion_genes),
+                            pdf_height = 10,
+                            seed = 10)
+}
+
+# ==============================================================================
+# Plot expression of genes with significantly high expression
+# ==============================================================================
+if (TRUE) {
   hi <- testing_tbl_pvalue_adjusted %>%
     filter(fdr < 0.05 | median_value > 0.9,
            event_type %in% c("Fusion Gene Expression",
@@ -1665,7 +1649,6 @@ if (TRUE) {
           panel.border = element_blank(),
           axis.text.x = element_blank(),
           axis.ticks = element_blank(),
-          #panel.grid.major = element_line(size = 0.1),
           axis.text.y = element_text(size = 10, color = "grey50")) +
     ggsave(str_c(paper_main, "gene_attributes.pdf"), height = 1, width = 7.25)
   
@@ -1673,16 +1656,33 @@ if (TRUE) {
 
 # ==============================================================================
 # Plot expression of oncogenes, tumor suppressors, kinases
-# Written April 2019
 # ==============================================================================
 
 if (TRUE) {
-  plot_df <- bind_rows(fusions_primary %>% filter(geneA_oncogene == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Oncogene", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
-                       fusions_primary %>% filter(geneB_oncogene == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Oncogene", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct),
-                       fusions_primary %>% filter(geneA_tsg == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Tumor\nSuppressor", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
-                       fusions_primary %>% filter(geneB_tsg == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Tumor\nSuppressor", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct),
-                       fusions_primary %>% filter(geneA_kinase == 1) %>% select(geneA, geneA_pct) %>% mutate(category = "Kinase", geneAB = "geneA") %>% rename(gene = geneA, pct = geneA_pct),
-                       fusions_primary %>% filter(geneB_kinase == 1) %>% select(geneB, geneB_pct) %>% mutate(category = "Kinase", geneAB = "geneB") %>% rename(gene = geneB, pct = geneB_pct))
+  plot_df <- bind_rows(fusions_primary %>% filter(geneA_oncogene == 1) %>%
+                         select(geneA, geneA_pct) %>% 
+                         mutate(category = "Oncogene", geneAB = "geneA") %>% 
+                         rename(gene = geneA, pct = geneA_pct),
+                       fusions_primary %>% filter(geneB_oncogene == 1) %>% 
+                         select(geneB, geneB_pct) %>% 
+                         mutate(category = "Oncogene", geneAB = "geneB") %>% 
+                         rename(gene = geneB, pct = geneB_pct),
+                       fusions_primary %>% filter(geneA_tsg == 1) %>% 
+                         select(geneA, geneA_pct) %>% 
+                         mutate(category = "Tumor\nSuppressor", geneAB = "geneA") %>% 
+                         rename(gene = geneA, pct = geneA_pct),
+                       fusions_primary %>% filter(geneB_tsg == 1) %>% 
+                         select(geneB, geneB_pct) %>% 
+                         mutate(category = "Tumor\nSuppressor", geneAB = "geneB") %>% 
+                         rename(gene = geneB, pct = geneB_pct),
+                       fusions_primary %>% filter(geneA_kinase == 1) %>% 
+                         select(geneA, geneA_pct) %>% 
+                         mutate(category = "Kinase", geneAB = "geneA") %>% 
+                         rename(gene = geneA, pct = geneA_pct),
+                       fusions_primary %>% filter(geneB_kinase == 1) %>% 
+                         select(geneB, geneB_pct) %>% 
+                         mutate(category = "Kinase", geneAB = "geneB") %>%
+                         rename(gene = geneB, pct = geneB_pct))
   
   ggplot(data = plot_df, aes(x = category, y = pct)) + 
     geom_violin(color = "black",
@@ -1704,24 +1704,22 @@ if (TRUE) {
           panel.spacing.x = unit(0.1, units = "inches"),
           axis.title = element_text(size = 12),
           axis.text.x = element_blank(),
-          strip.text = element_text(size = 10)
-    ) +
+          strip.text = element_text(size = 10)) +
     ggsave(str_c(paper_main, "kinase_oncogene_tsg.pdf"),
            width = 3, height = 4, useDingbats = FALSE)
 }
 
 # ==============================================================================
-# Expression correlation of kinases by structure (3' or 5', in-frame or not)
-# Intact only
-# Written April 2019 -- Main
+# Expression correlation of kinases by structure (with intact 3' kinase only)
 # ==============================================================================
-map3k14_intact_manual_review <- c("SRR1567033", "SRR1567038", "SRR1567063",
-                                  "SRR1587262", "SRR1606185", "SRR2128822",
-                                  "SRR2129791", "SRR3163577", "SRR3163590",
-                                  "SRR4189146", "SRR4189260", "SRR4189769",
-                                  "SRR4189780", "SRR4189926", "SRR4189989")
 
 if (TRUE) {
+  
+  map3k14_intact_manual_review <- c("SRR1567033", "SRR1567038", "SRR1567063",
+                                    "SRR1587262", "SRR1606185", "SRR2128822",
+                                    "SRR2129791", "SRR3163577", "SRR3163590",
+                                    "SRR4189146", "SRR4189260", "SRR4189769",
+                                    "SRR4189780", "SRR4189926", "SRR4189989")
   
   cor_tibble <- kinases %>%
     filter(KinasePos == "3P_KINASE" & 
@@ -1740,21 +1738,23 @@ if (TRUE) {
                                  KinasePos == "3P_KINASE" ~ "3' Kinase")) %>%
     mutate(KinaseDomain = case_when(KinaseDomain == "Intact" ~ "Domain Intact",
                                     KinaseDomain == "Disrupted" ~ "Domain Disrupted")) %>%
-    filter(KinaseDomain == "Domain Intact" | (geneB == "MAP3K14" & SampleID %in% map3k14_intact_manual_review)) %>%
+    filter(KinaseDomain == "Domain Intact" | 
+             (geneB == "MAP3K14" & SampleID %in% map3k14_intact_manual_review)) %>%
     filter(KinasePos == "3' Kinase") %>% 
     group_by(geneB) %>% 
     summarize(count = n()) %>% 
     filter(count > 1) %>%
     pull(geneB)
   
-  kinases %>% mutate(KinasePos = case_when(KinasePos == "5P_KINASE" ~ "5' Kinase",
+  kinase_plot_df <- kinases %>% mutate(KinasePos = case_when(KinasePos == "5P_KINASE" ~ "5' Kinase",
                                            KinasePos == "3P_KINASE" ~ "3' Kinase")) %>%
     mutate(KinaseDomain = case_when(KinaseDomain == "Intact" ~ "Domain Intact",
                                     KinaseDomain == "Disrupted" ~ "Domain Disrupted")) %>%
-    filter(KinaseDomain == "Domain Intact" | (geneB == "MAP3K14" & SampleID %in% map3k14_intact_manual_review)) %>%
+    filter(KinaseDomain == "Domain Intact" | 
+             (geneB == "MAP3K14" & SampleID %in% map3k14_intact_manual_review)) %>%
     filter(KinasePos == "3' Kinase") %>%
     mutate(recurrent_label = case_when(geneB %in% recurrent_3p_intact_kinases ~ geneB,
-                                       TRUE ~ "")) %>% #"Not recurrent")) %>%
+                                       TRUE ~ "")) %>%
     mutate(recurrent_color = case_when(geneB %in% recurrent_3p_intact_kinases ~ geneB,
                                        TRUE ~ "Not recurrent")) %>%
     mutate(recurrent_color = factor(recurrent_color, 
@@ -1766,19 +1766,23 @@ if (TRUE) {
                                  TRUE ~ geneB_pct),
            recurrent_shape = case_when(geneA %in% c("IGH", "IGK", "IGL") ~ 1,
                                        geneB %in% c("IGH", "IGK", "IGL") ~ 1,
-                                       TRUE ~ 16)) %>%
-    ggplot(aes(x = geneA_pct, y = geneB_pct)) + 
+                                       TRUE ~ 16))
+  
+  ggplot(data = kinase_plot_df, aes(x = geneA_pct, y = geneB_pct)) + 
     geom_abline(linetype = 2, alpha = 0.5) +
     geom_smooth(method = "lm") + 
     geom_point(aes(color = recurrent_color, shape = factor(recurrent_shape)), show.legend = FALSE) +
-    geom_label_repel(aes(color = recurrent_color, label = recurrent_label), fontface = "italic", show.legend = FALSE) +
+    geom_label_repel(aes(color = recurrent_color, label = recurrent_label), 
+                     fontface = "italic", show.legend = FALSE) +
     coord_fixed() + 
     scale_shape_manual(values = c(1,16)) +
     scale_y_continuous(limits = c(0,1), expand = c(0, 0.1)) +
     scale_x_continuous(limits = c(0,1), expand = c(0, 0.1)) +
     scale_color_manual(values = c(brewer.pal(length(recurrent_3p_intact_kinases), "Dark2"), "#000000")) +
-    geom_text(data = cor_tibble, aes(x = .99, y = 0.01, label = str_c("cor = ", round(c, 2))), vjust = 0, hjust = 1, color = "blue", size = 2.5) +
-    labs(x = "5' Gene Expression Percentile", y = "3' Intact Kinase Expression Percentile") +
+    geom_text(data = cor_tibble, aes(x = .99, y = 0.01, label = str_c("cor = ", round(c, 2))), 
+              vjust = 0, hjust = 1, color = "blue", size = 2.5) +
+    labs(x = "5' Gene Expression Percentile", 
+         y = "3' Intact Kinase Expression Percentile") +
     theme_bw() +
     theme(panel.background = element_blank(),
           panel.border = element_blank(),
@@ -1798,7 +1802,8 @@ if (TRUE) {
 n_significant_expr_genes <- testing_tbl_pvalue_adjusted %>% 
   filter(event_type == "Fusion Gene Expression" | 
            event_type == "Fusion Gene Expression Outlier") %>% 
-  filter(median_value > 0.9 | fdr < 0.05) %>% pull(event1) %>% unique() %>% length()
+  filter(median_value > 0.9 | fdr < 0.05) %>% 
+  pull(event1) %>% unique() %>% length()
 n_significant_expr_genes_interesting <- testing_tbl_pvalue_adjusted %>% 
   filter(event_type == "Fusion Gene Expression" | 
            event_type == "Fusions Gene Expression Outlier") %>% 
@@ -1819,12 +1824,24 @@ kinase_3p_intact_df <- kinases %>%
            KinaseDomain == "Intact" | 
            (geneB == "MAP3K14" & SampleID %in% map3k14_intact_manual_review)) %>% 
   select(geneA_pct, geneB_pct)
-kinase_3p_intact_cor <- cor(kinase_3p_intact_df$geneA_pct, kinase_3p_intact_df$geneB_pct, use = "pairwise.complete.obs")
-overall_cor <- cor(fusions_primary %>% pull(geneA_pct), fusions_primary %>% pull(geneB_pct), use = "pairwise.complete.obs")
+kinase_3p_intact_cor <- cor(kinase_3p_intact_df$geneA_pct, 
+                            kinase_3p_intact_df$geneB_pct, 
+                            use = "pairwise.complete.obs")
+overall_cor <- cor(fusions_primary %>% pull(geneA_pct), 
+                   fusions_primary %>% pull(geneB_pct), 
+                   use = "pairwise.complete.obs")
+n_recurrent_kinases <- kinase_plot_df %>% 
+  filter(geneB %in% recurrent_3p_intact_kinases) %>% 
+  group_by(geneB) %>% 
+  summarize(count = n()) %>% 
+  arrange(desc(count))
+
 print(str_c("Significantly overexpressed genes: ", n_significant_expr_genes))
 print(str_c("Significantly overexpressed genes of interest: ", n_significant_expr_genes_interesting))
+print("This number of samples with fusions in interesting genes:")
+print(samples_with_overexpressed_interesting_genes)
 print(str_c("WHSC1 expression outlier but no WHSC1 fusion: ", n_whsc1_outlier_no_fusion))
 print(str_c("Correlation of 3' intact kinase expression: ", round(kinase_3p_intact_cor, 3)))
 print(str_c("Correlation of all expression: ", round(overall_cor, 3)))
-print("This number of samples with fusions in interesting genes:")
-print(samples_with_overexpressed_interesting_genes)
+print("Number of recurrent kinases:")
+print(n_recurrent_kinases)

@@ -1,6 +1,6 @@
 # ==============================================================================
 # WHSC1/FGFR3 (MMRF Fusions)
-# Steven Foltz (smfoltz@wustl.edu)
+# Steven Foltz (github: envest)
 # ==============================================================================
 
 paper_main = "paper/main/04_whsc1_fgfr3/"
@@ -30,7 +30,6 @@ max_whsc1 <- whsc1_tx %>% pull(stop) %>% max()/1e6
 
 # ==============================================================================
 # FGFR3 WHSC1 IGH story
-# Updated April 2019
 # ==============================================================================
 
 if (TRUE) {
@@ -272,10 +271,9 @@ if (TRUE) {
   
 }
 
-
-################################################################################
+# ==============================================================================
 # Special cases of IGH--WHSC1 survival
-################################################################################
+# ==============================================================================
 
 if (TRUE) {
   
@@ -329,32 +327,29 @@ if (TRUE) {
     filter(mmrf %in% mmrf_with_primary_mutation_calls)
   
   n_samples_WHSC1_survival <- EFS_tibble %>% nrow()
-  n_samples_WHSC1_survival_fusion <- EFS_tibble %>% filter(fusion == "IGH--WHSC1") %>% nrow()
-  n_samples_WHSC1_survival_fusion_expression <- EFS_tibble %>% filter(fusion == "IGH--WHSC1", fgfr3_expression_high == TRUE) %>% nrow()
-  n_samples_WHSC1_survival_fusion_expression_pathogenic <- EFS_tibble %>% filter(fusion == "IGH--WHSC1", fgfr3_expression_high == TRUE, fgfr3_pathogenic_mutation == TRUE) %>% nrow()
+  n_samples_WHSC1_survival_fusion <- EFS_tibble %>% 
+    filter(fusion == "IGH--WHSC1") %>% nrow()
+  n_samples_WHSC1_survival_fusion_expression <- EFS_tibble %>% 
+    filter(fusion == "IGH--WHSC1", fgfr3_expression_high == TRUE) %>% nrow()
+  n_samples_WHSC1_survival_fusion_expression_pathogenic <- EFS_tibble %>% 
+    filter(fusion == "IGH--WHSC1", 
+           fgfr3_expression_high == TRUE, 
+           fgfr3_pathogenic_mutation == TRUE) %>% nrow()
   
   plot_survival_list[["base_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age, data = EFS_tibble)
   plot_survival_list[["WHSC1_fusion_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fusion, data = EFS_tibble)
-  plot_survival_list[["WHSC1_fusion_mutation_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fusion + fgfr3_pathogenic_mutation, data = EFS_tibble)
   
   plot_survival_list[["with_fusion_base_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"))
-  plot_survival_list[["with_fusion_mutation_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fgfr3_pathogenic_mutation, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"))
-  plot_survival_list[["with_fusion_expression_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fgfr3_expression_high, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"))
   plot_survival_list[["with_fusion_mutation_expression_EFS"]] <- coxph(formula = Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + fgfr3_pathogenic_mutation + fgfr3_expression_high, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"))
   
-  plot_survival_list[["anova_WHSC1_fusion_mutation_EFS"]] <- anova(plot_survival_list[["base_EFS"]], plot_survival_list[["WHSC1_fusion_mutation_EFS"]])
-  plot_survival_list[["anova_WHSC1_fusion_mutation_EFS"]] <- anova(plot_survival_list[["WHSC1_fusion_EFS"]], plot_survival_list[["WHSC1_fusion_mutation_EFS"]])
   plot_survival_list[["anova_WHSC1_fusion_EFS"]] <- anova(plot_survival_list[["base_EFS"]], plot_survival_list[["WHSC1_fusion_EFS"]])
-  plot_survival_list[["anova_with_fusion_mutation_EFS"]] <- anova(plot_survival_list[["with_fusion_base_EFS"]], plot_survival_list[["with_fusion_mutation_EFS"]])
-  plot_survival_list[["anova_with_fusion_expression_EFS"]] <- anova(plot_survival_list[["with_fusion_base_EFS"]], plot_survival_list[["with_fusion_expression_EFS"]])
   plot_survival_list[["anova_with_fusion_mutation_expression_EFS"]] <- anova(plot_survival_list[["with_fusion_base_EFS"]], plot_survival_list[["with_fusion_mutation_expression_EFS"]])
   
-  fit <- survfit(Surv(EFS, EFS_censor == 0) ~ fusion, data = EFS_tibble)
-  print("Kaplan-Meier estimates for WHSC1/FGFR3/IGH fusion:")
-  print(fit)
+  fit_km_fusion <- survfit(Surv(EFS, EFS_censor == 0) ~ fusion, data = EFS_tibble)
+  
   pdf(str_c(paper_main, "WHSC1.EFS.with_legend.pdf"),
       width = 4.25, height = 3.5, useDingbats = FALSE)
-  print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
+  print(ggsurvplot(fit_km_fusion, data = EFS_tibble, conf.int = TRUE,
                    surv.median.line = "hv", pval = TRUE,
                    legend.labs = c("No Fusion", "IGH--WHSC1 Fusion"),
                    legend = "right", 
@@ -373,9 +368,10 @@ if (TRUE) {
                                              font.legend = c(8, "plain", "black")),
                    conf.int.alpha = 0.1))
   dev.off()
+  
   pdf(str_c(paper_main, "WHSC1.EFS.without_legend.pdf"),
       width = 3.5, height = 3.5, useDingbats = FALSE)
-  print(ggsurvplot(fit, data = EFS_tibble, conf.int = TRUE,
+  print(ggsurvplot(fit_km_fusion, data = EFS_tibble, conf.int = TRUE,
                    surv.median.line = "hv", pval = TRUE,
                    legend.labs = c("No Fusion", "IGH--WHSC1 Fusion"),
                    legend = "none",
@@ -395,59 +391,10 @@ if (TRUE) {
                    conf.int.alpha = 0.1))
   dev.off()
   
-  fit <- survfit(Surv(EFS, EFS_censor == 0) ~ fgfr3_expression_high, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"))
-  print("Kaplan-Meier estimates for low/high expression among WHSC1/FGFR3/IGH fusion:")
-  print(fit)
-  pdf(str_c(paper_main, "WHSC1.FGFR3_expression.EFS.with_legend.pdf"),
-      width = 4.25, height = 3.5, useDingbats = FALSE)
-  print(ggsurvplot(fit, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"), conf.int = TRUE,
-                   surv.median.line = "hv", pval = TRUE,
-                   legend.labs = c("FGFR3 Expression Low", "FGFR3 Expression High"),
-                   legend = "right", 
-                   xlab = "Time (days)", 
-                   ylab = "Progression-Free Survival Probability",
-                   palette = c("#1BB6AF", "#172869"),
-                   ggtheme = theme_survminer(base_size = 12,
-                                             base_family = "",
-                                             font.main = c(12, "plain", "black"),
-                                             font.submain = c(12, "plain", "black"),
-                                             font.x = c(12, "plain", "black"),
-                                             font.y = c(12, "plain", "black"),
-                                             font.caption = c(12, "plain", "black"),
-                                             font.tickslab = c(8, "plain", "black"),
-                                             legend = c("top", "bottom", "left", "right", "none"),
-                                             font.legend = c(8, "plain", "black")),
-                   conf.int.alpha = 0.1))
-  dev.off()
-  
-  pdf(str_c(paper_main, "WHSC1.FGFR3_expression.EFS.without_legend.pdf"),
-      width = 3.5, height = 3.5, useDingbats = FALSE)
-  print(ggsurvplot(fit, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"), conf.int = TRUE,
-                   surv.median.line = "hv", pval = TRUE,
-                   legend.labs = c("FGFR3 Expression Low", "FGFR3 Expression High"),
-                   legend = "none", 
-                   xlab = "Time (days)", 
-                   ylab = "Progression-Free Survival Probability",
-                   palette = c("#1BB6AF", "#172869"),
-                   ggtheme = theme_survminer(base_size = 12,
-                                             base_family = "",
-                                             font.main = c(12, "plain", "black"),
-                                             font.submain = c(12, "plain", "black"),
-                                             font.x = c(12, "plain", "black"),
-                                             font.y = c(12, "plain", "black"),
-                                             font.caption = c(12, "plain", "black"),
-                                             font.tickslab = c(8, "plain", "black"),
-                                             legend = c("top", "bottom", "left", "right", "none"),
-                                             font.legend = c(8, "plain", "black")),
-                   conf.int.alpha = 0.1))
-  dev.off()
-  
-  fit <- survfit(Surv(EFS, EFS_censor == 0) ~ fgfr3_expression_high + fgfr3_pathogenic_mutation, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"))
-  print("Kaplan-Meier estimates for low/high expression + mutation among WHSC1/FGFR3/IGH fusion:")
-  print(fit)
+  fit_fusion_expr_mut <- survfit(Surv(EFS, EFS_censor == 0) ~ fgfr3_expression_high + fgfr3_pathogenic_mutation, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"))
   pdf(str_c(paper_main, "WHSC1.FGFR3_expression_mutation.EFS.with_legend.pdf"),
       width = 4.25, height = 3.5, useDingbats = FALSE)
-  print(ggsurvplot(fit, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"), conf.int = TRUE,
+  print(ggsurvplot(fit_fusion_expr_mut, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"), conf.int = TRUE,
                    surv.median.line = "hv", pval = TRUE,
                    legend.labs = c("FGFR3 Expression Low", "FGFR3 Expression High\nNo Pathogenic Mutation", "FGFR3 Expression High\nPathogenic Mutation"),
                    legend = "right", 
@@ -469,7 +416,7 @@ if (TRUE) {
   
   pdf(str_c(paper_main, "WHSC1.FGFR3_expression_mutation.EFS.without_legend.pdf"),
       width = 3.5, height = 3.5, useDingbats = FALSE)
-  print(ggsurvplot(fit, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"), conf.int = TRUE,
+  print(ggsurvplot(fit_fusion_expr_mut, data = EFS_tibble %>% filter(fusion == "IGH--WHSC1"), conf.int = TRUE,
                    surv.median.line = "hv", pval = TRUE,
                    legend.labs = c("FGFR3 Expression Low", "FGFR3 Expression High\nNo Pathogenic Mutation", "FGFR3 Expression High\nPathogenic Mutation"),
                    legend = "none", 
@@ -488,11 +435,6 @@ if (TRUE) {
                                              font.legend = c(8, "plain", "black")),
                    conf.int.alpha = 0.1))
   dev.off()
-  
-  print("Cox PH model for fusion:")
-  print(plot_survival_list[["WHSC1_fusion_EFS"]])
-  print("Cox PH model for fusion confidence intervals:")
-  print(exp(confint(plot_survival_list[["WHSC1_fusion_EFS"]])))
   
 }
 
@@ -524,15 +466,26 @@ print(str_c("WHSC1 fusions with high FGFR3 expression: ",
             n_whsc1_fgfr3_high, "/", 
             n_whsc1_fgfr3_fusion, " = ", 
             round(100*n_whsc1_fgfr3_high/n_whsc1_fgfr3_fusion, 2), "%"))
+print(str_c("Proportion of samples with high FGFR3 expression and pathogenic mutation: ", 
+            n_with_fgfr3_pathogenic_mutation, "/", 
+            n_with_high_fgfr3_and_mutation_calls, " = ", 
+            100*round(n_with_fgfr3_pathogenic_mutation/n_with_high_fgfr3_and_mutation_calls, 4), "%"))
+
+print(str_c("Number of samples with IGH--WHSC1 fusion and WGS breakpoint: ", n_samples_with_IGHWHSC1_wgs_breakpoint))
+print(str_c("IGH chr14 genomic breakpoint range: ", round(igh_breakpoint_range, 2)))
+print(str_c("WHSC1 chr4 genomic breakpoint range: ", round(whsc1_breakpoint_range, 2)))
 
 print(str_c("Number of samples with complete survival data (ISS_Stage, Age, EFS status): ", n_samples_WHSC1_survival))
 print(str_c("Number of EFS samples with IGH--WHSC1 fusion: ", n_samples_WHSC1_survival_fusion))
 print(str_c("Number of EFS samples with IGH--WHSC1 fusion and high FGFR3 expression: ", n_samples_WHSC1_survival_fusion_expression))
 print(str_c("Number of EFS samples with IGH--WHSC1 fusion and high FGFR3 expression, and pathogenic FGFR3 mutation: ", n_samples_WHSC1_survival_fusion_expression_pathogenic))
-print(str_c("Proportion of samples with high FGFR3 expression and pathogenic mutation: ", 
-            n_with_fgfr3_pathogenic_mutation, "/", 
-            n_with_high_fgfr3_and_mutation_calls, " = ", 
-            100*round(n_with_fgfr3_pathogenic_mutation/n_with_high_fgfr3_and_mutation_calls, 4), "%"))
-print(str_c("Number of samples with IGH--WHSC1 fusion and WGS breakpoint: ", n_samples_with_IGHWHSC1_wgs_breakpoint))
-print(str_c("IGH chr14 genomic breakpoint range: ", round(igh_breakpoint_range, 2)))
-print(str_c("WHSC1 chr4 genomic breakpoint range: ", round(whsc1_breakpoint_range, 2)))
+
+print("Cox PH model for fusion:")
+print(plot_survival_list[["WHSC1_fusion_EFS"]])
+print("Cox PH model for fusion confidence intervals:")
+print(exp(confint(plot_survival_list[["WHSC1_fusion_EFS"]])))
+
+print("Kaplan-Meier estimates for WHSC1/FGFR3/IGH fusion:")
+print(fit_km_fusion)
+print("Kaplan-Meier estimates for low/high expression + mutation among WHSC1/FGFR3/IGH fusion:")
+print(fit_fusion_expr_mut)
