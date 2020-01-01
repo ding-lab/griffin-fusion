@@ -3,3 +3,4 @@
 *.Rhistory
 .Rproj.user
 Reference
+*tar.gz*
