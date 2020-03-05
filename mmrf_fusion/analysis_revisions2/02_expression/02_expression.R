@@ -11,9 +11,9 @@ dir.create(paper_main, recursive = TRUE, showWarnings = FALSE)
 dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 
 # CHANGE TO TRUE ONLY IF YOU NEED TO CREATE TESTING FILE OR PLOTS FOR FIRST TIME
-recreate_testing_tbl <- FALSE
-recreate_plot_df <- FALSE
-recreate_all_plots <- FALSE
+recreate_testing_tbl <- TRUE
+recreate_plot_df <- TRUE
+recreate_all_plots <- TRUE
 
 # ==============================================================================
 # Measure associations between fusion status and expression and clinical info
@@ -409,10 +409,10 @@ if (TRUE) {
            Either t_test xor outlier must be TRUE.")
     } else if (t_test) {
       test_performed <- "Student's t-Test"
-      t.test(expression_with_event$log10tpm, expression_without_event$log10tpm)
+      test_result <- t.test(expression_with_event$log10tpm,
+                              expression_without_event$log10tpm)
       test_statistic <- test_result$statistic
       p.value <- test_result$p.value
-
     } else if (outlier) {
       test_performed <- "Fisher's Exact Test"
       if ( median_pct >= 0.5 ) {
@@ -1283,10 +1283,13 @@ if (TRUE) {
 # create plot data frame
 if (recreate_plot_df) {
   return_fusions <- function(fusions_df, this_srr, gene){
-    return_value <- fusions_df %>% filter(srr == this_srr,
-                                          geneA == gene | geneB == gene) %>%
-      pull(fusion) %>% str_c(collapse = "\n")
-    if (identical(return_value, character(0))) {
+    has_fusion <- fusions_df %>% filter(srr == this_srr,
+                                        geneA == gene | geneB == gene) %>% nrow()
+    if (has_fusion > 0) {
+      return_value <- fusions_df %>% filter(srr == this_srr,
+                                            geneA == gene | geneB == gene) %>%
+        pull(fusion) %>% str_c(collapse = "\n")
+    } else {
       return_value <- NA
     }
     return(return_value)
