@@ -409,16 +409,7 @@ if (TRUE) {
            Either t_test xor outlier must be TRUE.")
     } else if (t_test) {
       test_performed <- "Student's t-Test"
-      if ( median_pct >= 0.5 ) {
-        test_result <- t.test(expression_with_event$log10tpm,
-                              expression_without_event$log10tpm,
-                              alternative = "greater")
-
-      } else{
-        test_result <- t.test(expression_with_event$log10tpm,
-                              expression_without_event$log10tpm,
-                              alternative = "less")
-      }
+      t.test(expression_with_event$log10tpm, expression_without_event$log10tpm)
       test_statistic <- test_result$statistic
       p.value <- test_result$p.value
 
