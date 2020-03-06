@@ -11,9 +11,9 @@ dir.create(paper_main, recursive = TRUE, showWarnings = FALSE)
 dir.create(paper_supp, recursive = TRUE, showWarnings = FALSE)
 
 # CHANGE TO TRUE ONLY IF YOU NEED TO CREATE TESTING FILE OR PLOTS FOR FIRST TIME
-recreate_testing_tbl <- TRUE
-recreate_plot_df <- TRUE
-recreate_all_plots <- TRUE
+recreate_testing_tbl <- FALSE
+recreate_plot_df <- FALSE
+recreate_all_plots <- FALSE
 
 # ==============================================================================
 # Measure associations between fusion status and expression and clinical info
