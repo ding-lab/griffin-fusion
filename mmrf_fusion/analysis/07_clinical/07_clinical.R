@@ -121,6 +121,7 @@ if (TRUE) {
 
       if (p_value_EFS < 0.05 & p_value_model_comparison < 0.05) {
         coxph_model_EFS_list[[this_fusion]] <- coxph_model_EFS
+        print(coxph_model_EFS_list[[this_fusion]])
         pdf(str_c(paper_supp, "survival.forest.", this_fusion, ".pdf"), width = 3.5, height = 2)
         print(ggforest(coxph_model_EFS, data = EFS_tibble, noDigits = 3))
         dev.off()
@@ -147,6 +148,7 @@ if (TRUE) {
 
       if (p_value_EFS < 0.05 & p_value_model_comparison < 0.05) {
         coxph_model_EFS_list[[this_gene]] <- coxph_model_EFS
+        print(coxph_model_EFS_list[[this_gene]])
         pdf(str_c(paper_supp, "survival.forest.", this_gene, ".pdf"), width = 3.5, height = 2)
         print(ggforest(coxph_model_EFS, data = EFS_tibble, noDigits = 3))
         dev.off()
@@ -207,6 +209,7 @@ if (TRUE) {
     select(mmrf, Age, total_fusions, ISS_Stage, EFS, EFS_censor)
   total_fusions_coxph_model <- coxph(Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + total_fusions, data = EFS_tibble)
 
+  print(total_fusions_coxph_model)
   pdf(str_c(paper_supp, "survival.forest.fusion_burden.pdf"), width = 3.5, height = 2)
   print(ggforest(total_fusions_coxph_model, data = EFS_tibble, noDigits = 3))
   dev.off()

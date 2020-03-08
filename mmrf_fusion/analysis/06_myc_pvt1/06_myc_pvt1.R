@@ -348,6 +348,7 @@ print(str_c("Number of samples with MYC mutation: ", mmrf_with_myc_mutation %>% 
 
 print("Kaplan-Meier estimates for MYC/PVT1/IGL fusion:")
 print(fit_fusion_mutant)
+print(surv_pvalue(fit_fusion_mutant))
 print(str_c("Proportion of PVT1--IGL Stage I: ",
             n_pvt1_igl_stageI, "/", n_pvt1_igl_any_stage, " = ",
             round(100*n_pvt1_igl_stageI/n_pvt1_igl_any_stage, 2), "%"))
