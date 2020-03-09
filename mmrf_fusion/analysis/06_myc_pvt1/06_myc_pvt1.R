@@ -239,7 +239,7 @@ if (TRUE) {
 
   EFS_tibble <- seqfish_clinical_info %>%
     filter(mmrf %in% mmrf_primary_pretreatment) %>%
-    filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
+    filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(EFS), !is.na(Age)) %>%
     left_join(fusions_primary %>% filter(fusion %in% c("PVT1--IGL", "MYC--IGL")), by = "mmrf") %>%
     select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor) %>%
     replace_na(list(fusion = "_None")) %>%
@@ -365,7 +365,7 @@ print(exp(confint(plot_survival_list[["PVT1_MYC_fusion_EFS"]])))
 
 x <- seqfish_clinical_info %>%
   filter(mmrf %in% mmrf_primary_pretreatment) %>%
-  filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
+  filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(EFS), !is.na(Age)) %>%
   left_join(fusions_primary %>% filter(fusion %in% c("PVT1--IGL", "MYC--IGL")), by = "mmrf") %>%
   select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor) %>%
   replace_na(list(fusion = "_None")) %>%

@@ -311,7 +311,7 @@ if (TRUE) {
 
   EFS_tibble <- seqfish_clinical_info %>%
     filter(mmrf %in% mmrf_primary_pretreatment) %>%
-    filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
+    filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(EFS), !is.na(Age)) %>%
     left_join(fusions_primary %>%
                 filter(fusion %in% c("IGH--WHSC1", "IGH--FGFR3",
                                      "WHSC1--IGH", "FGFR3--IGH")) %>%

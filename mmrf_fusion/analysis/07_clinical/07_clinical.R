@@ -78,7 +78,7 @@ if (TRUE) {
   coxph_model_EFS_list <- list()
 
   fusions_ge10 <- seqfish_clinical_info %>%
-    filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
+    filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(EFS), !is.na(Age)) %>%
     left_join(fusions_primary, by = "mmrf") %>%
     filter(!is.na(fusion)) %>%
     select(fusion) %>%
@@ -88,13 +88,13 @@ if (TRUE) {
     pull(fusion)
 
   genes_ge10 <- bind_rows(seqfish_clinical_info %>%
-                           filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
+                           filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(EFS), !is.na(Age)) %>%
                            left_join(fusions_primary, by = "mmrf") %>%
                            filter(!is.na(fusion)) %>%
                            select(geneA) %>%
                            rename("gene" = "geneA"),
                          seqfish_clinical_info %>%
-                           filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
+                           filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(EFS), !is.na(Age)) %>%
                            left_join(fusions_primary, by = "mmrf") %>%
                            filter(!is.na(fusion)) %>%
                            select(geneB) %>%
@@ -108,7 +108,7 @@ if (TRUE) {
   for (this_fusion in fusions_ge10) {
     EFS_tibble <- seqfish_clinical_info %>%
       filter(mmrf %in% mmrf_primary_pretreatment) %>%
-      filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
+      filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(EFS), !is.na(Age)) %>%
       left_join(fusions_primary %>% filter(fusion == this_fusion), by = "mmrf") %>%
       select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor) %>%
       replace_na(list(fusion = "_None"))
@@ -132,7 +132,7 @@ if (TRUE) {
   for (this_gene in genes_ge10) {
     EFS_tibble <- seqfish_clinical_info %>%
       filter(mmrf %in% mmrf_primary_pretreatment) %>%
-      filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age)) %>%
+      filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(EFS), !is.na(Age)) %>%
       left_join(fusions_primary %>% filter(geneA == this_gene | geneB == this_gene), by = "mmrf") %>%
       select(mmrf, Age, fusion, ISS_Stage, EFS, EFS_censor) %>%
       mutate(gene = case_when(is.na(fusion) ~ "_None",
@@ -205,7 +205,7 @@ if (TRUE) {
   # Total fusion burden and survival
   EFS_tibble <- seqfish_clinical_info %>%
     filter(mmrf %in% mmrf_primary_pretreatment) %>%
-    filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(Age), !is.na(total_fusions)) %>%
+    filter(!is.na(ISS_Stage), !is.na(EFS_censor), !is.na(EFS), !is.na(Age), !is.na(total_fusions)) %>%
     select(mmrf, Age, total_fusions, ISS_Stage, EFS, EFS_censor)
   total_fusions_coxph_model <- coxph(Surv(EFS, EFS_censor == 0) ~ ISS_Stage + Age + total_fusions, data = EFS_tibble)
 
@@ -226,7 +226,7 @@ if (TRUE) {
 
   triple_hit <- seqfish_clinical_info %>%
     filter(mmrf %in% mmrf_primary_pretreatment) %>%
-    filter(!is.na(EFS_censor),
+    filter(!is.na(EFS_censor), !is.na(EFS),
            !is.na(amp1q), !is.na(del17p), !is.na(updated_seqfish_t_IGH_WHSC1),
            !is.na(Age), !is.na(ISS_Stage)) %>%
     select(EFS, EFS_censor,
@@ -345,7 +345,7 @@ if (TRUE) {
   Rcoxph_model_EFS_list <- list()
 
   fusions_ge10 <- Rseqfish_clinical_info %>%
-    filter(!is.na(RISS_Stage), !is.na(EFS_censor), !is.na(Age),
+    filter(!is.na(RISS_Stage), !is.na(EFS_censor), !is.na(EFS), !is.na(Age),
            !is.na(SeqWGS_Cp_Hyperdiploid_Call), !is.na(updated_seqfish_t_IGH_CCND1),
            !is.na(updated_seqfish_t_IGH_WHSC1), !is.na(updated_seqfish_t_IGH_MAF),
            !is.na(updated_seqfish_t_IGH_CCND3), !is.na(updated_seqfish_t_IGH_MAFB),
@@ -360,7 +360,7 @@ if (TRUE) {
     pull(fusion)
 
   genes_ge10 <- bind_rows(Rseqfish_clinical_info %>%
-                            filter(!is.na(RISS_Stage), !is.na(EFS_censor), !is.na(Age),
+                            filter(!is.na(RISS_Stage), !is.na(EFS_censor), !is.na(EFS), !is.na(Age),
                                    !is.na(SeqWGS_Cp_Hyperdiploid_Call), !is.na(updated_seqfish_t_IGH_CCND1),
                                    !is.na(updated_seqfish_t_IGH_WHSC1), !is.na(updated_seqfish_t_IGH_MAF),
                                    !is.na(updated_seqfish_t_IGH_CCND3), !is.na(updated_seqfish_t_IGH_MAFB),
@@ -371,7 +371,7 @@ if (TRUE) {
                             select(geneA) %>%
                             rename("gene" = "geneA"),
                           Rseqfish_clinical_info %>%
-                              filter(!is.na(RISS_Stage), !is.na(EFS_censor), !is.na(Age),
+                              filter(!is.na(RISS_Stage), !is.na(EFS_censor), !is.na(EFS), !is.na(Age),
                                      !is.na(SeqWGS_Cp_Hyperdiploid_Call), !is.na(updated_seqfish_t_IGH_CCND1),
                                      !is.na(updated_seqfish_t_IGH_WHSC1), !is.na(updated_seqfish_t_IGH_MAF),
                                      !is.na(updated_seqfish_t_IGH_CCND3), !is.na(updated_seqfish_t_IGH_MAFB),
@@ -390,7 +390,7 @@ if (TRUE) {
   for (this_fusion in fusions_ge10) {
     EFS_tibble <- Rseqfish_clinical_info %>%
       filter(mmrf %in% mmrf_primary_pretreatment) %>%
-      filter(!is.na(RISS_Stage), !is.na(EFS_censor), !is.na(Age),
+      filter(!is.na(RISS_Stage), !is.na(EFS_censor), !is.na(EFS), !is.na(Age),
              !is.na(SeqWGS_Cp_Hyperdiploid_Call), !is.na(updated_seqfish_t_IGH_CCND1),
              !is.na(updated_seqfish_t_IGH_WHSC1), !is.na(updated_seqfish_t_IGH_MAF),
              !is.na(updated_seqfish_t_IGH_CCND3), !is.na(updated_seqfish_t_IGH_MAFB),
@@ -415,7 +415,7 @@ if (TRUE) {
   for (this_gene in genes_ge10) {
     EFS_tibble <- Rseqfish_clinical_info %>%
       filter(mmrf %in% mmrf_primary_pretreatment) %>%
-      filter(!is.na(RISS_Stage), !is.na(EFS_censor), !is.na(Age),
+      filter(!is.na(RISS_Stage), !is.na(EFS_censor), !is.na(EFS), !is.na(Age),
              !is.na(SeqWGS_Cp_Hyperdiploid_Call), !is.na(updated_seqfish_t_IGH_CCND1),
              !is.na(updated_seqfish_t_IGH_WHSC1), !is.na(updated_seqfish_t_IGH_MAF),
              !is.na(updated_seqfish_t_IGH_CCND3), !is.na(updated_seqfish_t_IGH_MAFB),
